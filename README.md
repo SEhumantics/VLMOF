@@ -1,7 +1,8 @@
 # VL-MOF
 
 An EMOF formalization project in Lean 4. The current baseline provides a Lean
-build and reproducible specification downloads. Semantic definitions come next.
+build, reproducible specification downloads, and a finite raw representation of
+the structural profile. Conformance predicates and tools remain pending.
 
 ## Getting started
 
@@ -16,7 +17,9 @@ make check
 
 The first command downloads six OMG files into `sources/raw/` and checks their
 SHA-256 hashes. The second verifies those files offline, tests the download tool
-and builds the Lean library. The library entry point is currently empty.
+and builds the Lean library. The library entry point compiles the raw core and its representation examples.
+See [VLMOF/REPRESENTATION.md](VLMOF/REPRESENTATION.md) for the data model;
+constructing these records does not establish conformance.
 
 ## Reading the specification
 
@@ -56,6 +59,7 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
+
 
 
 
