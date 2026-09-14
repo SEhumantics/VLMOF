@@ -200,10 +200,12 @@ def schema : Schema :=
          multiplicity := many false true, aggregation := .none, isId := false },
        { id := pets, name := some "pets", owner := .class person, type := .reference pet,
          multiplicity := many true false, aggregation := .none, isId := false },
-       { id := owner, name := none, owner := .association ⟨0⟩, type := .reference person,
+       { id := owner, name := some "owner", owner := .association ⟨0⟩, type := .reference person,
          multiplicity := many false false, aggregation := .none, isId := false },
        { id := active, name := some "active", owner := .class person, type := .boolean,
-         multiplicity := many false true, aggregation := .none, isId := false },
+         multiplicity := { lower := 0, upper := .finite 1, isOrdered := false,
+                           isUnique := true },
+         aggregation := .none, isId := false },
        { id := scores, name := some "scores", owner := .class person, type := .integer,
          multiplicity := many false false, aggregation := .none, isId := false },
        { id := moods, name := some "moods", owner := .class person,
@@ -216,17 +218,22 @@ def schema : Schema :=
 
 def p : ObjectId := ⟨0⟩
 def fido : ObjectId := ⟨1⟩
+def diamondObject : ObjectId := ⟨2⟩
 
 /-- Repeated links are retained at both ends.  Empty observations express optional
 absence and are distinct from `[.boolean false]`, `[.integer 0]`, or `[.string ""]`. -/
 def snapshot : Snapshot :=
-  { objects := [{ id := p, classifier := person }, { id := fido, classifier := pet }]
+  { objects :=
+      [{ id := p, classifier := person }, { id := fido, classifier := pet },
+       { id := diamondObject, classifier := diamond }]
     observations :=
       [{ object := p, property := pets,
          occurrences := [.reference fido, .reference fido] },
        { object := fido, property := owner,
          occurrences := [.reference p, .reference p] },
-       { object := p, property := rootCode, occurrences := [] },
+       { object := diamondObject, property := rootCode, occurrences := [] },
+       { object := diamondObject, property := leftX, occurrences := [.integer 1] },
+       { object := diamondObject, property := rightX, occurrences := [.integer 2] },
        { object := p, property := active, occurrences := [.boolean false] },
        { object := p, property := scores, occurrences := [.integer 0, .integer 0] },
        { object := p, property := moods,
@@ -256,13 +263,37 @@ def malformedSnapshot : Snapshot :=
       [{ object := ⟨90⟩, property := ⟨99⟩, occurrences := [.string "wrong type"] },
        { object := ⟨90⟩, property := ⟨99⟩, occurrences := [.reference ⟨98⟩] }] }
 
+/-- A bounded metadata pilot uses exactly the same class, property, object, and value
+constructors as user models.  Here an ordinary object represents the `Person` class and
+an ordinary String observation represents its name; no privileged metadata value or
+observation path is introduced.  This is only an architecture witness, not an M1
+conformance or self-description theorem. -/
+def metadataSchema : Schema :=
+  { packages := [{ id := ⟨100⟩, name := some "metadata", parent := none }]
+    classes := [{ id := ⟨100⟩, name := some "Class", package := some ⟨100⟩,
+                  isAbstract := false, directSupers := [] }]
+    properties :=
+      [{ id := ⟨100⟩, name := some "name", owner := .class ⟨100⟩, type := .string,
+         multiplicity := { lower := 1, upper := .finite 1, isOrdered := false,
+                           isUnique := true },
+         aggregation := .none, isId := false }]
+    associations := []
+    enumerations := []
+    literals := [] }
+
+def metadataSnapshot : Snapshot :=
+  { objects := [{ id := ⟨100⟩, classifier := ⟨100⟩ }]
+    observations :=
+      [{ object := ⟨100⟩, property := ⟨100⟩, occurrences := [.string "Person"] }] }
+
 example : schema.oppositeCandidates pets = [owner] := rfl
 example : Occurrences.equivalent false [.integer 1, .integer 2] [.integer 2, .integer 1] := by
   simp only [Occurrences.equivalent, Bool.false_eq_true, ↓reduceIte]
   exact .swap (Value.integer 2) (Value.integer 1) []
 example : ¬ Occurrences.equivalent true [.integer 1, .integer 2] [.integer 2, .integer 1] := by
   simp [Occurrences.equivalent]
-example : Occurrences.equivalent false [.string "x", .string "x"] [.string "x", .string "x"] := by
+example : ([] : List Value) ≠ [.boolean false] := by simp
+example : ¬ Occurrences.equivalent false [.string "x", .string "x"] [.string "x"] := by
   simp [Occurrences.equivalent]
 
 end Example
