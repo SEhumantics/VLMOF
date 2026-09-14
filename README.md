@@ -33,9 +33,10 @@ and direct-superclass inclusion are proved. For well-formed schemas and resolved
 starting classes, saturation proves that the class-count bound computes full
 reflexive-transitive superclass reachability.
 
-The Java/EMF resource-loading probe is documented in [bridge/README.md](bridge/README.md).
-It checks inherited features, repeated values and reciprocal containment; it does not
-yet import into or export from the Lean core.
+The [Java/EMF bridge](bridge/README.md) imports an explicit Ecore/XMI resource
+manifest into Core JSON and exports supported Core inputs into fresh EMF resources.
+Round-trip comparison checks declarations and occurrence observations under a recorded
+native identity bijection. The adapter and JSON/XML parsers remain trusted boundaries.
 
 The checker API is `checkSchema` / `checkSnapshot` in `VLMOF/Check.lean`.
 `CheckAcceptance.lean` proves acceptance iff the corresponding predicate, with no
@@ -54,8 +55,8 @@ checker as JSON; a full source-to-core correspondence theorem remains pending. E
 model, 2 malformed input or usage, 3 unsupported wire version, and 4 file error.
 The decoder is a tested boundary, not a proved XML/JSON parser. It ignores unknown
 object fields; the Lean JSON parser normalizes duplicate keys. Provenance is carried
-as producer-supplied metadata, not independently verified. The Java EMF import/export
-workflow remains under development.
+as producer-supplied metadata, not independently verified. The bridge documents its
+native compatibility restrictions and behavioral regression commands separately.
 
 The [symbolic DSL](VLMOF/DSL.md) supports qualified aliases, inheritance,
 associations and occurrence lists. Its parser and binding examples are compiled
@@ -114,7 +115,6 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
-
 
 
 
