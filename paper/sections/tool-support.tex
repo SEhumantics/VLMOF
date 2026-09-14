@@ -16,15 +16,15 @@ records.
 \begin{figure}[t]
 \centering
 \small
-\begin{tabular}{rcl}
+\resizebox{.9\linewidth}{!}{\begin{tabular}{rcl}
 Source text & $\xrightarrow{\text{trusted parser}}$ & Source AST $d$ \\
 Source AST $d$ & $\xrightarrow{\text{elaboration }E}$ & Core $(S,M)$ \\
 Ecore/XMI & $\xrightarrow{\text{trusted adapter and decoder}}$ & Core $(S,M)$ \\
 Core $(S,M)$ & $\xrightarrow{\text{verified checker}}$ & Decision \\
 $\mathcal S(d)$ & $\Longrightarrow$ & $C(S,M)\iff\mathrm{accept}$
-\end{tabular}
+\end{tabular}}
 \caption{The formal claim begins at represented inputs. Text and native resource
-fidelity require separate testing and source audit. The middle arrow denotes
+fidelity require separate testing and source audit. The native-input arrow denotes
 interchange production, not a verified translation.}
 \label{fig:boundary}
 \end{figure}

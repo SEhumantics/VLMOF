@@ -1,39 +1,39 @@
 \section{Discussion}
 \subsection{Related work and the scope of the guarantee}
-Boronat and Meseguer give an algebraic MOF semantics using membership-equational
-theories and an executable Maude/EMF realization, including reflective
-bootstrapping \cite{boronat_meseguer_2010}. Their model-conformance account relates
-models to terms of the generated theory. This establishes that a connected,
-executable MOF foundation and metamodel-as-data are not novel by themselves.
-Our result instead concerns a particular finite EMOF 2.5.1 interpretation and
-actual symbolic elaboration into an independently defined checked Core. We have
-not established a featurewise equivalence between the two semantic domains.
+Table~\ref{tab:prior} compares the closest inspected guarantees. A connected
+executable MOF foundation, mechanized preservation and certified textual tooling
+all precede this work. The comparison concerns the published formulas and their
+boundaries; it does not establish featurewise equivalence or subsumption.
+\begin{table}[t]
+\caption{Prior guarantees compared with the delivered AST-level result.}
+\label{tab:prior}\centering\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{.24\textwidth}>{\raggedright\arraybackslash}p{.65\textwidth}}
+\hline
+Work & Inspected guarantee and domain \\
+\hline
+Algebraic MOF~\cite{boronat_meseguer_2010} & Membership-equational MOF theories define structural conformance; reflective bootstrapping and Maude/EMF execution connect metamodels and models. \\
+Coq4MDE~\cite{kezadri_etal_2014} & Typed finite multigraph composition preserves multiplicity, opposites and composite references. Lower-bound and composite results require compatibility, freshness and injective bind; the opposite theorem reports no such residual premise. \\
+Isabelle UML/OCL~\cite{brucker_tuong_wolff_2020} & Generated theory extensions are conservative. The article distinguishes logical safety from semantic preservation between interpretations of source and target. \\
+VL-MOF & Under lexical alias admissibility, independent source satisfaction iff successful elaboration to checker acceptance; fixed-result adequacy also characterizes Core conformance. \\
+\hline
+\end{tabular}
+\end{table}
 
-Coq4MDE formalizes typed finite multigraphs and proves preservation properties
-of model composition \cite{kezadri_etal_2014}. Its published Theorems 4--6 concern
-multiplicity, opposites and composite references under hypotheses on the
-\emph{bind} operation. The lower-bound and composite-reference results use
-compatibility, freshness and injectivity; the opposite theorem reports no such
-residual premises. Its \emph{areComposite} predicate counts distinct typed source
-vertices in an edge-set comprehension.
-Our elaboration theorem quantifies over a source document and its alias-to-ID
-elaboration. Our incoming-composite measure counts raw reference occurrences,
-so a repeated occurrence contributes repeatedly. These are
-different operations and abstractions. This distinction does not establish
-subsumption, nor a claim of the first mechanized conformance preservation.
+The distinction from Coq4MDE is consequential at the representation level:
+its \emph{areComposite} predicate counts distinct typed source vertices in an
+edge-set comprehension; our incoming-composite measure counts raw matching
+reference occurrences. Repeating a value therefore contributes repeatedly here.
+The operations being proved correct also differ: model composition there,
+actual alias-to-ID elaboration here. Neither difference supports a claim of the
+first mechanized conformance preservation.
 
-The Isabelle UML/OCL textual realization is the closest comparison at the
-language-tool boundary \cite{brucker_tuong_wolff_2020}. Its central certification
-is conservativity of generated theory extensions. That article explicitly
-distinguishes logical safety from semantic preservation, which requires
-interpretations of source and target in a common domain. Equation~\ref{eq:adequacy}
-connects separately stated source satisfaction to a concrete target conformance
-predicate and composes with Equation~\ref{eq:checker}. The new assertion is this
-particular connection under explicit lexical admissibility, not the
-safety of executing generated prover commands. Featherweight OCL addresses
-another boundary: a mechanized OCL core with null and invalid
-\cite{brucker_wolff_2012}. Our Boolean static predicates over resolved finite
-records neither implement OCL's exceptional-value semantics nor replace that work.
+Equation~\ref{eq:adequacy} supplies the source/target semantic connection that
+must be distinguished from conservativity of generated prover commands. Its
+only premise is lexical admissibility; occurrence sensitivity is part of the
+predicate, not an additional assumption. The fixed-result theorem also assumes
+the exhibited successful elaboration. Featherweight OCL instead addresses a
+mechanized OCL core with null and invalid~\cite{brucker_wolff_2012}; our static
+Boolean predicates over resolved finite records do not implement that semantics.
 
 NEREUS offers textual formal metamodeling with a constructive translation to
 CASL \cite{favre_duarte_2016}; KM3 provides a compact metamodel specification
