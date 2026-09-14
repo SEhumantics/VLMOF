@@ -89,5 +89,33 @@ theorem resolveIndex_iff_uniqueAliasAt (kind : String) (names : List Name)
           have he : next = index := ha next (by simp [h])
           simp [h, he] at hn
       simp [hr]
+/-- The source environment has usable aliases and exactly one declaration for
+any entry it contains. This condition is independent of executing the checker. -/
+def AliasEnvironment (names : List Name) : Prop :=
+  ∀ name ∈ names, validAlias name = true ∧ ∃ index, UniqueAliasAt names name index
+
+theorem checkAliasEntries_iff (kind : String) (environment entries : List Name) :
+    checkAliasEntries kind environment entries = .ok () ↔
+      ∀ name ∈ entries, validAlias name = true ∧ ∃ index, UniqueAliasAt environment name index := by
+  induction entries with
+  | nil => simp [checkAliasEntries, pure, Except.pure]
+  | cons name rest ih =>
+    have hu : (∃ index, UniqueAliasAt environment name index) ↔
+        ∃ index, resolveIndex kind environment name = .ok index := by
+      simp only [resolveIndex_iff_uniqueAliasAt]
+    cases hv : validAlias name <;>
+      cases hr : resolveIndex kind environment name <;>
+      simp [checkAliasEntries, hv, hu, hr, ih, Bind.bind, Except.bind]
+
+theorem checkAliases_iff (kind : String) (names : List Name) :
+    checkAliases kind names = .ok () ↔ AliasEnvironment names :=
+  checkAliasEntries_iff kind names names
+/-- Qualification acceptance is exactly lexical ownership, not display spelling. -/
+theorem checkQualification_iff (name : Name) (owner : Option Name) :
+    checkQualification name owner = .ok () ↔ name.dropLast = owner.getD [] := by
+  simp [checkQualification, pure, Except.pure]
 end VLMOF.Source
+
+
+
 

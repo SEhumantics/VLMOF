@@ -26,12 +26,17 @@ def resolveIndex (kind : String) (names : List Name) (name : Name) : BindingResu
 def validAlias (name : Name) : Bool :=
   !name.isEmpty && name.all (fun component => !component.isEmpty)
 
-def checkAliases (kind : String) (names : List Name) : BindingResult Unit := do
-  for name in names do
-    if !validAlias name then throw ("empty component in " ++ kind ++ " alias")
-    let _ ← resolveIndex kind names name
-  pure ()
+/-- Check entries in order against the complete environment, preserving the first
+binding diagnostic. The explicit recursion also exposes the completeness boundary. -/
+def checkAliasEntries (kind : String) (environment : List Name) : List Name → BindingResult Unit
+  | [] => pure ()
+  | name :: rest => do
+      if !validAlias name then throw ("empty component in " ++ kind ++ " alias")
+      let _ ← resolveIndex kind environment name
+      checkAliasEntries kind environment rest
 
+def checkAliases (kind : String) (names : List Name) : BindingResult Unit :=
+  checkAliasEntries kind names names
 private def packageId (model : Model) (name : Name) : BindingResult PackageId :=
   (resolveIndex "package" (model.packages.map Package.alias) name).map PackageId.mk
 private def classId (model : Model) (name : Name) : BindingResult ClassId :=
@@ -152,5 +157,6 @@ example : checkQualification ["p", "A", "x"] (some ["p", "B"]) =
 
 end BindingExamples
 end VLMOF.Source
+
 
 
