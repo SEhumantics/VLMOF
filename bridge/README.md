@@ -62,6 +62,18 @@ exporter records a deterministic identity allocation (therefore an identity map)
 the comparator rejects a mismatch instead of guessing correspondence from names.
 Arbitrary source-to-target renaming is not yet supported.
 
+Run the boundary regression from `bridge/`:
+
+```sh
+python3 scripts/e1_export_regression.py
+```
+
+It creates a Core JSON document with explicit `false`, `0`, empty String and first
+enum values beside a second object whose corresponding features are empty. It also
+uses two repeated occurrences at each end of a paired non-unique reference. The test
+exports fresh resources, reimports them, compares observations, and asserts the
+separating values directly.
+
 Only direct Boolean, Integer and String Ecore datatypes and enumerations are mapped.
 The importer rejects operations, type parameters or applied generic feature types,
 derived/transient/volatile/read-only/unsettable features, default literals and custom
