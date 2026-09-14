@@ -40,11 +40,11 @@ private def propertyId (model : Model) (name : Name) : BindingResult PropertyId 
   (resolveIndex "property" (model.properties.map Property.alias) name).map PropertyId.mk
 private def associationId (model : Model) (name : Name) : BindingResult AssociationId :=
   (resolveIndex "association" (model.associations.map Association.alias) name).map AssociationId.mk
-private def enumerationId (model : Model) (name : Name) : BindingResult EnumerationId :=
+def enumerationId (model : Model) (name : Name) : BindingResult EnumerationId :=
   (resolveIndex "enumeration" (model.enumerations.map Enumeration.alias) name).map EnumerationId.mk
-private def literalId (model : Model) (name : Name) : BindingResult LiteralId :=
+def literalId (model : Model) (name : Name) : BindingResult LiteralId :=
   (resolveIndex "literal" (model.literals.map Literal.alias) name).map LiteralId.mk
-private def objectId (snapshot : Instance) (name : Name) : BindingResult ObjectId :=
+def objectId (snapshot : Instance) (name : Name) : BindingResult ObjectId :=
   (resolveIndex "object" (snapshot.objects.map Object.alias) name).map ObjectId.mk
 
 private def optionalPackage (model : Model) : Option Name → BindingResult (Option PackageId)
@@ -113,7 +113,7 @@ def bindModel (model : Model) : BindingResult Schema := do
     pure ({ id := ⟨index⟩, name := some entry.name, enumeration } : LiteralDecl)
   pure { packages, classes, properties, associations, enumerations, literals }
 
-private def bindValue (model : Model) (snapshot : Instance) : Source.Value → BindingResult VLMOF.Value
+def bindValue (model : Model) (snapshot : Instance) : Source.Value → BindingResult VLMOF.Value
   | .boolean value => pure (.boolean value)
   | .integer value => pure (.integer value)
   | .string value => pure (.string value)
@@ -152,4 +152,5 @@ example : checkQualification ["p", "A", "x"] (some ["p", "B"]) =
 
 end BindingExamples
 end VLMOF.Source
+
 

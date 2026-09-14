@@ -47,4 +47,47 @@ theorem resolveIndex_injective {kind : String} {names : List Name}
     (hsecond : resolveIndex kind names second = .ok index) : first = second := by
   exact Option.some.inj ((resolveIndex_getElem hfirst).symm.trans (resolveIndex_getElem hsecond))
 
+/-- Source-level unique binding, specified by lookup rather than the resolver. -/
+def UniqueAliasAt (names : List Name) (name : Name) (index : Nat) : Prop :=
+  names[index]? = some name ∧ ∀ other, names[other]? = some name → other = index
+
+theorem matchingIndices_nodup (names : List Name) (name : Name) :
+    (matchingIndices names name).Nodup := by
+  have h : (names.zipIdx.map Prod.snd).Nodup := by
+    rw [List.zipIdx_map_snd]
+    exact List.nodup_range' _
+  exact (List.Sublist.map Prod.snd List.filter_sublist).nodup h
+
+/-- Binding succeeds exactly for a unique source declaration at the returned index. -/
+theorem resolveIndex_iff_uniqueAliasAt (kind : String) (names : List Name)
+    (name : Name) (index : Nat) :
+    resolveIndex kind names name = .ok index ↔ UniqueAliasAt names name index := by
+  rw [resolveIndex_ok_iff]
+  constructor
+  · intro h
+    constructor
+    · apply (mem_matchingIndices names name index).mp
+      simp [h]
+    · intro other ho
+      have hm := (mem_matchingIndices names name other).mpr ho
+      simpa [h] using hm
+  · rintro ⟨hi, hu⟩
+    have hm := (mem_matchingIndices names name index).mpr hi
+    have hn := matchingIndices_nodup names name
+    have ha : ∀ j ∈ matchingIndices names name, j = index := by
+      intro j hj
+      exact hu j ((mem_matchingIndices names name j).mp hj)
+    cases h : matchingIndices names name with
+    | nil => simp [h] at hm
+    | cons first rest =>
+      have hf : first = index := ha first (by simp [h])
+      subst first
+      have hr : rest = [] := by
+        cases rest with
+        | nil => rfl
+        | cons next tail =>
+          have he : next = index := ha next (by simp [h])
+          simp [h, he] at hn
+      simp [hr]
 end VLMOF.Source
+
