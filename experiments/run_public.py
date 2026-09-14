@@ -399,6 +399,11 @@ def main() -> int:
         "python": recorder.run("python-version", [sys.executable, "--version"]),
         "java": recorder.run("java-version", ["java", "-version"]),
         "maven": recorder.run("maven-version", ["mvn", "-version"]),
+        "maven_dependency_tree": recorder.run(
+            "maven-dependency-tree",
+            ["mvn", "-f", BRIDGE / "pom.xml", "dependency:tree", "-DoutputType=text"],
+            timeout=900,
+        ),
         "lean": recorder.run("lean-version", ["lake", "env", "lean", "--version"]),
         "kernel": recorder.run("kernel-version", ["uname", "-a"]),
         "cpu": recorder.run("cpu-information", ["lscpu"]),
@@ -416,13 +421,8 @@ def main() -> int:
     implementation_files = [
         Path(__file__).resolve(),
         BRIDGE / "pom.xml",
-        BRIDGE / "scripts/adapt_train_defaults.py",
-        BRIDGE / "scripts/run_train_e1.sh",
-        BRIDGE / "scripts/run_train_roundtrip_review.sh",
-        BRIDGE / "src/main/java/org/vlmof/bridge/XcoreToEcore.java",
-        BRIDGE / "src/main/java/org/vlmof/bridge/StripEcoreAnnotations.java",
-        BRIDGE / "src/main/java/org/vlmof/bridge/EmfInterchange.java",
-        BRIDGE / "src/main/java/org/vlmof/bridge/IdentityCorrespondence.java",
+        *sorted(path for path in (BRIDGE / "scripts").iterdir() if path.is_file()),
+        *sorted((BRIDGE / "src").rglob("*.java")),
     ]
     report["input_manifest_before"] = [file_record(path) for path in source_files]
     report["implementation_manifest"] = [file_record(path, ROOT) for path in implementation_files]
@@ -432,6 +432,14 @@ def main() -> int:
         "bridge-test-compile", ["mvn", "-q", "-f", BRIDGE / "pom.xml", "test-compile"], timeout=900
     )
     compile_status = accepted_process(compile_record)
+    dependency_status = accepted_process(environment_commands["maven_dependency_tree"])
+    report["setup"].append(
+        step(
+            "resolve-maven-dependency-tree",
+            dependency_status,
+            environment_commands["maven_dependency_tree"],
+        )
+    )
     report["setup"].append(step("compile-bridge", compile_status, compile_record))
 
     artifacts = output / "artifacts"

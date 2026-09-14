@@ -49,8 +49,9 @@ excludes operations.
 working directory, exit code, wall duration, and retained stdout/stderr file with
 byte count and SHA-256 digest. It also records repository and checker commits and
 dirty states; Java, Maven, Lean, Python, kernel, and CPU evidence; the checker,
-adapter, runner, build, and public-input hashes; generated artifact hashes; and the
-adaptation manifests. The five result classes are `accepted`, `rejected`,
+adapter, runner, build, complete bridge Java source set, and public-input hashes;
+Maven's resolved dependency tree; generated artifact hashes; and the adaptation
+manifests. The five result classes are `accepted`, `rejected`,
 `unsupported`, `not-run`, and `execution-failure`. A prerequisite failure makes its
 dependent stages `not-run`; tool launch failures and inconsistent or unparseable
 structured results are `execution-failure`. The command exits zero only when every
