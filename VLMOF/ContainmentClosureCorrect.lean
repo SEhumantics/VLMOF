@@ -53,4 +53,21 @@ theorem containmentClosure_iff (s : Schema) (m : Snapshot)
       (outgoingComposite_spec s m) (outgoingComposite_closed s m targetsResolved)
       hstart (target := target))
 
+/-- Typed composite occurrences discharge the carrier premise for conforming snapshots. -/
+theorem SnapshotConforms.compositeTargetsResolved {s : Schema} {m : Snapshot}
+    (h : SnapshotConforms s m) {src dst : ObjectId}
+    (edge : compositeEdge s m src dst) : dst ∈ objectUniverse m := by
+  obtain ⟨a, ha, _, p, hp, hid, hagg, hv⟩ := edge
+  obtain ⟨c, hc⟩ := h.schema.compositeReferences p hp hagg
+  have typed := h.valuesTyped a ha p hp hid (.reference dst) hv
+  rw [hc] at typed
+  obtain ⟨o, ho, heq, _⟩ := typed
+  exact List.mem_map.mpr ⟨o, ho, heq⟩
+
+theorem SnapshotConforms.compositeReachable_iff_path {s : Schema} {m : Snapshot}
+    (h : SnapshotConforms s m) {start target : ObjectId}
+    (hstart : start ∈ objectUniverse m) :
+    compositeReachable s m start target ↔ StoredPath (compositeEdge s m) start target :=
+  containmentClosure_iff s m (fun _ _ edge => h.compositeTargetsResolved edge) hstart
+
 end VLMOF
