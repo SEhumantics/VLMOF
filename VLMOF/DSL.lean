@@ -47,7 +47,7 @@ partial def lex : List Char → Nat → List Tok → Except String (List Tok)
         | .ok (s, rest, np) => lex rest np (.text s p :: out)
       else if c == ':' && cs.head? == some ':' then lex cs.tail! (p + 2) (.punct "::" p :: out)
       else if c == '.' && cs.head? == some '.' then lex cs.tail! (p + 2) (.punct ".." p :: out)
-      else if "{}()[],;:*:@.".contains c then
+      else if "{}()[],;:*:@.=".contains c then
         lex cs (p + 1) (.punct (String.singleton c) p :: out)
       else .error s!"unexpected character '{c}' at {p}"
 
@@ -74,21 +74,33 @@ private def skip : M Unit := do
   let _ ← advance
   pure ()
 
+private def isPunct (s : String) : Tok → Bool
+  | .punct q _ => q = s
+  | _ => false
+
 private def fail {α} (msg : String) : M α := throw msg
 
 private def expectP (p : String) : M Unit := do
   match (← advance) with
-  | .punct q _ => if q = p then pure () else fail s!"expected '{p}', found '{q}'"
-  | t => fail s!"expected '{p}', found {repr t}"
+  | .punct q pos => if q = p then pure () else fail s!"at {pos}: expected '{p}', found '{q}'"
+  | .word q pos => fail s!"at {pos}: expected '{p}', found '{q}'"
+  | .text _ pos => fail s!"at {pos}: expected '{p}', found string"
+  | .number q pos => fail s!"at {pos}: expected '{p}', found '{q}'"
+  | .eof pos => fail s!"at {pos}: expected '{p}', found end of input"
 
 private def expectWord (w : String) : M Unit := do
   match (← advance) with
-  | .word q _ => if q = w then pure () else fail s!"expected keyword '{w}', found '{q}'"
-  | t => fail s!"expected keyword '{w}', found {repr t}"
+  | .word q pos => if q = w then pure () else fail s!"at {pos}: expected keyword '{w}', found '{q}'"
+  | .punct q pos => fail s!"at {pos}: expected keyword '{w}', found '{q}'"
+  | .text _ pos => fail s!"at {pos}: expected keyword '{w}', found string"
+  | .number q pos => fail s!"at {pos}: expected keyword '{w}', found '{q}'"
+  | .eof pos => fail s!"at {pos}: expected keyword '{w}', found end of input"
 
 private def takeWord : M String := do
   match (← advance) with
   | .word s _ => pure s
+  | .punct q pos => fail s!"at {pos}: expected alias, found '{q}'"
+  | .eof pos => fail s!"at {pos}: expected alias, found end of input"
   | t => fail s!"expected alias, found {repr t}"
 
 private def takeString : M String := do
@@ -178,7 +190,7 @@ partial def parseClass (ctx : Name) (abstract : Bool) : M (Class × List Propert
         skip; let rec go (xs : List Name) := do
           let q ← qualified
           let t ← peek
-          if t == .punct "," 0 then skip; go (xs ++ [q]) else pure (xs ++ [q])
+          if isPunct "," t then skip; go (xs ++ [q]) else pure (xs ++ [q])
         go []
     | _ => pure []
   expectP "{"
@@ -187,7 +199,7 @@ partial def parseClass (ctx : Name) (abstract : Bool) : M (Class × List Propert
     let t ← peek
     match t with
     | .punct "}" _ => skip; pure xs.reverse
-    | .word _ _ => props (xs.concat (← parseProperty (full ctx a) owner))
+    | .word _ _ => props ((← parseProperty (full ctx a) owner) :: xs)
     | _ => fail s!"expected property or '}}', found {repr t}"
   let ps ← props []
   pure ({ alias := full ctx a, name, package := if ctx = [] then none else some ctx,
@@ -221,11 +233,11 @@ partial def parseAssociation (ctx : Name) : M (Association × List Property) := 
         let aggregation ← match (← peek) with | .word "composite" _ => skip; pure Aggregation.composite | _ => pure .none
         expectP ";"
         ends (es ++ [full (full ctx a) ea])
-          (ps ++ [{ alias := full (full ctx a) ea, name := en, owner, type := .reference ty,
-                    multiplicity := mult, aggregation, isId := false }])
+          ({ alias := full (full ctx a) ea, name := en, owner, type := .reference ty,
+                    multiplicity := mult, aggregation, isId := false } :: ps)
     | .word "ends" _ =>
         skip; let x ← qualified; expectP ","; let y ← qualified; expectP ";"
-        expectP "}"; pure ({ alias := full ctx a, name, package := if ctx = [] then none else some ctx, ends := x :: y :: es }, ps)
+        expectP "}"; pure ({ alias := full ctx a, name, package := if ctx = [] then none else some ctx, ends := [x, y] }, ps.reverse)
     | _ => fail s!"expected association end or ends, found {repr t}"
   ends [] []
 
@@ -233,8 +245,8 @@ private def parseDecl (ctx : Name) : M Acc := do
   let abstract ← match (← peek) with | .word "abstract" _ => skip; pure true | _ => pure false
   match (← peek) with
   | .word "class" _ => skip; let (c, ps) ← parseClass ctx abstract; pure { model := { packages := [], classes := [c], properties := ps, associations := [], enumerations := [], literals := [] }, snapshot := { objects := [], observations := [] } }
-  | .word "enum" _ => skip; let (e, ls) ← parseEnum ctx; pure { model := { packages := [], classes := [], properties := [], associations := [], enumerations := [e], literals := ls }, snapshot := { objects := [], observations := [] } }
-  | .word "association" _ => skip; let (a, ps) ← parseAssociation ctx; pure { model := { packages := [], classes := [], properties := ps, associations := [a], enumerations := [], literals := [] }, snapshot := { objects := [], observations := [] } }
+  | .word "enum" _ => if abstract then fail "abstract enum is unsupported" else skip; let (e, ls) ← parseEnum ctx; pure { model := { packages := [], classes := [], properties := [], associations := [], enumerations := [e], literals := ls }, snapshot := { objects := [], observations := [] } }
+  | .word "association" _ => if abstract then fail "abstract association is unsupported" else skip; let (a, ps) ← parseAssociation ctx; pure { model := { packages := [], classes := [], properties := ps, associations := [a], enumerations := [], literals := [] }, snapshot := { objects := [], observations := [] } }
   | _ => fail "expected class, enum, or association declaration"
 
 private def appendAcc (x y : Acc) : Acc :=
@@ -265,7 +277,7 @@ private def parseValue : M Value := do
   | .word w _ =>
       let q ← qgo [w]
       match q.reverse with
-      | literal :: rest => pure (.enumeration rest.reverse [literal])
+      | literal :: rest => pure (.enumeration rest.reverse q)
       | [] => fail "malformed enumeration value"
   | t => fail s!"expected value, found {repr t}"
 
@@ -279,8 +291,13 @@ partial def parseObject (snapshot : Instance) : M Instance := do
         skip; let p ← qualified; expectP "="; expectP "["
         let rec vals (vs : List Value) := do
           let t ← peek
-          if t == .punct "]" 0 then skip; pure vs.reverse
-          else let v ← parseValue; let t ← peek; if t == .punct "," 0 then skip; vals (v :: vs) else vals (v :: vs)
+          if isPunct "]" t then skip; pure vs.reverse
+          else
+            let v ← parseValue
+            let next ← peek
+            if isPunct "," next then skip; vals (v :: vs)
+            else if isPunct "]" next then skip; pure (v :: vs).reverse
+            else fail "expected ',' or ']' after value"
         let vs ← vals []; expectP ";"; obs ({ object := [a], property := p, occurrences := vs } :: xs)
     | _ => fail s!"expected observe or '}}', found {repr t}"
   let os ← obs []
@@ -307,9 +324,23 @@ namespace Examples
 
 def nested : Except String Document := parse "package pets { package domestic { class Animal { name : String [0..1] unordered unique (id); } enum Mood { happy; } } class Person { pets : Pet [0..*] ordered nonunique; } association Ownership { end pet : Pet [0..1] unordered unique; end owner : Person [1..1] unordered unique composite; ends pets::pet, Ownership::owner; } }"
 
+def decoded : Except String Document := parse
+  "package p { enum Color { red; blue; } class A { first : Integer [0..2] ordered nonunique; second : String [0..1] unordered unique; link : B [0..*] unordered nonunique; } class B { back : A [0..1] unordered unique; } association R { end owned : B [0..*] ordered nonunique; end host : A [1..1] unordered unique composite; ends p::A::link, p::R::owned; } } object obj : p::A { observe p::A::first = [1, -2, 1]; observe p::A::link = [@obj, @obj]; observe p::A::second = [p::Color::red]; }"
+
 example : nested.isOk := by native_decide
+example : decoded.isOk := by native_decide
+def decodedClasses : Bool := match decoded with | .ok d => decide (d.model.classes.map Class.alias = [["p", "A"], ["p", "B"]]) | .error _ => false
+def decodedProperties : Bool := match decoded with | .ok d => decide (d.model.properties.map Property.alias = [["p", "A", "first"], ["p", "A", "second"], ["p", "A", "link"], ["p", "B", "back"], ["p", "R", "owned"], ["p", "R", "host"]]) | .error _ => false
+def decodedEnds : Bool := match decoded with | .ok d => decide (d.model.associations.map Association.ends = [[ ["p", "A", "link"], ["p", "R", "owned"] ]]) | .error _ => false
+def decodedValues : Bool := match decoded with | .ok d => decide (d.snapshot.observations.map Observation.occurrences = [[.integer 1, .integer (-2), .integer 1], [.reference ["obj"], .reference ["obj"]], [.enumeration ["p", "Color"] ["p", "Color", "red"]]]) | .error _ => false
+example : decodedClasses := by native_decide
+example : decodedProperties := by native_decide
+example : decodedEnds := by native_decide
+example : decodedValues := by native_decide
 example : (parse "class Broken { x : Integer [0..] unordered unique; }").isOk = false := by native_decide
 example : (parse "class Broken { x : Integer [0..1] unordered unique; }").isOk := by native_decide
+example : (parse "class Broken { x : Integer [0..1] unordered unique; } object o : Broken { observe x = [1 2]; }").isOk = false := by native_decide
+example : (parse "abstract enum Bad { x; }").isOk = false := by native_decide
 
 end Examples
 end VLMOF.Source
