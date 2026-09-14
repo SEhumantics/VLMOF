@@ -18,3 +18,4 @@ import VLMOF.OccurrenceBindingCorrect
 import VLMOF.SnapshotAllocationCorrect
 import VLMOF.SnapshotObservationCorrect
 import VLMOF.SchemaElaborationCorrect
+import VLMOF.SnapshotTypingCorrect
