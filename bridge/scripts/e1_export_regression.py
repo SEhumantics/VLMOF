@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression: lexical defaults and repeated paired occurrences survive E1 export."""
+"""Regression: preserve lexical defaults and respect the native opposite boundary."""
 import copy, json, subprocess, tempfile
 from pathlib import Path
 
@@ -61,4 +61,40 @@ bad=copy.deepcopy(doc); bad["snapshot"]["observations"][5]["occurrences"].append
 badfile=d/"repeated-paired.json"; badfile.write_text(json.dumps(bad))
 failed=subprocess.run(["mvn","-q","exec:java",f"-Dexec.mainClass={MAIN}",f"-Dexec.args=export {badfile} {d/'bad.ecore'} {d/'bad.xmi'}"],cwd=ROOT,capture_output=True,text=True)
 assert failed.returncode != 0 and "UNSUPPORTED repeated paired reference occurrence" in failed.stdout + failed.stderr
+assert not (d/'bad.ecore').exists() and not (d/'bad.xmi').exists()
+
+# Opposite membership determines counts, but each ordered end has its own sequence.
+ordered=copy.deepcopy(doc)
+ordered['snapshot']['objects'].append({'id':2,'classifier':0})
+for p in range(8): ordered['snapshot']['observations'].append(obs(2,p,[]))
+bykey={(o['object'],o['property']):o for o in ordered['snapshot']['observations']}
+bykey[(0,4)]['occurrences']=[value('reference',1),value('reference',2)]
+bykey[(0,5)]['occurrences']=[value('reference',2)]
+bykey[(1,5)]['occurrences']=[value('reference',2)]
+bykey[(1,6)]['occurrences']=[]
+bykey[(2,6)]['occurrences']=[value('reference',1),value('reference',0)]
+orderedfile=d/'ordered.json'; orderedfile.write_text(json.dumps(ordered))
+run(f'export {orderedfile} {d/"ordered.ecore"} {d/"ordered.xmi"}')
+result=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',
+    f'-Dexec.args=import {d/"ordered.ecore"} -- {d/"ordered.xmi"}'],cwd=ROOT,capture_output=True,text=True)
+assert result.returncode == 0, result.stdout+result.stderr
+orderedreload=d/'ordered-reloaded.json'; orderedreload.write_text(result.stdout)
+run(f'compare {orderedfile} {orderedreload}')
+
+# Inconsistent inverse observations must not be repaired into a different snapshot.
+bykey[(2,6)]['occurrences']=[value('reference',1)]
+inconsistent=d/'inconsistent.json'; inconsistent.write_text(json.dumps(ordered))
+failed=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',
+    f'-Dexec.args=export {inconsistent} {d/"inconsistent.ecore"} {d/"inconsistent.xmi"}'],cwd=ROOT,capture_output=True,text=True)
+assert failed.returncode != 0 and 'inconsistent opposite counts' in failed.stdout+failed.stderr
+assert not (d/'inconsistent.ecore').exists() and not (d/'inconsistent.xmi').exists()
+
+# JSON member order is presentation; duplicate observation identities are not.
+reformatted=d/'reformatted.json'; reformatted.write_text(json.dumps(doc,sort_keys=True))
+run(f'compare {source} {reformatted}')
+duplicates=copy.deepcopy(doc); duplicates['snapshot']['observations'].append(copy.deepcopy(duplicates['snapshot']['observations'][0]))
+duplicatefile=d/'duplicate-key.json'; duplicatefile.write_text(json.dumps(duplicates))
+failed=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',
+    f'-Dexec.args=compare {source} {duplicatefile}'],cwd=ROOT,capture_output=True,text=True)
+assert failed.returncode != 0 and 'duplicate observation key' in failed.stdout+failed.stderr
 print("E1 EXPORT REGRESSION OK explicit-defaults omitted-values repeated-scalars simple-opposites repeated-paired-unsupported")

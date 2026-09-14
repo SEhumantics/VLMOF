@@ -57,10 +57,12 @@ rejected with an `E1 export` or `REJECT` diagnostic.
 
 `compare` checks packages/classes/properties/associations/enums/literals, object
 classifiers, observation domains and occurrence values. It uses sequence equality
-for ordered features and sorted occurrence multisets for unordered ones. The current
-exporter records a deterministic identity allocation (therefore an identity map) and
-the comparator rejects a mismatch instead of guessing correspondence from names.
-Arbitrary source-to-target renaming is not yet supported.
+for ordered features and sorted occurrence multisets for unordered ones. JSON member
+order is ignored, and duplicate object or observation identities are rejected.
+The exporter currently requires consecutive IDs in each declaration/object list;
+comparison requires those IDs to survive reimport. The tested fixtures satisfy that
+condition. Arbitrary renaming and changed containment-traversal allocation remain
+unimplemented; the comparator reports such differences as mismatches.
 
 Run the boundary regression from `bridge/`:
 
@@ -70,9 +72,21 @@ python3 scripts/e1_export_regression.py
 
 It creates a Core JSON document with explicit `false`, `0`, empty String and first
 enum values beside a second object whose corresponding features are empty. It also
-uses two repeated occurrences at each end of a paired non-unique reference. The test
-exports fresh resources, reimports them, compares observations, and asserts the
-separating values directly.
+uses repeated scalar occurrences and simple paired references. The test exports
+fresh resources, reimports them, compares observations, and asserts the separating
+values directly. Another case exercises independent ordering at an inverse end.
+Inconsistent inverse counts are rejected before either output is written, and
+duplicate observation keys are rejected by comparison.
+
+Repeated paired reference occurrences are explicitly unsupported by this native
+EOpposite export path: the pinned EMF reload reproduced an inverse-list index error.
+The regression checks rejection before file creation. Core and DSL semantics still
+support those occurrences; this restriction is confined to the EMF adapter.
+
+The exporter constructs opposite membership once, checks every supplied occurrence
+list, and reorders each ordered end independently. It does not repair inconsistent
+inverse observations into an accepted snapshot. It buffers both resources before
+writing so representation errors do not leave a partially generated Ecore file.
 
 Only direct Boolean, Integer and String Ecore datatypes and enumerations are mapped.
 The importer rejects operations, type parameters or applied generic feature types,

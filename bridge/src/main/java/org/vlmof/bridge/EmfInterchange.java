@@ -195,7 +195,7 @@ public final class EmfInterchange {
     return reloaded;
   }
   private static int integer(JsonNode n, String field) {
-    if (!n.has(field) || !n.get(field).canConvertToInt()) throw new IllegalArgumentException("E1 export malformed integer `" + field + "`");
+    if (!n.has(field) || !n.get(field).isIntegralNumber() || !n.get(field).canConvertToInt()) throw new IllegalArgumentException("E1 export malformed integer `" + field + "`");
     return n.get(field).intValue();
   }
   private static void canonicalIds(JsonNode items, String label) {
@@ -235,17 +235,60 @@ public final class EmfInterchange {
     }
     java.util.Set<Integer> inverseAssigned=new java.util.HashSet<>(); for (JsonNode a : s.withArray("associations")) { JsonNode ends=a.withArray("ends"); if(ends.size()!=2) throw new IllegalArgumentException("E1 export association must have exactly two ends"); EStructuralFeature left=features.get(ends.get(0).intValue()), right=features.get(ends.get(1).intValue()); if(!(left instanceof EReference l) || !(right instanceof EReference r)) throw new IllegalArgumentException("REJECT association endpoints must be class-owned references"); l.setEOpposite(r); inverseAssigned.add(ends.get(1).intValue()); }
     EPackage root=null; for(JsonNode p:s.withArray("packages")) if(p.path("parent").isNull()) { if(root!=null) throw new IllegalArgumentException("REJECT multiple root packages: export needs one Ecore root"); root=pkgs.get(integer(p,"id")); } if(root==null) throw new IllegalArgumentException("E1 export needs a root package");
-    ResourceSet set=new ResourceSetImpl(); set.getResourceFactoryRegistry().getExtensionToFactoryMap().put("ecore",new EcoreResourceFactoryImpl()); set.getResourceFactoryRegistry().getExtensionToFactoryMap().put("xmi",new XMIResourceFactoryImpl()); registerPackageTree(set,root); Resource er=set.createResource(fileUri(ecoreOut.toString())); er.getContents().add(root); er.save(Map.of());
+    ResourceSet set=new ResourceSetImpl(); set.getResourceFactoryRegistry().getExtensionToFactoryMap().put("ecore",new EcoreResourceFactoryImpl()); set.getResourceFactoryRegistry().getExtensionToFactoryMap().put("xmi",new XMIResourceFactoryImpl()); registerPackageTree(set,root); Resource er=set.createResource(fileUri(ecoreOut.toString())); er.getContents().add(root); ByteArrayOutputStream schemaBytes=new ByteArrayOutputStream(); er.save(schemaBytes,Map.of());
     // The emitted Ecore remains profile-compliant (`unsettable=false`).  During only
     // XMI serialization, make scalar attributes unsettable so EMF retains an explicit
     // default as an XML attribute; lexical import then restores that distinction.
     for(EStructuralFeature feature:features.values()) if(feature instanceof EAttribute attribute) attribute.setUnsettable(true);
     Map<Integer,EObject> os=new LinkedHashMap<>(); for(JsonNode o:snap.withArray("objects")) { EClass k=cls.get(integer(o,"classifier")); if(k==null) throw new IllegalArgumentException("E1 export dangling object classifier"); if(k.isAbstract()) throw new IllegalArgumentException("E1 export cannot instantiate abstract class"); os.put(integer(o,"id"),EcoreUtil.create(k)); }
-    for(JsonNode ob:snap.withArray("observations")) { if(inverseAssigned.contains(integer(ob,"property"))) continue; EObject owner=os.get(integer(ob,"object")); EStructuralFeature sf=features.get(integer(ob,"property")); if(owner==null||sf==null) throw new IllegalArgumentException("E1 export dangling observation"); List<Object> values=new ArrayList<>(); for(JsonNode v:ob.withArray("occurrences")) { String tag=text(v,"tag"); if("reference".equals(tag)) { EObject target=os.get(integer(v,"object")); if(target==null) throw new IllegalArgumentException("E1 export dangling reference occurrence"); values.add(target); } else if("boolean".equals(tag)) { if(!v.has("value")||!v.get("value").isBoolean()) throw new IllegalArgumentException("E1 export malformed Boolean occurrence"); values.add(v.get("value").booleanValue()); } else if("integer".equals(tag)) { if(!v.has("value")||!v.get("value").canConvertToInt()) throw new IllegalArgumentException("REJECT E1 Integer outside Ecore EInt range"); values.add(v.get("value").intValue()); } else if("string".equals(tag)) { if(!v.has("value")||!v.get("value").isTextual()) throw new IllegalArgumentException("E1 export malformed String occurrence"); values.add(v.get("value").textValue()); } else if("enumeration".equals(tag)) { EEnumLiteral l=lits.get(integer(v,"literal")); if(l==null || l.getEEnum()!=ens.get(integer(v,"enumeration"))) throw new IllegalArgumentException("E1 export dangling enumeration occurrence"); values.add(l); } else throw new IllegalArgumentException("E1 export unsupported occurrence "+tag); }
-      if(sf.isMany()) ((EList<Object>)owner.eGet(sf)).addAll(values); else if(values.size()>1) throw new IllegalArgumentException("E1 export multiple values for single-valued feature"); else if(values.size()==1) owner.eSet(sf,values.getFirst()); }
-    Resource xr=set.createResource(fileUri(xmiOut.toString())); for(Map.Entry<Integer,EObject> entry:os.entrySet()) ((XMIResource)xr).setID(entry.getValue(),"o"+entry.getKey()); for(EObject o:os.values()) if(o.eContainer()==null) xr.getContents().add(o); xr.save(Map.of());
+    Map<EObject,Map<EStructuralFeature,List<Object>>> expected=new IdentityHashMap<>(); for(JsonNode ob:snap.withArray("observations")) { EObject owner=os.get(integer(ob,"object")); EStructuralFeature sf=features.get(integer(ob,"property")); if(owner==null||sf==null) throw new IllegalArgumentException("E1 export dangling observation"); List<Object> values=new ArrayList<>(); for(JsonNode v:ob.withArray("occurrences")) { String tag=text(v,"tag"); if("reference".equals(tag)) { EObject target=os.get(integer(v,"object")); if(target==null) throw new IllegalArgumentException("E1 export dangling reference occurrence"); values.add(target); } else if("boolean".equals(tag)) { if(!v.has("value")||!v.get("value").isBoolean()) throw new IllegalArgumentException("E1 export malformed Boolean occurrence"); values.add(v.get("value").booleanValue()); } else if("integer".equals(tag)) { if(!v.has("value")||!v.get("value").isIntegralNumber()||!v.get("value").canConvertToInt()) throw new IllegalArgumentException("REJECT E1 Integer outside Ecore EInt range"); values.add(v.get("value").intValue()); } else if("string".equals(tag)) { if(!v.has("value")||!v.get("value").isTextual()) throw new IllegalArgumentException("E1 export malformed String occurrence"); values.add(v.get("value").textValue()); } else if("enumeration".equals(tag)) { EEnumLiteral l=lits.get(integer(v,"literal")); if(l==null || l.getEEnum()!=ens.get(integer(v,"enumeration"))) throw new IllegalArgumentException("E1 export dangling enumeration occurrence"); values.add(l); } else throw new IllegalArgumentException("E1 export unsupported occurrence "+tag); }
+      if(!owner.eClass().getEAllStructuralFeatures().contains(sf)) throw new IllegalArgumentException("E1 export inapplicable observation"); if(expected.computeIfAbsent(owner, ignored -> new IdentityHashMap<>()).putIfAbsent(sf,values)!=null) throw new IllegalArgumentException("E1 export duplicate observation key"); if(inverseAssigned.contains(integer(ob,"property"))) continue; if(sf.isMany()) ((EList<Object>)owner.eGet(sf)).addAll(values); else if(values.size()>1) throw new IllegalArgumentException("E1 export multiple values for single-valued feature"); else if(values.size()==1) owner.eSet(sf,values.getFirst()); }
+    reconcileObservations(os.values(), expected); Resource xr=set.createResource(fileUri(xmiOut.toString())); for(Map.Entry<Integer,EObject> entry:os.entrySet()) ((XMIResource)xr).setID(entry.getValue(),"o"+entry.getKey()); for(EObject o:os.values()) if(o.eContainer()==null) xr.getContents().add(o); ByteArrayOutputStream instanceBytes=new ByteArrayOutputStream(); xr.save(instanceBytes,Map.of()); java.nio.file.Files.write(ecoreOut,schemaBytes.toByteArray()); java.nio.file.Files.write(xmiOut,instanceBytes.toByteArray());
   }
-  private static String canon(JsonNode n) { return n.toString(); }
+  /** Inverse maintenance supplies membership, but each end has its own order.
+   * Moving within a reference list preserves the opposite membership. Validate
+   * all supplied observations before writing either output resource. */
+  @SuppressWarnings("unchecked")
+  private static void reconcileObservations(java.util.Collection<EObject> objects,
+      Map<EObject,Map<EStructuralFeature,List<Object>>> expected) {
+    for (EObject object : objects) {
+      Map<EStructuralFeature,List<Object>> rows = expected.getOrDefault(object, Map.of());
+      for (EStructuralFeature feature : object.eClass().getEAllStructuralFeatures()) {
+        List<Object> wanted = rows.get(feature);
+        if (wanted == null) throw new IllegalArgumentException("E1 export missing observation " + feature.getName());
+        List<Object> actual = new ArrayList<>();
+        if (feature.isMany()) actual.addAll((List<Object>)object.eGet(feature));
+        else if (object.eIsSet(feature)) actual.add(object.eGet(feature));
+        List<Object> remainder = new ArrayList<>(actual);
+        for (Object value : wanted) if (!remainder.remove(value))
+          throw new IllegalArgumentException("E1 export inconsistent occurrence membership " + feature.getName());
+        if (!remainder.isEmpty()) throw new IllegalArgumentException("E1 export inconsistent opposite counts " + feature.getName());
+        if (feature.isMany() && feature.isOrdered()) {
+          EList<Object> list = (EList<Object>)object.eGet(feature);
+          for (int i=0; i<wanted.size(); i++) {
+            int found = i;
+            while (found<list.size() && !java.util.Objects.equals(list.get(found),wanted.get(i))) found++;
+            if (found==list.size()) throw new IllegalArgumentException("E1 export occurrence reorder failed");
+            if (found!=i) list.move(i,found);
+          }
+        }
+      }
+    }
+  }
+  private static JsonNode canonicalNode(JsonNode n) {
+    if (n.isObject()) {
+      ObjectNode result=object(); java.util.TreeSet<String> names=new java.util.TreeSet<>();
+      n.fieldNames().forEachRemaining(names::add);
+      for(String name:names) result.set(name,canonicalNode(n.get(name)));
+      return result;
+    }
+    if (n.isArray()) { ArrayNode result=array(); for(JsonNode item:n) result.add(canonicalNode(item)); return result; }
+    return n;
+  }
+  private static String canon(JsonNode n) { return canonicalNode(n).toString(); }
+  private static <K> void uniquePut(Map<K,JsonNode> map, K key, JsonNode row, String label) {
+    if(map.putIfAbsent(key,row)!=null) throw new IllegalArgumentException("REJECT duplicate " + label + " in comparison: " + key);
+  }
   /** Compare two E1 documents after applying a recorded target-id→source-id map.
    * Names are deliberately not used as identities.  The generated exporter currently
    * preserves numeric allocation, so its recorded map is identity; keeping it explicit
@@ -257,8 +300,8 @@ public final class EmfInterchange {
     // the E1 exporter. Current map is identity; reject rather than guessing by spelling.
     for(String kind:List.of("packages","classes","properties","associations","enumerations","literals")) if(!canon(left.path("schema").path(kind)).equals(canon(right.path("schema").path(kind)))) throw new IllegalStateException("ROUNDTRIP MISMATCH declaration " + kind);
     Map<Integer,Boolean> ordered=new LinkedHashMap<>(); for(JsonNode p:left.path("schema").withArray("properties")) ordered.put(integer(p,"id"),p.path("multiplicity").path("ordered").asBoolean());
-    Map<String,JsonNode> lo=new LinkedHashMap<>(), ro=new LinkedHashMap<>(); for(JsonNode o:left.path("snapshot").withArray("objects")) lo.put(o.path("id").asText(),o); for(JsonNode o:right.path("snapshot").withArray("objects")) ro.put(o.path("id").asText(),o); if(!lo.keySet().equals(ro.keySet())) throw new IllegalStateException("ROUNDTRIP MISMATCH object identity map"); for(String id:lo.keySet()) if(integer(lo.get(id),"classifier")!=integer(ro.get(id),"classifier")) throw new IllegalStateException("ROUNDTRIP MISMATCH classifier object "+id);
-    Map<String,JsonNode> la=new LinkedHashMap<>(), ra=new LinkedHashMap<>(); for(JsonNode o:left.path("snapshot").withArray("observations")) la.put(o.path("object").asText()+":"+o.path("property").asText(),o); for(JsonNode o:right.path("snapshot").withArray("observations")) ra.put(o.path("object").asText()+":"+o.path("property").asText(),o); if(!la.keySet().equals(ra.keySet())) throw new IllegalStateException("ROUNDTRIP MISMATCH observation domain");
+    Map<String,JsonNode> lo=new LinkedHashMap<>(), ro=new LinkedHashMap<>(); for(JsonNode o:left.path("snapshot").withArray("objects")) uniquePut(lo,o.path("id").asText(),o,"object ID"); for(JsonNode o:right.path("snapshot").withArray("objects")) uniquePut(ro,o.path("id").asText(),o,"object ID"); if(!lo.keySet().equals(ro.keySet())) throw new IllegalStateException("ROUNDTRIP MISMATCH object identity map"); for(String id:lo.keySet()) if(integer(lo.get(id),"classifier")!=integer(ro.get(id),"classifier")) throw new IllegalStateException("ROUNDTRIP MISMATCH classifier object "+id);
+    Map<String,JsonNode> la=new LinkedHashMap<>(), ra=new LinkedHashMap<>(); for(JsonNode o:left.path("snapshot").withArray("observations")) uniquePut(la,o.path("object").asText()+":"+o.path("property").asText(),o,"observation key"); for(JsonNode o:right.path("snapshot").withArray("observations")) uniquePut(ra,o.path("object").asText()+":"+o.path("property").asText(),o,"observation key"); if(!la.keySet().equals(ra.keySet())) throw new IllegalStateException("ROUNDTRIP MISMATCH observation domain");
     for(String key:la.keySet()) { JsonNode a=la.get(key), b=ra.get(key); List<String> av=new ArrayList<>(),bv=new ArrayList<>(); for(JsonNode v:a.withArray("occurrences"))av.add(canon(v)); for(JsonNode v:b.withArray("occurrences"))bv.add(canon(v)); int property=integer(a,"property"); if(!ordered.getOrDefault(property,true)){Collections.sort(av);Collections.sort(bv);} if(!av.equals(bv)) throw new IllegalStateException("ROUNDTRIP MISMATCH occurrences "+key); }
     System.out.println("ROUNDTRIP OK declarations/objects/occurrences compared (identity allocation map)");
   }
@@ -281,3 +324,5 @@ public final class EmfInterchange {
     System.out.println(JSON.writeValueAsString(document));
   }
 }
+
+
