@@ -1,1 +1,7 @@
 import VLMOF.Core
+import VLMOF.Semantics
+import VLMOF.Properties
+import VLMOF.ClosureCorrect
+import VLMOF.SemanticExamples
+import VLMOF.CheckAcceptance
+import VLMOF.CheckExamples

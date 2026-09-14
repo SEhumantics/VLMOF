@@ -2,7 +2,9 @@
 
 An EMOF formalization project in Lean 4. The current baseline provides a Lean
 build, reproducible specification downloads, and a finite raw representation of
-the structural profile. Conformance predicates and tools remain pending.
+the structural profile, separate schema and snapshot conformance predicates, and
+proved consequences of opposite multiplicity. Executable schema and snapshot checkers are proved equivalent to those predicates.
+The source-language conformance correspondence remains under development.
 
 ## Getting started
 
@@ -17,9 +19,26 @@ make check
 
 The first command downloads six OMG files into `sources/raw/` and checks their
 SHA-256 hashes. The second verifies those files offline, tests the download tool
-and builds the Lean library. The library entry point compiles the raw core and its representation examples.
+and builds the Lean library. The library entry point compiles the core, semantics, interaction proofs, partial
+closure lemmas, checker correctness and semantic examples.
 See [VLMOF/REPRESENTATION.md](VLMOF/REPRESENTATION.md) for the data model;
 constructing these records does not establish conformance.
+
+The main interaction theorem shows that reciprocal occurrence counts and an upper-one
+opposite force each forward reference count to be at most one, even without a forward
+uniqueness declaration. Examples include a conforming witness and cases separating
+the two premises. Inheritance uses a finite identity-deduplicated closure; persistence
+and direct-superclass inclusion are proved, while its full reachability characterization
+remains pending.
+
+The Java/EMF resource-loading probe is documented in [bridge/README.md](bridge/README.md).
+It checks inherited features, repeated values and reciprocal containment; it does not
+yet import into or export from the Lean core.
+
+The checker API is `checkSchema` / `checkSnapshot` in `VLMOF/Check.lean`.
+`CheckAcceptance.lean` proves acceptance iff the corresponding predicate, with no
+prevalidated-input assumption. Diagnostic lists report exactly the failed named
+field checks. A user-facing CLI is still pending.
 
 ## Reading the specification
 
@@ -59,6 +78,8 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
+
+
 
 
 

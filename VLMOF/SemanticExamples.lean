@@ -1,4 +1,5 @@
 import VLMOF.Properties
+import VLMOF.CheckAcceptance
 
 /-!
 # Semantic examples
@@ -107,66 +108,23 @@ example : ¬ SchemaWellFormed orphanAssociationEnd := by
     (by simp [orphanAssociationEnd, interactionSchema])
   simp [orphanAssociationEnd, interactionSchema, orphan, assoc, forward, reverse] at ho
 
-/- The following whole-acceptance proofs are temporarily disabled: their former broad
-`simp` scripts were not reproducible from fresh object files. Component and negative
-semantic cases below remain kernel checked. -/
-/-
-/-- The accepted K0 example has valid declaration structure under K1. -/
+/-- The checker correspondence certifies the unchanged K0 declaration fixture. -/
 theorem k0_schema_wellFormed : SchemaWellFormed VLMOF.Example.schema := by
-  constructor <;> simp (config := { maxSteps := 1000000 }) [VLMOF.Example.schema, uniqueBy, validName, validString, xmlChar,
-    VLMOF.Example.root, VLMOF.Example.left, VLMOF.Example.right, VLMOF.Example.diamond,
-    VLMOF.Example.person, VLMOF.Example.pet, VLMOF.Example.rootCode, VLMOF.Example.leftX,
-    VLMOF.Example.rightX, VLMOF.Example.pets, VLMOF.Example.owner, VLMOF.Example.active,
-    VLMOF.Example.scores, VLMOF.Example.moods,
-    Schema.packageDecls, Schema.classDecls, Schema.propertyDecls, Schema.associationDecls,
-    Schema.enumerationDecls, Schema.literalDecls, Schema.packageAncestors, Schema.ancestors,
-    iterateClosure, classSupers, packageParents, multiplicityValid, ownerMatchesEnd,
-    classOwnerIsSource, atMostOneAssociationOwned, Schema.oppositeCandidates,
-    Schema.applicableProperty, Schema.applicablePropertyIds, Schema.associationEndApplies]
+  apply (checkSchema_iff _).mp
+  decide
 
-/-- The accepted K0 example snapshot is valid under the selected occurrence-sensitive
-interpretation: its repeated Person--Pet relationship is repeated at both ends. -/
+/-- Repeated values and reciprocal repeated links in the K0 snapshot conform. -/
 theorem k0_snapshot_conforms : SnapshotConforms VLMOF.Example.schema VLMOF.Example.snapshot := by
-  constructor
-  · exact k0_schema_wellFormed
-  all_goals simp (config := { maxSteps := 1000000 }) [VLMOF.Example.schema, VLMOF.Example.snapshot, uniqueBy, validName,
-    VLMOF.Example.root, VLMOF.Example.left, VLMOF.Example.right, VLMOF.Example.diamond,
-    VLMOF.Example.person, VLMOF.Example.pet, VLMOF.Example.rootCode, VLMOF.Example.leftX,
-    VLMOF.Example.rightX, VLMOF.Example.pets, VLMOF.Example.owner, VLMOF.Example.active,
-    VLMOF.Example.scores, VLMOF.Example.moods, VLMOF.Example.p, VLMOF.Example.fido,
-    VLMOF.Example.diamondObject,
-    validString, xmlChar, Schema.packageDecls, Schema.classDecls, Schema.propertyDecls,
-    Schema.associationDecls, Schema.enumerationDecls, Schema.literalDecls,
-    Schema.packageAncestors, Schema.ancestors, iterateClosure, classSupers, packageParents,
-    multiplicityValid, withinMultiplicity, valueMatches, ownerMatchesEnd, classOwnerIsSource,
-    atMostOneAssociationOwned, Schema.oppositeCandidates, Schema.applicableProperty,
-    Schema.applicablePropertyIds, Schema.associationEndApplies, Snapshot.occurrences,
-    Observation.key, incomingCompositeCount, compositeEdge, compositeReachable,
-    outgoingComposite]
+  apply (checkSnapshot_iff _ _).mp
+  decide
 
 theorem interactionSchema_wellFormed : SchemaWellFormed interactionSchema := by
-  constructor <;> simp (config := { maxSteps := 1000000 }) [interactionSchema, mult, uniqueBy, validName, validString, xmlChar,
-    A, B, forward, reverse, assoc,
-    Schema.packageDecls, Schema.classDecls, Schema.associationDecls, Schema.enumerationDecls,
-    Schema.packageAncestors, Schema.ancestors, iterateClosure, classSupers, packageParents,
-    multiplicityValid, ownerMatchesEnd, classOwnerIsSource, atMostOneAssociationOwned,
-    Schema.oppositeCandidates, Schema.applicableProperty, Schema.applicablePropertyIds,
-    Schema.associationEndApplies]
+  apply (checkSchema_iff _).mp
+  decide
+
 theorem oneLink_conforms : SnapshotConforms interactionSchema oneLink := by
-  constructor
-  · exact interactionSchema_wellFormed
-  all_goals simp (config := { maxSteps := 1000000 }) [interactionSchema, oneLink, mult, uniqueBy, validName, validString,
-    A, B, forward, reverse, assoc, x, y,
-    xmlChar, Schema.packageDecls, Schema.classDecls, Schema.associationDecls,
-    Schema.enumerationDecls, Schema.packageAncestors, Schema.ancestors, iterateClosure,
-    classSupers, packageParents, multiplicityValid, withinMultiplicity, valueMatches,
-    ownerMatchesEnd, classOwnerIsSource, atMostOneAssociationOwned, Schema.oppositeCandidates,
-    Schema.applicableProperty, Schema.applicablePropertyIds, Schema.associationEndApplies,
-    Snapshot.occurrences, Observation.key, incomingCompositeCount, compositeEdge,
-    compositeReachable, outgoingComposite]
-
--/
-
+  apply (checkSnapshot_iff _ _).mp
+  decide
 example : ¬ SnapshotConforms interactionSchema withoutReciprocity := by
   intro h
   have hc := h.oppositeCounts interactionSchema.associations[0] (by simp [interactionSchema])
@@ -176,3 +134,4 @@ example : ¬ SnapshotConforms interactionSchema withoutReciprocity := by
   simp [withoutReciprocity, oneLink, Snapshot.occurrences, x, y, forward, reverse] at hc
 
 end VLMOF.SemanticExample
+

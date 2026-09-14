@@ -110,3 +110,18 @@ String is useful for representing malformed inputs, but is not automatically
 a valid XSD string. Empty string is valid; no case folding or Unicode
 normalization is implicit. Source-language lexical choices are separate from
 these value-space restrictions.
+
+## Boundaries confirmed during semantic review
+
+The positive-upper restriction above follows MOF 9.3.3[4]-[5], printed page 13:
+the prerequisites for instantiating a Class include lower <= upper and upper >= 1
+for all its Properties, including inherited Properties. General UML abstract syntax
+can represent 0..0; this profile selects creation-valid declarations and does not
+claim every structurally valid UML multiplicity.
+
+Occurrence-sensitive lists preserve repeated endpoint values, and reference equality
+uses ObjectId. They provide no first-class Link IDs or cross-end identity for two
+equal repeated occurrences. Ordering is an observation of the retained list; unordered
+observation equivalence is permutation. Optional MOF clause 15.3.3 opposite-end
+isUnique compatibility is not selected, so opposite ends may have different uniqueness
+flags; reciprocity and each end's own bounds and uniqueness still constrain snapshots.
