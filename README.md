@@ -41,6 +41,9 @@ files. To download again, run `python3 scripts/sources.py fetch --refresh`.
 A failed download or hash mismatch leaves an existing file untouched. Hashes
 are changed only through an explicit manifest edit after inspecting the source.
 
+The reviewed static interpretation is documented in [sources/PROFILE.md](sources/PROFILE.md).
+It identifies supported forms, explicit interpretation choices and deferred behavior.
+
 ## Manuscript
 
 Run `make -C paper` to build the working manuscript at `paper/build/main.pdf`.
@@ -53,5 +56,6 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
+
 
 

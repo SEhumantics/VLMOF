@@ -98,3 +98,15 @@ mathematical predicates require total resolved navigation premises rather than
 silently changing OCL null/invalid behavior. The dated UML.xmi contains 40
 repeated xmi:id occurrences across seven package-import identifiers; preserve
 nodes/provenance and diagnose collisions instead of overwriting an ID map.
+
+## Primitive value boundary
+
+MOF 12.4[5] adopts [XSD 1.0 Datatypes, second edition](https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/),
+sections 3.2.1, 3.2.2 and 3.3.13. Bool and arbitrary Int represent the selected
+Boolean and Integer values. String values must contain only characters allowed
+by [XML 1.0 second edition, production Char](https://www.w3.org/TR/2000/REC-xml-20001006#charsets):
+tab, LF, CR, U+0020-D7FF, E000-FFFD, or 10000-10FFFF. An unconstrained host
+String is useful for representing malformed inputs, but is not automatically
+a valid XSD string. Empty string is valid; no case folding or Unicode
+normalization is implicit. Source-language lexical choices are separate from
+these value-space restrictions.
