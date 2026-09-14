@@ -567,4 +567,220 @@ theorem source_valuesTyped_of_snapshotConforms
     hvalueBind (hconforms.valuesTyped targetObservation htargetObservation targetProperty
       htargetProperty htargetPropertyId targetValue htargetValue)
 
+private theorem bindAssociationEntry_ends {model : Model} {source : Association}
+    {index : Nat} {target : AssociationDecl}
+    (h : bindAssociationEntry model (source, index) = .ok target) :
+    ∃ first second firstId secondId,
+      source.ends = [first, second] ∧ propertyId model first = .ok firstId ∧
+      propertyId model second = .ok secondId ∧ target.ends = (firstId, secondId) := by
+  unfold bindAssociationEntry at h
+  cases hq : checkQualification source.alias source.package <;>
+    cases hp : optionalPackage model source.package <;>
+    cases hend : source.ends with
+    | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at h
+    | cons first rest =>
+      cases rest with
+      | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at h
+      | cons second tail =>
+        cases tail with
+        | cons third tail =>
+          simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at h
+        | nil =>
+          cases hf : propertyId model first with
+          | error error => simp [hq, hp, hend, hf, Bind.bind, Except.bind] at h
+          | ok firstId =>
+            cases hs : propertyId model second with
+            | error error => simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind] at h
+            | ok secondId =>
+              simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind,
+                pure, Except.pure] at h
+              all_goals try subst target
+              all_goals exact ⟨first, second, firstId, secondId, rfl, hf, hs, rfl⟩
+
+private theorem referenceValueBinds_of_objectId {model : Model} {source : Instance}
+    {name : Name} {id : ObjectId} (h : objectId source name = .ok id) :
+    ValueBinds model source (.reference name) (.reference id) := by
+  exact (resolveIndex_iff_uniqueAliasAt _ _ _ _).mp
+    ((objectId_ok_iff source name id).mp h)
+
+theorem source_oppositeCounts_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ association ∈ model.associations, ∀ first second,
+      association.ends = [first, second] →
+      ∀ firstObject ∈ source.objects, ∀ secondObject ∈ source.objects,
+      (sourceOccurrences source firstObject.alias first).count (.reference secondObject.alias) =
+      (sourceOccurrences source secondObject.alias second).count (.reference firstObject.alias) := by
+  intro association hassociation first second hends firstObject hfirstObject
+    secondObject hsecondObject
+  have allocation := modelAllocation_of_bindModel hmodel
+  obtain ⟨index, hget⟩ := List.mem_iff_getElem?.mp hassociation
+  have hzip : (association, index) ∈ model.associations.zipIdx :=
+    List.mk_mem_zipIdx_iff_getElem?.mpr hget
+  obtain ⟨targetAssociation, htargetAssociation, hassociationBind⟩ :=
+    mapM_ok_source allocation.associations hzip
+  obtain ⟨boundFirst, boundSecond, firstId, secondId, hboundEnds,
+    hfirstId, hsecondId, htargetEnds⟩ := bindAssociationEntry_ends hassociationBind
+  have hfirstName : boundFirst = first := by
+    have h : first = boundFirst := by
+      simpa [hends] using congrArg List.head? hboundEnds
+    exact h.symm
+  have hsecondName : boundSecond = second := by
+    have h : second = boundSecond := by
+      simpa [hends] using congrArg (fun xs => (xs.drop 1).head?) hboundEnds
+    exact h.symm
+  subst boundFirst
+  subst boundSecond
+  obtain ⟨targetFirst, htargetFirst, hfirstObjectId, _⟩ :=
+    sourceObject_target hinstance hfirstObject
+  obtain ⟨targetSecond, htargetSecond, hsecondObjectId, _⟩ :=
+    sourceObject_target hinstance hsecondObject
+  have hleft := bindInstance_occurrences_count_eq hinstance hfirstObjectId hfirstId
+    (referenceValueBinds_of_objectId hsecondObjectId)
+  have hright := bindInstance_occurrences_count_eq hinstance hsecondObjectId hsecondId
+    (referenceValueBinds_of_objectId hfirstObjectId)
+  calc
+    (sourceOccurrences source firstObject.alias first).count (.reference secondObject.alias) =
+        (target.occurrences targetFirst.id firstId).count (.reference targetSecond.id) := hleft
+    _ = (target.occurrences targetSecond.id secondId).count (.reference targetFirst.id) :=
+      hconforms.oppositeCounts targetAssociation htargetAssociation firstId secondId
+        htargetEnds targetFirst htargetFirst targetSecond htargetSecond
+    _ = (sourceOccurrences source secondObject.alias second).count
+        (.reference firstObject.alias) := hright.symm
+
+private theorem bindPropertyEntry_aggregation {model : Model} {source : Property}
+    {index : Nat} {target : PropertyDecl}
+    (h : bindPropertyEntry model (source, index) = .ok target) :
+    target.aggregation = source.aggregation := by
+  unfold bindPropertyEntry at h
+  cases hq : checkQualification source.alias (some (ownerName source.owner)) <;>
+    cases ho : bindOwner model source.owner <;>
+    cases ht : bindType model source.type <;>
+    simp [hq, ho, ht, Bind.bind, Except.bind, pure, Except.pure] at h
+  subst target
+  rfl
+
+private theorem compositeTest_eq {model : Model} {schema : Schema}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    {sourceObservation : Source.Observation} {targetObservation : VLMOF.Observation}
+    (hproperty : propertyId model sourceObservation.property = .ok targetObservation.property) :
+    (model.properties.any fun p =>
+      p.alias = sourceObservation.property && p.aggregation = .composite) =
+    (schema.properties.any fun p =>
+      p.id = targetObservation.property ∧ p.aggregation = .composite) := by
+  apply Bool.eq_iff_iff.mpr
+  simp only [List.any_eq_true, Bool.and_eq_true_iff, decide_eq_true_eq]
+  constructor
+  · rintro ⟨property, hp, halias, haggregation⟩
+    obtain ⟨index, targetProperty, hzip, htargetProperty, hbind⟩ :=
+      (modelAllocation_of_bindModel hmodel).propertyForSource hp
+    have hpid := propertyEntry_resolves_id hwell hzip hbind
+    exact ⟨targetProperty, htargetProperty,
+      Except.ok.inj (hpid.symm.trans (halias ▸ hproperty)),
+      (bindPropertyEntry_aggregation hbind).trans haggregation⟩
+  · rintro ⟨targetProperty, htargetProperty, hid, haggregation⟩
+    obtain ⟨entry, hentry, hbind⟩ :=
+      (mapM_ok_mem_iff (modelAllocation_of_bindModel hmodel).properties).mp htargetProperty
+    have hsource := List.fst_mem_of_mem_zipIdx hentry
+    have hpid := propertyEntry_resolves_id hwell hentry hbind
+    have halias : entry.1.alias = sourceObservation.property :=
+      propertyId_source_injective hpid (by simpa [hid] using hproperty)
+    exact ⟨entry.1, hsource, halias,
+      (bindPropertyEntry_aggregation hbind).symm.trans haggregation⟩
+
+private theorem referenceFilter_length_eq {model : Model} {source : Instance}
+    {sourceValues : List Source.Value} {targetValues : List VLMOF.Value}
+    (hocc : OccurrencesBind model source sourceValues targetValues)
+    {name : Name} {id : ObjectId} (hid : objectId source name = .ok id) :
+    (sourceValues.filter (fun v => v = .reference name)).length =
+      (targetValues.filter (fun v => v = .reference id)).length := by
+  have hv := referenceValueBinds_of_objectId (model := model) hid
+  induction sourceValues generalizing targetValues with
+  | nil => cases targetValues <;> simp_all [OccurrencesBind]
+  | cons first rest ih =>
+    cases targetValues with
+    | nil => simp [OccurrencesBind] at hocc
+    | cons translated translatedRest =>
+      simp only [OccurrencesBind] at hocc
+      have htail := ih hocc.2
+      cases first <;> cases translated <;> simp_all [ValueBinds]
+      case reference.reference sourceObject targetObject =>
+        by_cases hn : sourceObject = name
+        · have ht : targetObject = id := by
+            have hval : targetObject.val = id.val :=
+              (hocc.1.2 id.val (by simpa [hn] using hv.1)).symm
+            cases targetObject
+            cases id
+            simp_all
+          simp [hn, ht, htail]
+        · have ht : targetObject ≠ id := fun heq =>
+            hn (Option.some.inj (hocc.1.1.symm.trans (heq ▸ hv.1)))
+          simp [hn, ht, htail]
+
+private theorem incomingCompositeCount_mapM {model : Model} {source : Instance}
+    {schema : Schema} (hwell : ModelWellFormed model)
+    (hmodel : bindModel model = .ok schema)
+    {sources : List Source.Observation} {targets : List VLMOF.Observation}
+    (hmap : sources.mapM (bindObservationAllocation model source) = .ok targets)
+    {targetName : Name} {targetId : ObjectId}
+    (hid : objectId source targetName = .ok targetId) :
+    (sources.flatMap fun observation =>
+      if model.properties.any (fun p =>
+        p.alias = observation.property && p.aggregation = .composite)
+      then observation.occurrences.filter (fun v => v = .reference targetName) else []).length =
+    (targets.flatMap fun observation =>
+      if schema.properties.any (fun p =>
+        p.id = observation.property ∧ p.aggregation = .composite)
+      then observation.occurrences.filter (fun v => v = .reference targetId) else []).length := by
+  induction sources generalizing targets with
+  | nil =>
+    change Except.ok [] = Except.ok targets at hmap
+    cases targets with
+    | nil => simp
+    | cons first rest => simp at hmap
+  | cons first rest ih =>
+    obtain ⟨translated, translatedRest, rfl, hfirst, hrest⟩ := mapM_ok_cons hmap
+    have hfacts :=
+      (bindObservationAllocation_ok_iff model source first translated).mp hfirst
+    have htest := compositeTest_eq hwell hmodel hfacts.2.1
+    have hcount := referenceFilter_length_eq hfacts.2.2 hid
+    simp only [List.flatMap_cons, List.length_append]
+    have htail := ih hrest
+    rw [htest]
+    by_cases hc : schema.properties.any (fun p =>
+        p.id = translated.property ∧ p.aggregation = .composite) = true
+    · simp only [hc, if_true]
+      omega
+    · have hf : schema.properties.any (fun p =>
+          p.id = translated.property ∧ p.aggregation = .composite) = false := by
+        cases hv : schema.properties.any (fun p =>
+          p.id = translated.property ∧ p.aggregation = .composite)
+        · rfl
+        · exact False.elim (hc hv)
+      simp only [hf, Bool.false_eq_true, if_false]
+      omega
+
+private theorem incomingCompositeCount_reflect_eq {model : Model} {source : Instance}
+    {schema : Schema} {target : Snapshot} (hwell : ModelWellFormed model)
+    (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    {name : Name} {id : ObjectId} (hid : objectId source name = .ok id) :
+    incomingCompositeCount model source name = VLMOF.incomingCompositeCount schema target id := by
+  unfold Source.incomingCompositeCount VLMOF.incomingCompositeCount
+  exact incomingCompositeCount_mapM hwell hmodel (bindInstance_ok_mapM hinstance).2 hid
+
+theorem source_oneIncomingComposite_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ object ∈ source.objects, incomingCompositeCount model source object.alias ≤ 1 := by
+  intro object hobject
+  obtain ⟨targetObject, htargetObject, hobjectId, _⟩ :=
+    sourceObject_target hinstance hobject
+  rw [incomingCompositeCount_reflect_eq hwell hmodel hinstance hobjectId]
+  exact hconforms.oneIncomingComposite targetObject htargetObject
+
 end VLMOF.Source
