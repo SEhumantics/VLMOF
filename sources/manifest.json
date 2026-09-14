@@ -1,0 +1,32 @@
+[
+  {
+    "file": "MOF-2.5.1.pdf",
+    "url": "https://www.omg.org/spec/MOF/2.5.1/PDF",
+    "sha256": "9a4442a6a1297615957a367181db0a1cf926b90daf27ca9106fe435d076a008f",
+    "purpose": "MOF 2.5.1 specification, including EMOF clause 12"
+  },
+  {
+    "file": "MOF.xmi",
+    "url": "https://www.omg.org/spec/MOF/20131001/MOF.xmi",
+    "sha256": "e16be759a481b769cc21417520a57aa0f33172e8530c8c12626ce0587cad9a99",
+    "purpose": "Published MOF metamodel and references to its dependencies"
+  },
+  {
+    "file": "UML.xmi",
+    "url": "https://www.omg.org/spec/UML/20131001/UML.xmi",
+    "sha256": "f01fe6c97eefed64a3f0fddd19474734f8443fcec1d95e406bb7d4b141ca1dce",
+    "purpose": "Dated declaration dependency referenced by MOF.xmi"
+  },
+  {
+    "file": "PrimitiveTypes.xmi",
+    "url": "https://www.omg.org/spec/UML/20131001/PrimitiveTypes.xmi",
+    "sha256": "8a2c3944bc4760303350d1220a2bfffcbe75883a343e0d77548904838d3c3347",
+    "purpose": "Primitive declarations used by the metamodel sources"
+  },
+  {
+    "file": "EMOFConstraints.ocl",
+    "url": "https://www.omg.org/spec/MOF/20131001/EMOFConstraints.ocl",
+    "sha256": "b1e83843d920e72213b33aff8e9b906910d06229a824d13a1e9a5bfade88eb9d",
+    "purpose": "Supplied constraint document to compare with the specification prose"
+  }
+]
