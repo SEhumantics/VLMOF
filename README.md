@@ -97,6 +97,10 @@ It identifies supported forms, explicit interpretation choices and deferred beha
 
 ## Manuscript
 
+The [evaluation runner](experiments/README.md) records authored JSON/DSL cases and
+a proof-library client with input hashes, commands and observed outcomes. Public-case
+bridge evaluation remains pending.
+
 Run `make -C paper` to build the working manuscript at `paper/build/main.pdf`.
 See [paper/README.md](paper/README.md) for TeX dependencies and venue rules.
 The manuscript skeleton has no completed semantic or evaluation claims.
@@ -107,7 +111,6 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
-
 
 
 

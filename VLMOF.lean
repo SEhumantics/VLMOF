@@ -15,3 +15,4 @@ import VLMOF.SourceExamples
 import VLMOF.SourceSemanticExamples
 import VLMOF.DSLExamples
 import VLMOF.OccurrenceBindingCorrect
+import VLMOF.SnapshotAllocationCorrect
