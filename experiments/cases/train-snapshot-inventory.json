@@ -1,0 +1,318 @@
+{
+  "source": "Train Benchmark v1.0 commit 6490047d7449f9a4b66cec032b9377bfc06a54d2",
+  "method": "Python standard-library xml.etree.ElementTree; source inspection only, no EMF loading",
+  "snapshots": [
+    {
+      "file": "railway-batch-1.xmi",
+      "objects_including_root": 754,
+      "type_counts": {
+        "RailwayContainer": 1,
+        "Region": 5,
+        "Route": 5,
+        "Segment": 585,
+        "Semaphore": 5,
+        "Sensor": 117,
+        "Switch": 18,
+        "SwitchPosition": 18
+      },
+      "scalar_fields": {
+        "active": {
+          "expected_instances": 5,
+          "present": 5,
+          "missing": 0
+        },
+        "currentPosition": {
+          "expected_instances": 18,
+          "present": 12,
+          "missing": 6
+        },
+        "id": {
+          "expected_instances": 753,
+          "present": 753,
+          "missing": 0
+        },
+        "length": {
+          "expected_instances": 585,
+          "present": 585,
+          "missing": 0
+        },
+        "position": {
+          "expected_instances": 18,
+          "present": 12,
+          "missing": 6
+        },
+        "signal": {
+          "expected_instances": 5,
+          "present": 5,
+          "missing": 0
+        }
+      },
+      "ordinary_id_values": {
+        "present": 753,
+        "distinct": 753
+      },
+      "serialized_reference_lists": 1374,
+      "reference_lists_with_repeated_target_token": 0
+    },
+    {
+      "file": "railway-batch-2.xmi",
+      "objects_including_root": 2389,
+      "type_counts": {
+        "RailwayContainer": 1,
+        "Region": 10,
+        "Route": 10,
+        "Segment": 1850,
+        "Semaphore": 10,
+        "Sensor": 370,
+        "Switch": 69,
+        "SwitchPosition": 69
+      },
+      "scalar_fields": {
+        "active": {
+          "expected_instances": 10,
+          "present": 10,
+          "missing": 0
+        },
+        "currentPosition": {
+          "expected_instances": 69,
+          "present": 40,
+          "missing": 29
+        },
+        "id": {
+          "expected_instances": 2388,
+          "present": 2388,
+          "missing": 0
+        },
+        "length": {
+          "expected_instances": 1850,
+          "present": 1850,
+          "missing": 0
+        },
+        "position": {
+          "expected_instances": 69,
+          "present": 40,
+          "missing": 29
+        },
+        "signal": {
+          "expected_instances": 10,
+          "present": 10,
+          "missing": 0
+        }
+      },
+      "ordinary_id_values": {
+        "present": 2388,
+        "distinct": 2388
+      },
+      "serialized_reference_lists": 4376,
+      "reference_lists_with_repeated_target_token": 0
+    },
+    {
+      "file": "railway-inject-1.xmi",
+      "objects_including_root": 927,
+      "type_counts": {
+        "RailwayContainer": 1,
+        "Region": 5,
+        "Route": 5,
+        "Segment": 713,
+        "Semaphore": 5,
+        "Sensor": 142,
+        "Switch": 28,
+        "SwitchPosition": 28
+      },
+      "scalar_fields": {
+        "active": {
+          "expected_instances": 5,
+          "present": 5,
+          "missing": 0
+        },
+        "currentPosition": {
+          "expected_instances": 28,
+          "present": 18,
+          "missing": 10
+        },
+        "id": {
+          "expected_instances": 926,
+          "present": 926,
+          "missing": 0
+        },
+        "length": {
+          "expected_instances": 713,
+          "present": 713,
+          "missing": 0
+        },
+        "position": {
+          "expected_instances": 28,
+          "present": 17,
+          "missing": 11
+        },
+        "signal": {
+          "expected_instances": 5,
+          "present": 5,
+          "missing": 0
+        }
+      },
+      "ordinary_id_values": {
+        "present": 926,
+        "distinct": 926
+      },
+      "serialized_reference_lists": 1693,
+      "reference_lists_with_repeated_target_token": 0
+    },
+    {
+      "file": "railway-inject-2.xmi",
+      "objects_including_root": 3407,
+      "type_counts": {
+        "RailwayContainer": 1,
+        "Region": 10,
+        "Route": 10,
+        "Segment": 2645,
+        "Semaphore": 10,
+        "Sensor": 525,
+        "Switch": 103,
+        "SwitchPosition": 103
+      },
+      "scalar_fields": {
+        "active": {
+          "expected_instances": 10,
+          "present": 10,
+          "missing": 0
+        },
+        "currentPosition": {
+          "expected_instances": 103,
+          "present": 66,
+          "missing": 37
+        },
+        "id": {
+          "expected_instances": 3406,
+          "present": 3406,
+          "missing": 0
+        },
+        "length": {
+          "expected_instances": 2645,
+          "present": 2645,
+          "missing": 0
+        },
+        "position": {
+          "expected_instances": 103,
+          "present": 64,
+          "missing": 39
+        },
+        "signal": {
+          "expected_instances": 10,
+          "present": 10,
+          "missing": 0
+        }
+      },
+      "ordinary_id_values": {
+        "present": 3406,
+        "distinct": 3406
+      },
+      "serialized_reference_lists": 6255,
+      "reference_lists_with_repeated_target_token": 0
+    },
+    {
+      "file": "railway-repair-1.xmi",
+      "objects_including_root": 1418,
+      "type_counts": {
+        "RailwayContainer": 1,
+        "Region": 5,
+        "Route": 5,
+        "Segment": 1103,
+        "Semaphore": 5,
+        "Sensor": 219,
+        "Switch": 40,
+        "SwitchPosition": 40
+      },
+      "scalar_fields": {
+        "active": {
+          "expected_instances": 5,
+          "present": 5,
+          "missing": 0
+        },
+        "currentPosition": {
+          "expected_instances": 40,
+          "present": 24,
+          "missing": 16
+        },
+        "id": {
+          "expected_instances": 1417,
+          "present": 1417,
+          "missing": 0
+        },
+        "length": {
+          "expected_instances": 1103,
+          "present": 1103,
+          "missing": 0
+        },
+        "position": {
+          "expected_instances": 40,
+          "present": 25,
+          "missing": 15
+        },
+        "signal": {
+          "expected_instances": 5,
+          "present": 5,
+          "missing": 0
+        }
+      },
+      "ordinary_id_values": {
+        "present": 1417,
+        "distinct": 1417
+      },
+      "serialized_reference_lists": 2599,
+      "reference_lists_with_repeated_target_token": 0
+    },
+    {
+      "file": "railway-repair-2.xmi",
+      "objects_including_root": 2687,
+      "type_counts": {
+        "RailwayContainer": 1,
+        "Region": 10,
+        "Route": 10,
+        "Segment": 2086,
+        "Semaphore": 10,
+        "Sensor": 414,
+        "Switch": 78,
+        "SwitchPosition": 78
+      },
+      "scalar_fields": {
+        "active": {
+          "expected_instances": 10,
+          "present": 10,
+          "missing": 0
+        },
+        "currentPosition": {
+          "expected_instances": 78,
+          "present": 49,
+          "missing": 29
+        },
+        "id": {
+          "expected_instances": 2686,
+          "present": 2686,
+          "missing": 0
+        },
+        "length": {
+          "expected_instances": 2086,
+          "present": 2086,
+          "missing": 0
+        },
+        "position": {
+          "expected_instances": 78,
+          "present": 49,
+          "missing": 29
+        },
+        "signal": {
+          "expected_instances": 10,
+          "present": 10,
+          "missing": 0
+        }
+      },
+      "ordinary_id_values": {
+        "present": 2686,
+        "distinct": 2686
+      },
+      "serialized_reference_lists": 4924,
+      "reference_lists_with_repeated_target_token": 0
+    }
+  ]
+}
