@@ -145,7 +145,7 @@ public final class EmfInterchange {
     return n;
   }
   private void noProxies(List<Resource> xmis) {
-    for (Resource r : xmis) for (EObject root : r.getContents()) { if (root.eIsProxy()) reject("unresolved-proxy", root); TreeIterator<EObject> it = root.eAllContents(); while (it.hasNext()) { EObject o = it.next(); if (o.eIsProxy()) reject("unresolved-proxy", o); for (EReference ref : o.eClass().getEAllReferences()) { Object v = o.eGet(ref, false); if (v instanceof EObject e && e.eIsProxy()) reject("unresolved-proxy-reference", o); if (v instanceof List<?> xs) for (Object x : xs) if (x instanceof EObject e && e.eIsProxy()) reject("unresolved-proxy-reference", o); } } }
+    for (Resource r : xmis) for (EObject root : r.getContents()) { if (root.eIsProxy()) reject("unresolved-proxy", root); List<EObject> all=new ArrayList<>(); all.add(root); TreeIterator<EObject> it = root.eAllContents(); while(it.hasNext()) all.add(it.next()); for(EObject o:all) { if (o.eIsProxy()) reject("unresolved-proxy", o); for(EStructuralFeature feature:o.eClass().getEAllStructuralFeatures()) { if(feature instanceof EAttribute && !feature.isMany() && !o.eIsSet(feature) && o.eGet(feature,false)!=null) reject("ambiguous-instance-default-lexical-presence",o); } for (EReference ref : o.eClass().getEAllReferences()) { Object v = o.eGet(ref, false); if (v instanceof EObject e && e.eIsProxy()) reject("unresolved-proxy-reference", o); if (v instanceof List<?> xs) for (Object x : xs) if (x instanceof EObject e && e.eIsProxy()) reject("unresolved-proxy-reference", o); } } }
     require(diagnostics.isEmpty());
   }
   private ObjectNode emit(List<EPackage> roots, List<Resource> xmis, List<String> ecorePaths, List<String> xmiPaths) {

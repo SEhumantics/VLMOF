@@ -72,6 +72,13 @@ normalization policy in `provenance`, rather than claiming XML lexical-presence
 evidence. That lexical distinction needs a retained XML-source binding before it can
 support a source-fidelity claim.
 
+EMF's ordinary `eIsSet` cannot distinguish an omitted optional scalar from an XMI
+scalar explicitly written with its default (`false`, `0`, empty string, or the first
+enum literal). The importer therefore rejects either ambiguous state with
+`REJECT ambiguous-instance-default-lexical-presence`; it never drops an explicit
+default and reports success. Unsettable features are also outside this profile, so
+they cannot be used as a workaround.
+
 All packages used by a classifier must appear in the supplied Ecore manifest (nested
 packages count through their explicit parent). A proxy or a reference to an object
 outside the supplied XMI manifest is rejected. Ecore represents both ends of a
