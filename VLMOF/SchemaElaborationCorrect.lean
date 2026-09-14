@@ -1,5 +1,6 @@
 import VLMOF.ElaborationComplete
 import VLMOF.ClosureSaturation
+import VLMOF.PackageClosureCorrect
 
 /-!
 # Preservation of model well-formedness by schema elaboration
@@ -771,5 +772,165 @@ theorem ModelAllocation.compositeReferences (a : ModelAllocation model target)
       have : d.type = .reference id := by
         simpa [hid, Functor.map, Except.map] using ht.symm
       exact ⟨id, this⟩
+
+def ClassAliasAt (model : Model) (id : ClassId) (name : Name) : Prop :=
+  (model.classes.map Class.alias)[id.val]? = some name
+
+def PackageAliasAt (model : Model) (id : PackageId) (name : Name) : Prop :=
+  (model.packages.map Package.alias)[id.val]? = some name
+
+private theorem classAliasAt_unique (h : ModelWellFormed model)
+    {id : ClassId} {first second : Name}
+    (ha : ClassAliasAt model id first) (hb : ClassAliasAt model id second) : first = second := by
+  exact Option.some.inj (ha.symm.trans hb)
+
+private theorem packageAliasAt_unique (h : ModelWellFormed model)
+    {id : PackageId} {first second : Name}
+    (ha : PackageAliasAt model id first) (hb : PackageAliasAt model id second) : first = second := by
+  exact Option.some.inj (ha.symm.trans hb)
+
+/-- Every allocated target class retains its source alias, and every target direct
+super retains the symbolic superclass alias from the same source row. -/
+theorem ModelAllocation.classEdgeSource (a : ModelAllocation model target)
+    {d : ClassDecl} (hd : d ∈ target.classes) :
+    ∃ source ∈ model.classes,
+      ClassAliasAt model d.id source.alias ∧
+      ∀ super ∈ d.directSupers, ∃ name ∈ source.directSupers,
+        ClassAliasAt model super name := by
+  rcases (mapM_ok_mem_iff a.classes).mp hd with ⟨x, hx, hb⟩
+  have hsource := List.fst_mem_of_mem_zipIdx hx
+  unfold bindClassEntry at hb
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    cases hs : x.1.directSupers.mapM (classId model) <;>
+    simp [hq, hp, hs, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  refine ⟨x.1, hsource, ?_, ?_⟩
+  · have hg := List.mk_mem_zipIdx_iff_getElem?.mp hx
+    simp [ClassAliasAt, List.getElem?_map, hg]
+  · intro super hsuper
+    rcases (mapM_ok_mem_iff hs).mp hsuper with ⟨name, hn, hr⟩
+    exact ⟨name, hn, resolveIndex_getElem (classId_resolve hr)⟩
+
+theorem superPath_to_classAncestor (h : ModelWellFormed model)
+    (a : ModelAllocation model target) {start finish : ClassId} {n : Nat}
+    (path : SuperPath target start finish n)
+    {sourceStart sourceFinish : Name}
+    (hs : ClassAliasAt model start sourceStart)
+    (hf : ClassAliasAt model finish sourceFinish) :
+    ClassAncestor model sourceStart sourceFinish := by
+  induction path generalizing sourceStart sourceFinish with
+  | refl =>
+      rw [classAliasAt_unique h hs hf]
+      exact .refl _
+  | @step here next n path hedge ih =>
+      rcases hedge with ⟨d, hd, hid, hn⟩
+      rcases a.classEdgeSource hd with ⟨source, hsource, hhere, hedges⟩
+      rw [hid] at hhere
+      rcases hedges next hn with ⟨nextName, hnext, hnextAlias⟩
+      have hpre := ih hs hhere
+      have suffix : ClassAncestor model sourceStart nextName :=
+        .step hpre ⟨source, hsource, rfl, hnext⟩
+      rw [classAliasAt_unique h hnextAlias hf] at suffix
+      exact suffix
+
+theorem isSubtype_to_classAncestor (h : ModelWellFormed model)
+    (a : ModelAllocation model target) {start finish : ClassId}
+    {sourceStart sourceFinish : Name}
+    (path : target.isSubtype start finish)
+    (hs : ClassAliasAt model start sourceStart)
+    (hf : ClassAliasAt model finish sourceFinish) :
+    ClassAncestor model sourceStart sourceFinish := by
+  rcases target.isSubtype_implies_superReachable path with ⟨n, hp⟩
+  exact superPath_to_classAncestor h a hp hs hf
+
+/-- A stored target package-parent edge reflects the exact symbolic parent edge
+from the source row that allocated the child. -/
+theorem ModelAllocation.packageEdgeSource (a : ModelAllocation model target)
+    {d : PackageDecl} (hd : d ∈ target.packages) :
+    ∃ source ∈ model.packages,
+      PackageAliasAt model d.id source.alias ∧
+      ∀ parent, d.parent = some parent → ∃ name,
+        source.parent = some name ∧ PackageAliasAt model parent name := by
+  rcases (mapM_ok_mem_iff a.packages).mp hd with ⟨x, hx, hb⟩
+  have hsource := List.fst_mem_of_mem_zipIdx hx
+  unfold bindPackageEntry at hb
+  cases hq : checkQualification x.1.alias x.1.parent <;>
+    cases hp : optionalPackage model x.1.parent <;>
+    simp [hq, hp, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  refine ⟨x.1, hsource, ?_, ?_⟩
+  · have hg := List.mk_mem_zipIdx_iff_getElem?.mp hx
+    simp [PackageAliasAt, List.getElem?_map, hg]
+  · intro parent hparent
+    cases hs : x.1.parent with
+    | none =>
+        simp [hs, optionalPackage, pure, Except.pure] at hp
+        rw [← hp] at hparent
+        simp at hparent
+    | some name =>
+        cases hr : packageId model name with
+        | error error => simp [hs, optionalPackage, hr, Functor.map, Except.map] at hp
+        | ok id =>
+            simp [hs, optionalPackage, hr, Functor.map, Except.map] at hp
+            rw [← hp] at hparent
+            have hid : id = parent := Option.some.inj hparent
+            subst parent
+            exact ⟨name, rfl, resolveIndex_getElem (packageId_resolve hr)⟩
+
+theorem packagePath_to_packageAncestor (h : ModelWellFormed model)
+    (a : ModelAllocation model target) {start finish : PackageId}
+    (path : StoredPath (PackageParentEdge target) start finish)
+    {sourceStart sourceFinish : Name}
+    (hs : PackageAliasAt model start sourceStart)
+    (hf : PackageAliasAt model finish sourceFinish) :
+    PackageAncestor model sourceStart sourceFinish := by
+  induction path generalizing sourceStart sourceFinish with
+  | refl =>
+      rw [packageAliasAt_unique h hs hf]
+      exact .refl _
+  | @step here next path hedge ih =>
+      rcases hedge with ⟨d, hd, hid, hp⟩
+      rcases a.packageEdgeSource hd with ⟨source, hsource, hhere, hedgeSource⟩
+      rw [hid] at hhere
+      rcases hedgeSource next hp with ⟨parentName, hparent, hparentAlias⟩
+      have hpre := ih hs hhere
+      have hsuffix : PackageAncestor model sourceStart parentName :=
+        .step hpre ⟨source, hsource, rfl, hparent⟩
+      rw [packageAliasAt_unique h hparentAlias hf] at hsuffix
+      exact hsuffix
+
+theorem packageAncestors_to_packageAncestor (h : ModelWellFormed model)
+    (a : ModelAllocation model target) {start finish : PackageId}
+    {sourceStart sourceFinish : Name}
+    (path : finish ∈ target.packageAncestors start)
+    (hs : PackageAliasAt model start sourceStart)
+    (hf : PackageAliasAt model finish sourceFinish) :
+    PackageAncestor model sourceStart sourceFinish := by
+  unfold Schema.packageAncestors at path
+  rw [List.mem_eraseDups] at path
+  exact packagePath_to_packageAncestor h a (packageClosure_sound target path) hs hf
+
+theorem ModelAllocation.inheritanceAcyclic (a : ModelAllocation model target)
+    (h : ModelWellFormed model) :
+    ∀ d ∈ target.classes, ∀ super ∈ d.directSupers,
+      d.id ∉ target.ancestors super := by
+  intro d hd super hsuper hcycle
+  rcases a.classEdgeSource hd with ⟨source, hsource, hclass, hedges⟩
+  rcases hedges super hsuper with ⟨superName, hsuperName, hsuperAlias⟩
+  have sourceCycle : ClassAncestor model superName source.alias :=
+    isSubtype_to_classAncestor h a hcycle hsuperAlias hclass
+  exact h.inheritanceAcyclic source hsource superName hsuperName sourceCycle
+
+theorem ModelAllocation.packageAcyclic (a : ModelAllocation model target)
+    (h : ModelWellFormed model) :
+    ∀ d ∈ target.packages, ∀ parent, d.parent = some parent →
+      d.id ∉ target.packageAncestors parent := by
+  intro d hd parent hparent hcycle
+  rcases a.packageEdgeSource hd with ⟨source, hsource, hpackage, hedge⟩
+  rcases hedge parent hparent with ⟨parentName, hparentName, hparentAlias⟩
+  have sourceCycle : PackageAncestor model parentName source.alias :=
+    packageAncestors_to_packageAncestor h a hcycle hparentAlias hpackage
+  exact h.packageAcyclic source hsource parentName hparentName sourceCycle
 
 end VLMOF.Source
