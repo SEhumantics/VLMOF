@@ -227,4 +227,157 @@ private theorem sourceObservation_exists_iff {model : Model} {snapshot : Instanc
       objectId_source_injective hso (by simpa [ho] using hobject),
       propertyId_source_injective hsp (by simpa [hp] using hproperty)⟩
 
+private theorem classAliases_uniqueBy {model : Model} (h : ModelWellFormed model) :
+    uniqueBy Class.alias model.classes := by
+  have hn := h.uniqueQualifiedAliases
+  unfold uniqueAliases at hn
+  simp only [aliases, List.nodup_append] at hn
+  exact hn.1.1.1.1.2.1
+
+theorem source_classifiersResolved_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hinstance : bindInstance model source = .ok target) :
+    ∀ object ∈ source.objects, resolvesClass model object.classifier := by
+  intro object hobject
+  obtain ⟨targetObject, _, _, hclassifier⟩ := sourceObject_target hinstance hobject
+  exact resolvesClass_of_classId hclassifier
+
+theorem source_concreteClassifiers_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ object ∈ source.objects, ∀ declaration ∈ model.classes,
+      declaration.alias = object.classifier → declaration.isAbstract = false := by
+  intro object hobject declaration hdeclaration halias
+  obtain ⟨targetObject, htargetObject, _, hclassifier⟩ :=
+    sourceObject_target hinstance hobject
+  obtain ⟨allocatedSource, targetClass, hallocatedSource, hallocatedAlias,
+    htargetClass, htargetClassId, hclassBind⟩ :=
+      (modelAllocation_of_bindModel hmodel).classForId hclassifier
+  have hsame : allocatedSource = declaration := by
+    apply uniqueBy_eq_of_mem Class.alias (classAliases_uniqueBy hwell)
+      hallocatedSource hdeclaration
+    exact hallocatedAlias.trans halias.symm
+  subst allocatedSource
+  rw [← bindClassEntry_isAbstract hclassBind]
+  exact hconforms.concreteClassifiers targetObject htargetObject targetClass htargetClass
+    htargetClassId
+
+theorem source_observationsExact_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ object ∈ source.objects, ∀ property ∈ model.properties,
+      (∃ observation ∈ source.observations,
+        observation.object = object.alias ∧ observation.property = property.alias) ↔
+        propertyApplies model object.classifier property.alias := by
+  intro object hobject property hproperty
+  obtain ⟨targetObject, htargetObject, hobjectId, hclassifier⟩ :=
+    sourceObject_target hinstance hobject
+  obtain ⟨targetProperty, htargetProperty, hpropertyId, _, _, _⟩ :=
+    sourceProperty_target hwell hmodel hproperty
+  rw [sourceObservation_exists_iff hinstance hobjectId hpropertyId]
+  rw [hconforms.observationsExact targetObject htargetObject targetProperty htargetProperty]
+  exact (propertyApplies_iff_applicableProperty hwell hmodel hclassifier hpropertyId).symm
+
+private theorem sourceObject_of_objectId {snapshot : Instance} {name : Name} {id : ObjectId}
+    (h : objectId snapshot name = .ok id) :
+    ∃ object ∈ snapshot.objects, object.alias = name := by
+  have hget := resolveIndex_getElem ((objectId_ok_iff snapshot name id).mp h)
+  rw [List.getElem?_map] at hget
+  cases he : snapshot.objects[id.val]? with
+  | none => simp [he] at hget
+  | some object =>
+    simp [he] at hget
+    exact ⟨object, List.mem_iff_getElem?.mpr ⟨id.val, he⟩, hget⟩
+
+private theorem sourceProperty_of_propertyId {model : Model} {name : Name} {id : PropertyId}
+    (h : propertyId model name = .ok id) :
+    ∃ property ∈ model.properties, property.alias = name := by
+  have hget := resolveIndex_getElem ((propertyId_ok_iff model name id).mp h)
+  rw [List.getElem?_map] at hget
+  cases he : model.properties[id.val]? with
+  | none => simp [he] at hget
+  | some property =>
+    simp [he] at hget
+    exact ⟨property, List.mem_iff_getElem?.mpr ⟨id.val, he⟩, hget⟩
+
+theorem source_observationKeysResolved_of_binding
+    {model : Model} {source : Instance} {target : Snapshot}
+    (hinstance : bindInstance model source = .ok target) :
+    ∀ observation ∈ source.observations,
+      (∃ object ∈ source.objects, object.alias = observation.object) ∧
+      (∃ property ∈ model.properties, property.alias = observation.property) := by
+  intro observation hobservation
+  obtain ⟨_, _, hobject, hproperty, _⟩ :=
+    sourceObservation_target hinstance hobservation
+  exact ⟨sourceObject_of_objectId hobject, sourceProperty_of_propertyId hproperty⟩
+
+theorem source_observationApplicable_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ observation ∈ source.observations, ∀ object ∈ source.objects,
+      object.alias = observation.object →
+        propertyApplies model object.classifier observation.property := by
+  intro observation hobservation object hobject hkey
+  obtain ⟨targetObservation, htargetObservation, hobservationObject,
+    hobservationProperty, _⟩ := sourceObservation_target hinstance hobservation
+  obtain ⟨targetObject, htargetObject, hobjectId, hclassifier⟩ :=
+    sourceObject_target hinstance hobject
+  have htargetKey : targetObject.id = targetObservation.object := by
+    apply Except.ok.inj
+    exact hobjectId.symm.trans (hkey ▸ hobservationObject)
+  have happlicable := hconforms.observationApplicable targetObservation
+    htargetObservation targetObject htargetObject htargetKey
+  exact (propertyApplies_iff_applicableProperty hwell hmodel
+    hclassifier hobservationProperty).mpr happlicable
+
+theorem source_bounds_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ object ∈ source.objects, ∀ property ∈ model.properties,
+      propertyApplies model object.classifier property.alias →
+        withinMultiplicity property.multiplicity
+          (sourceOccurrences source object.alias property.alias).length := by
+  intro object hobject property hproperty happlies
+  obtain ⟨targetObject, htargetObject, hobjectId, hclassifier⟩ :=
+    sourceObject_target hinstance hobject
+  obtain ⟨targetProperty, htargetProperty, hpropertyId, _, hmultiplicity, _⟩ :=
+    sourceProperty_target hwell hmodel hproperty
+  have htargetApplies := (propertyApplies_iff_applicableProperty hwell hmodel
+    hclassifier hpropertyId).mp happlies
+  have hbound := hconforms.bounds targetObject htargetObject targetProperty
+    htargetProperty htargetApplies
+  rw [hmultiplicity] at hbound
+  rw [← bindInstance_occurrences_length_eq hinstance hobjectId hpropertyId] at hbound
+  exact hbound
+
+theorem source_uniqueness_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ object ∈ source.objects, ∀ property ∈ model.properties,
+      propertyApplies model object.classifier property.alias →
+      property.multiplicity.isUnique = true →
+        (sourceOccurrences source object.alias property.alias).Nodup := by
+  intro object hobject property hproperty happlies hunique
+  obtain ⟨targetObject, htargetObject, hobjectId, hclassifier⟩ :=
+    sourceObject_target hinstance hobject
+  obtain ⟨targetProperty, htargetProperty, hpropertyId, _, hmultiplicity, _⟩ :=
+    sourceProperty_target hwell hmodel hproperty
+  have htargetApplies := (propertyApplies_iff_applicableProperty hwell hmodel
+    hclassifier hpropertyId).mp happlies
+  have htargetUnique : targetProperty.multiplicity.isUnique = true := by
+    simpa [hmultiplicity] using hunique
+  apply (bindInstance_occurrences_nodup_iff hinstance hobjectId hpropertyId).mpr
+  exact hconforms.uniqueness targetObject htargetObject targetProperty htargetProperty
+    htargetApplies htargetUnique
+
 end VLMOF.Source
