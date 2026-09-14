@@ -166,4 +166,26 @@ theorem iterateClosure_length_le_class_count (s : Schema) (wf : SchemaWellFormed
       exact iterateClosure_mem_classUniverse s wf hstart n htarget
   simpa [classUniverse] using hbound
 
+/-- If each of the first `n` frontiers exposes an unseen successor, their lengths
+grow from the singleton start to at least `n + 1`. -/
+theorem iterateClosure_length_ge_of_unseen_each {α : Type} [DecidableEq α]
+    (step : List α → List α) (start : α) (n : Nat)
+    (hunseen : ∀ k, k < n → ∃ x, x ∈ step (iterateClosure step k [start]) ∧
+      x ∉ iterateClosure step k [start]) :
+    n + 1 ≤ (iterateClosure step n [start]).length := by
+  induction n with
+  | zero => simp [iterateClosure]
+  | succ n ih =>
+    have hprev : ∀ k, k < n → ∃ x, x ∈ step (iterateClosure step k [start]) ∧
+        x ∉ iterateClosure step k [start] := by
+      intro k hk
+      exact hunseen k (Nat.lt_trans hk (Nat.lt_succ_self n))
+    have hlen := ih hprev
+    rcases hunseen n (Nat.lt_succ_self n) with ⟨x, hxstep, hxnew⟩
+    rw [iterateClosure_add step n 1 [start]]
+    have hgrow := closureAdvance_strict_of_unseen_step step hxstep hxnew
+    change n.succ + 1 ≤ (iterateClosure step 1 (iterateClosure step n [start])).length
+    unfold iterateClosure
+    exact Nat.succ_le_of_lt (Nat.lt_of_le_of_lt hlen hgrow)
+
 end VLMOF
