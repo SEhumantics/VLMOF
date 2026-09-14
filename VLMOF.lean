@@ -19,3 +19,4 @@ import VLMOF.SnapshotAllocationCorrect
 import VLMOF.SnapshotObservationCorrect
 import VLMOF.SchemaElaborationCorrect
 import VLMOF.SnapshotTypingCorrect
+import VLMOF.SnapshotConformanceCorrect

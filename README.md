@@ -5,8 +5,8 @@ build, reproducible specification downloads, and a finite raw representation of
 the structural profile, separate schema and snapshot conformance predicates, and
 proved consequences of opposite multiplicity. Executable schema and snapshot checkers are proved equivalent to those predicates.
 The symbolic source language has independent satisfaction predicates and proved
-binding completeness. The full source-to-core conformance correspondence remains
-under development.
+binding completeness and full forward conformance preservation. The reverse
+source-to-core correspondence remains under development.
 
 ## Getting started
 
@@ -62,8 +62,11 @@ associations and occurrence lists. Its parser and binding examples are compiled
 by the default build. Binding preserves identity distinctions, occurrence counts,
 uniqueness, ordered equality and unordered permutation. `SourceSemantics.lean`
 defines satisfaction directly over symbolic declarations; `ElaborationComplete.lean`
-proves that every satisfying source document binds successfully. This result does
-not yet establish conformance of the resulting core schema and snapshot.
+proves that every satisfying source document binds successfully.
+`SnapshotConformanceCorrect.lean` proves that its resulting schema and snapshot
+satisfy `SnapshotConforms`, and hence are accepted by `checkSnapshot`, without
+additional transport assumptions. Reflection from accepted Core inputs back to
+source satisfaction remains under development.
 
 The [metadata pilot](VLMOF/METADATA.md) treats class/attribute descriptions as
 ordinary checked objects, interprets them into a schema, and validates an instance.
@@ -111,7 +114,6 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
-
 
 
 
