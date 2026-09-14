@@ -151,4 +151,19 @@ theorem classSupers_closed_in_universe (s : Schema) (wf : SchemaWellFormed s)
   intro super hs
   exact classSupers_mem_classUniverse s wf hs
 
+theorem classUniverse_nodup (s : Schema) (wf : SchemaWellFormed s) :
+    (classUniverse s).Nodup := by
+  simpa [classUniverse, uniqueBy] using wf.uniqueClassIds
+
+theorem iterateClosure_length_le_class_count (s : Schema) (wf : SchemaWellFormed s)
+    {start : ClassId} (hstart : start ∈ classUniverse s) (n : Nat) :
+    (iterateClosure (classSupers s) n [start]).length ≤ s.classes.length := by
+  have hbound : (iterateClosure (classSupers s) n [start]).length ≤
+      (classUniverse s).length := by
+    apply List.Nodup.length_le_of_subset
+    · exact iterateClosure_nodup (classSupers s) (seen := [start]) (.cons (by simp) .nil) n
+    · intro target htarget
+      exact iterateClosure_mem_classUniverse s wf hstart n htarget
+  simpa [classUniverse] using hbound
+
 end VLMOF
