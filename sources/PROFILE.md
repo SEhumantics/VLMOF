@@ -2,8 +2,8 @@
 
 The target is a static structural fragment of EMOF 2.5.1. The source manifest
 pins the normative MOF PDF, adopted UML 2.5 prose, and dated machine-readable
-inputs. This profile describes the contract to implement; the current Lean
-entry point does not yet implement it.
+inputs. The Lean predicates implement the selected contract below; source fidelity
+is supported by the clause audit, separately from the proofs about those predicates.
 
 ## Representation contract
 

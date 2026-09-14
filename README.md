@@ -5,8 +5,8 @@ build, reproducible specification downloads, and a finite raw representation of
 the structural profile, separate schema and snapshot conformance predicates, and
 proved consequences of opposite multiplicity. Executable schema and snapshot checkers are proved equivalent to those predicates.
 The symbolic source language has independent satisfaction predicates and proved
-binding completeness and full forward conformance preservation. The reverse
-source-to-core correspondence remains under development.
+binding completeness and full conformance correspondence with actual elaboration.
+The reverse direction explicitly requires XML-valid source alias components.
 
 ## Getting started
 
@@ -51,7 +51,9 @@ lake exe vlmof check-dsl examples/simple.dsl
 The command emits one JSON report. `check-dsl` first uses the tested, trusted DSL
 parser and alias binder, reporting `parse-malformed` and `binding-failure` separately.
 Its `accepted` result means the elaborated Core schema and snapshot pass the same
-checker as JSON; a full source-to-core correspondence theorem remains pending. Exit codes are 0 accepted, 1 invalid represented
+checker as JSON. `SourceAdequacy.lean` connects this result to independent source
+satisfaction under explicit lexical alias conditions; parsing remains trusted.
+Exit codes are 0 accepted, 1 invalid represented
 model, 2 malformed input or usage, 3 unsupported wire version, and 4 file error.
 The decoder is a tested boundary, not a proved XML/JSON parser. It ignores unknown
 object fields; the Lean JSON parser normalizes duplicate keys. Provenance is carried
@@ -66,8 +68,10 @@ defines satisfaction directly over symbolic declarations; `ElaborationComplete.l
 proves that every satisfying source document binds successfully.
 `SnapshotConformanceCorrect.lean` proves that its resulting schema and snapshot
 satisfy `SnapshotConforms`, and hence are accepted by `checkSnapshot`, without
-additional transport assumptions. Reflection from accepted Core inputs back to
-source satisfaction remains under development.
+additional transport assumptions. `SourceAdequacy.lean` proves source satisfaction
+iff successful elaboration to an accepted snapshot, assuming only XML-valid
+declaration and object aliases. It does not claim that every raw Core record is
+literally an elaboration result.
 
 The [metadata pilot](VLMOF/METADATA.md) treats class/attribute descriptions as
 ordinary checked objects, interprets them into a schema, and validates an instance.
@@ -115,7 +119,6 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
-
 
 
 
