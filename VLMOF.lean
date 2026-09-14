@@ -7,3 +7,4 @@ import VLMOF.CheckAcceptance
 import VLMOF.CheckExamples
 import VLMOF.MetadataPilot
 import VLMOF.ClosureSaturation
+import VLMOF.FiniteClosure
