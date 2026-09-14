@@ -362,4 +362,81 @@ theorem oneIncomingComposite_of_sourceSatisfies
   rw [← incomingCompositeCount_eq h hm hi hid]
   exact h.oneIncomingComposite sourceObject hsourceObject
 
+private theorem associationBinding_ends {x : Association × Nat} {a : AssociationDecl}
+    (hb : bindAssociationEntry model x = .ok a) :
+    ∃ first second firstId secondId,
+      x.1.ends = [first, second] ∧ propertyId model first = .ok firstId ∧
+      propertyId model second = .ok secondId ∧ a.ends = (firstId, secondId) := by
+  unfold bindAssociationEntry at hb
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    cases hend : x.1.ends with
+    | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+    | cons first rest =>
+      cases rest with
+      | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+      | cons second tail =>
+        cases tail with
+        | cons third tail => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+        | nil =>
+          cases hf : propertyId model first with
+          | error error => simp [hq, hp, hend, hf, Bind.bind, Except.bind] at hb
+          | ok firstId =>
+            cases hs : propertyId model second with
+            | error error => simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind] at hb
+            | ok secondId =>
+              simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind, pure, Except.pure] at hb
+              all_goals try subst a
+              all_goals exact ⟨first, second, firstId, secondId, rfl, hf, hs, rfl⟩
+
+private theorem referenceValueBinds {name : Name} {id : ObjectId}
+    (hid : objectId source name = .ok id) :
+    ValueBinds model source (.reference name) (.reference id) := by
+  unfold ValueBinds objectId at *
+  cases hr : resolveIndex "object" (source.objects.map Object.alias) name <;>
+    simp [hr, Except.map] at hid
+  subst id
+  exact (resolveIndex_iff_uniqueAliasAt _ _ _ _).mp hr
+
+theorem oppositeCounts_of_sourceSatisfies
+    (h : SourceSatisfies { model, snapshot := source })
+    (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot) :
+    ∀ association ∈ schema.associations, ∀ firstId secondId,
+      association.ends = (firstId, secondId) →
+      ∀ firstObject ∈ snapshot.objects, ∀ secondObject ∈ snapshot.objects,
+      (snapshot.occurrences firstObject.id firstId).count (.reference secondObject.id) =
+      (snapshot.occurrences secondObject.id secondId).count (.reference firstObject.id) := by
+  intro association ha firstId secondId hends firstObject hfirstObject secondObject hsecondObject
+  let allocation := modelAllocation_of_bindModel hm
+  rcases (mapM_ok_mem_iff allocation.associations).mp ha with ⟨x, hx, hb⟩
+  have hsourceAssociation := List.fst_mem_of_mem_zipIdx hx
+  rcases associationBinding_ends hb with
+    ⟨first, second, boundFirstId, boundSecondId, hsourceEnds,
+      hfirstProperty, hsecondProperty, hboundEnds⟩
+  have hfirstId : firstId = boundFirstId := by
+    exact congrArg Prod.fst (hends.symm.trans hboundEnds)
+  have hsecondId : secondId = boundSecondId := by
+    exact congrArg Prod.snd (hends.symm.trans hboundEnds)
+  subst firstId
+  subst secondId
+  rcases targetObjectSource hi hfirstObject with
+    ⟨sourceFirst, hsourceFirst, hfirstAlias⟩
+  rcases targetObjectSource hi hsecondObject with
+    ⟨sourceSecond, hsourceSecond, hsecondAlias⟩
+  have hfirstObjectId := objectId_of_aliasAt h hfirstAlias
+  have hsecondObjectId := objectId_of_aliasAt h hsecondAlias
+  have hleft := bindInstance_occurrences_count_eq hi hfirstObjectId hfirstProperty
+    (referenceValueBinds hsecondObjectId)
+  have hright := bindInstance_occurrences_count_eq hi hsecondObjectId hsecondProperty
+    (referenceValueBinds hfirstObjectId)
+  calc
+    (snapshot.occurrences firstObject.id boundFirstId).count (.reference secondObject.id) =
+        (sourceOccurrences source sourceFirst.alias first).count (.reference sourceSecond.alias) :=
+      hleft.symm
+    _ = (sourceOccurrences source sourceSecond.alias second).count (.reference sourceFirst.alias) :=
+      h.oppositeCounts x.1 hsourceAssociation first second hsourceEnds
+        sourceFirst hsourceFirst sourceSecond hsourceSecond
+    _ = (snapshot.occurrences secondObject.id boundSecondId).count (.reference firstObject.id) :=
+      hright
+
 end VLMOF.Source
