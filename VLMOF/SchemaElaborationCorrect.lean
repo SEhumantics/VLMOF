@@ -11,6 +11,7 @@ then transport every source well-formedness obligation to the resulting schema.
 namespace VLMOF.Source
 
 variable {α β γ ε : Type} {model : Model} {target : Schema}
+variable {name : Name}
 
 def bindPackageEntry (model : Model) (x : Package × Nat) : BindingResult PackageDecl := do
   checkQualification x.1.alias x.1.parent
@@ -380,5 +381,216 @@ theorem ModelAllocation.propertyFacts (a : ModelAllocation model target)
     have hs := List.fst_mem_of_mem_zipIdx hx
     rw [(propertyEntry_data hb).2.1]
     exact h.multiplicities x.1 hs
+
+/-- A successful resolver result addresses a source declaration at that exact
+index, and a successful list allocation contains its translated target row. -/
+theorem resolved_has_allocated {entries : List α} {targets : List β}
+    (key : α → Name) (bindEntry : α × Nat → BindingResult β)
+    (allocation : entries.zipIdx.mapM bindEntry = .ok targets)
+    {kind : String} {name : Name} {index : Nat}
+    (resolved : resolveIndex kind (entries.map key) name = .ok index) :
+    ∃ source target,
+      source ∈ entries ∧ key source = name ∧ target ∈ targets ∧
+      bindEntry (source, index) = .ok target := by
+  have hget := resolveIndex_getElem resolved
+  rw [List.getElem?_map] at hget
+  cases hs : entries[index]? with
+  | none => simp [hs] at hget
+  | some source =>
+      simp [hs] at hget
+      have hzip : (source, index) ∈ entries.zipIdx :=
+        List.mk_mem_zipIdx_iff_getElem?.mpr hs
+      rcases mapM_ok_source allocation hzip with ⟨translated, ht, hb⟩
+      exact ⟨source, translated, List.fst_mem_of_mem_zipIdx hzip, hget, ht, hb⟩
+
+private theorem packageId_resolve {name : Name} {id : PackageId}
+    (h : packageId model name = .ok id) :
+    resolveIndex "package" (model.packages.map Package.alias) name = .ok id.val := by
+  unfold packageId at h
+  cases hr : resolveIndex "package" (model.packages.map Package.alias) name <;>
+    simp [hr, Except.map] at h
+  subst id
+  rfl
+
+private theorem classId_resolve {name : Name} {id : ClassId}
+    (h : classId model name = .ok id) :
+    resolveIndex "class" (model.classes.map Class.alias) name = .ok id.val := by
+  unfold classId at h
+  cases hr : resolveIndex "class" (model.classes.map Class.alias) name <;>
+    simp [hr, Except.map] at h
+  subst id
+  rfl
+
+private theorem propertyId_resolve {name : Name} {id : PropertyId}
+    (h : propertyId model name = .ok id) :
+    resolveIndex "property" (model.properties.map Property.alias) name = .ok id.val := by
+  unfold propertyId at h
+  cases hr : resolveIndex "property" (model.properties.map Property.alias) name <;>
+    simp [hr, Except.map] at h
+  subst id
+  rfl
+
+private theorem associationId_resolve {name : Name} {id : AssociationId}
+    (h : associationId model name = .ok id) :
+    resolveIndex "association" (model.associations.map Association.alias) name = .ok id.val := by
+  unfold associationId at h
+  cases hr : resolveIndex "association" (model.associations.map Association.alias) name <;>
+    simp [hr, Except.map] at h
+  subst id
+  rfl
+
+private theorem enumerationId_resolve {name : Name} {id : EnumerationId}
+    (h : enumerationId model name = .ok id) :
+    resolveIndex "enumeration" (model.enumerations.map Enumeration.alias) name = .ok id.val := by
+  unfold enumerationId at h
+  cases hr : resolveIndex "enumeration" (model.enumerations.map Enumeration.alias) name <;>
+    simp [hr, Except.map] at h
+  subst id
+  rfl
+
+private theorem literalId_resolve {name : Name} {id : LiteralId}
+    (h : literalId model name = .ok id) :
+    resolveIndex "literal" (model.literals.map Literal.alias) name = .ok id.val := by
+  unfold literalId at h
+  cases hr : resolveIndex "literal" (model.literals.map Literal.alias) name <;>
+    simp [hr, Except.map] at h
+  subst id
+  rfl
+
+theorem ModelAllocation.packageForId (a : ModelAllocation model target)
+    {id : PackageId}
+    (h : packageId model name = .ok id) :
+    ∃ source translated, source ∈ model.packages ∧ source.alias = name ∧
+      translated ∈ target.packages ∧ translated.id = id ∧
+      bindPackageEntry model (source, id.val) = .ok translated := by
+  rcases resolved_has_allocated Package.alias (bindPackageEntry model) a.packages
+      (packageId_resolve h) with ⟨source, translated, hs, hn, ht, hb⟩
+  have hid : translated.id = id := by
+    have hv := packageEntry_id hb
+    calc translated.id = ⟨translated.id.val⟩ := by cases translated.id; rfl
+      _ = ⟨id.val⟩ := congrArg PackageId.mk hv
+      _ = id := by cases id; rfl
+  exact ⟨source, translated, hs, hn, ht, hid, hb⟩
+
+theorem ModelAllocation.classForId (a : ModelAllocation model target)
+    {id : ClassId}
+    (h : classId model name = .ok id) :
+    ∃ source translated, source ∈ model.classes ∧ source.alias = name ∧
+      translated ∈ target.classes ∧ translated.id = id ∧
+      bindClassEntry model (source, id.val) = .ok translated := by
+  rcases resolved_has_allocated Class.alias (bindClassEntry model) a.classes
+      (classId_resolve h) with ⟨source, translated, hs, hn, ht, hb⟩
+  have hid : translated.id = id := by
+    have hv := classEntry_id hb
+    calc translated.id = ⟨translated.id.val⟩ := by cases translated.id; rfl
+      _ = ⟨id.val⟩ := congrArg ClassId.mk hv
+      _ = id := by cases id; rfl
+  exact ⟨source, translated, hs, hn, ht, hid, hb⟩
+
+theorem ModelAllocation.propertyForId (a : ModelAllocation model target)
+    {id : PropertyId}
+    (h : propertyId model name = .ok id) :
+    ∃ source translated, source ∈ model.properties ∧ source.alias = name ∧
+      translated ∈ target.properties ∧ translated.id = id ∧
+      bindPropertyEntry model (source, id.val) = .ok translated := by
+  rcases resolved_has_allocated Property.alias (bindPropertyEntry model) a.properties
+      (propertyId_resolve h) with ⟨source, translated, hs, hn, ht, hb⟩
+  have hid : translated.id = id := by
+    have hv := propertyEntry_id hb
+    calc translated.id = ⟨translated.id.val⟩ := by cases translated.id; rfl
+      _ = ⟨id.val⟩ := congrArg PropertyId.mk hv
+      _ = id := by cases id; rfl
+  exact ⟨source, translated, hs, hn, ht, hid, hb⟩
+
+theorem ModelAllocation.associationForId (a : ModelAllocation model target)
+    {id : AssociationId}
+    (h : associationId model name = .ok id) :
+    ∃ source translated, source ∈ model.associations ∧ source.alias = name ∧
+      translated ∈ target.associations ∧ translated.id = id ∧
+      bindAssociationEntry model (source, id.val) = .ok translated := by
+  rcases resolved_has_allocated Association.alias (bindAssociationEntry model) a.associations
+      (associationId_resolve h) with ⟨source, translated, hs, hn, ht, hb⟩
+  have hid : translated.id = id := by
+    have hv := associationEntry_id hb
+    calc translated.id = ⟨translated.id.val⟩ := by cases translated.id; rfl
+      _ = ⟨id.val⟩ := congrArg AssociationId.mk hv
+      _ = id := by cases id; rfl
+  exact ⟨source, translated, hs, hn, ht, hid, hb⟩
+
+theorem ModelAllocation.enumerationForId (a : ModelAllocation model target)
+    {id : EnumerationId}
+    (h : enumerationId model name = .ok id) :
+    ∃ source translated, source ∈ model.enumerations ∧ source.alias = name ∧
+      translated ∈ target.enumerations ∧ translated.id = id ∧
+      bindEnumerationEntry model (source, id.val) = .ok translated := by
+  rcases resolved_has_allocated Enumeration.alias (bindEnumerationEntry model) a.enumerations
+      (enumerationId_resolve h) with ⟨source, translated, hs, hn, ht, hb⟩
+  have hid : translated.id = id := by
+    have hv := enumerationEntry_id hb
+    calc translated.id = ⟨translated.id.val⟩ := by cases translated.id; rfl
+      _ = ⟨id.val⟩ := congrArg EnumerationId.mk hv
+      _ = id := by cases id; rfl
+  exact ⟨source, translated, hs, hn, ht, hid, hb⟩
+
+theorem ModelAllocation.literalForId (a : ModelAllocation model target)
+    {id : LiteralId}
+    (h : literalId model name = .ok id) :
+    ∃ source translated, source ∈ model.literals ∧ source.alias = name ∧
+      translated ∈ target.literals ∧ translated.id = id ∧
+      bindLiteralEntry model (source, id.val) = .ok translated := by
+  rcases resolved_has_allocated Literal.alias (bindLiteralEntry model) a.literals
+      (literalId_resolve h) with ⟨source, translated, hs, hn, ht, hb⟩
+  have hid : translated.id = id := by
+    have hv := literalEntry_id hb
+    calc translated.id = ⟨translated.id.val⟩ := by cases translated.id; rfl
+      _ = ⟨id.val⟩ := congrArg LiteralId.mk hv
+      _ = id := by cases id; rfl
+  exact ⟨source, translated, hs, hn, ht, hid, hb⟩
+
+theorem ModelAllocation.packageResolved (a : ModelAllocation model target)
+    {id : PackageId}
+    (h : packageId model name = .ok id) : target.packageDecls id ≠ [] := by
+  rcases a.packageForId h with ⟨_, d, _, _, hd, hid, _⟩
+  intro hempty
+  have : d ∈ target.packageDecls id := by simp [Schema.packageDecls, hd, hid]
+  simpa [hempty] using this
+
+theorem ModelAllocation.classResolved (a : ModelAllocation model target)
+    {id : ClassId}
+    (h : classId model name = .ok id) : target.classDecls id ≠ [] := by
+  rcases a.classForId h with ⟨_, d, _, _, hd, hid, _⟩
+  intro hempty
+  have : d ∈ target.classDecls id := by simp [Schema.classDecls, hd, hid]
+  simpa [hempty] using this
+
+theorem ModelAllocation.propertyResolved (a : ModelAllocation model target)
+    {id : PropertyId}
+    (h : propertyId model name = .ok id) :
+    ∃ d ∈ target.properties, d.id = id := by
+  rcases a.propertyForId h with ⟨_, d, _, _, hd, hid, _⟩
+  exact ⟨d, hd, hid⟩
+
+theorem ModelAllocation.associationResolved (a : ModelAllocation model target)
+    {id : AssociationId}
+    (h : associationId model name = .ok id) :
+    ∃ d ∈ target.associations, d.id = id := by
+  rcases a.associationForId h with ⟨_, d, _, _, hd, hid, _⟩
+  exact ⟨d, hd, hid⟩
+
+theorem ModelAllocation.enumerationResolved (a : ModelAllocation model target)
+    {id : EnumerationId}
+    (h : enumerationId model name = .ok id) : target.enumerationDecls id ≠ [] := by
+  rcases a.enumerationForId h with ⟨_, d, _, _, hd, hid, _⟩
+  intro hempty
+  have : d ∈ target.enumerationDecls id := by simp [Schema.enumerationDecls, hd, hid]
+  simpa [hempty] using this
+
+theorem ModelAllocation.literalResolved (a : ModelAllocation model target)
+    {id : LiteralId}
+    (h : literalId model name = .ok id) : target.literalDecls id ≠ [] := by
+  rcases a.literalForId h with ⟨_, d, _, _, hd, hid, _⟩
+  intro hempty
+  have : d ∈ target.literalDecls id := by simp [Schema.literalDecls, hd, hid]
+  simpa [hempty] using this
 
 end VLMOF.Source
