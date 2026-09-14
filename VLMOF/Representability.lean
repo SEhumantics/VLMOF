@@ -530,6 +530,59 @@ theorem bindInstance_canonical_ids {model : Model} {snapshot : Instance}
   rw [bindInstance_eq_canonical h]
   exact canonicalSnapshot_ids model snapshot
 
+theorem noncanonicalSchema_not_directly_representable {schema : Schema}
+    (h : ¬ CanonicalSchemaIds schema) : ¬ ∃ model, bindModel model = .ok schema := by
+  rintro ⟨model, hb⟩
+  exact h (bindModel_canonical_ids hb)
+
+theorem noncanonicalSnapshot_not_directly_representable {schema : Model}
+    {source : Instance} {snapshot : Snapshot} (h : ¬ CanonicalSnapshotIds snapshot) :
+    ¬ bindInstance schema source = .ok snapshot := by
+  intro hb
+  exact h (bindInstance_canonical_ids hb)
+
+/-- Every declaration produced by the source binder has a metadata spelling. -/
+structure FullyNamedSchema (schema : Schema) : Prop where
+  packages : ∀ d ∈ schema.packages, d.name ≠ none
+  classes : ∀ d ∈ schema.classes, d.name ≠ none
+  properties : ∀ d ∈ schema.properties, d.name ≠ none
+  associations : ∀ d ∈ schema.associations, d.name ≠ none
+  enumerations : ∀ d ∈ schema.enumerations, d.name ≠ none
+  literals : ∀ d ∈ schema.literals, d.name ≠ none
+
+theorem canonicalSchema_fullyNamed (model : Model) : FullyNamedSchema (canonicalSchema model) := by
+  constructor
+  · intro d hd
+    rcases List.mem_map.mp hd with ⟨x, _, rfl⟩
+    simp [canonicalPackageEntry]
+  · intro d hd
+    rcases List.mem_map.mp hd with ⟨x, _, rfl⟩
+    simp [canonicalClassEntry]
+  · intro d hd
+    rcases List.mem_map.mp hd with ⟨x, _, rfl⟩
+    simp [canonicalPropertyEntry]
+  · intro d hd
+    rcases List.mem_map.mp hd with ⟨x, _, rfl⟩
+    simp [canonicalAssociationEntry]
+  · intro d hd
+    rcases List.mem_map.mp hd with ⟨x, _, rfl⟩
+    simp [canonicalEnumerationEntry]
+  · intro d hd
+    rcases List.mem_map.mp hd with ⟨x, _, rfl⟩
+    simp [canonicalLiteralEntry]
+
+theorem bindModel_fullyNamed {model : Model} {target : Schema}
+    (h : bindModel model = .ok target) : FullyNamedSchema target := by
+  rw [bindModel_eq_canonical h]
+  exact canonicalSchema_fullyNamed model
+
+/-- In particular an unnamed Core class has no direct source image. -/
+theorem unnamedClass_not_directly_representable {schema : Schema} {declaration : ClassDecl}
+    (hm : declaration ∈ schema.classes) (hn : declaration.name = none) :
+    ¬ ∃ model, bindModel model = .ok schema := by
+  rintro ⟨model, hb⟩
+  exact (bindModel_fullyNamed hb).classes declaration hm hn
+
 /-- A renaming cannot accidentally mix identity kinds.  Each field is an equivalence,
 so the renamed Core graph preserves and reflects identity. -/
 structure TypedIdRenaming where
@@ -554,6 +607,100 @@ structure TypedIdRenaming where
   literal_surjective : Function.Surjective literal
   object_injective : Function.Injective object
   object_surjective : Function.Surjective object
+
+/-- Qualified source identities supplied independently of optional Core metadata. -/
+structure CoreAliasAssignment where
+  package : PackageId → Name
+  classId : ClassId → Name
+  property : PropertyId → Name
+  association : AssociationId → Name
+  enumeration : EnumerationId → Name
+  literal : LiteralId → Name
+  object : ObjectId → Name
+
+private def sourceDisplayName (name : Option String) : String := name.getD ""
+
+private def reifyType (names : CoreAliasAssignment) : VLMOF.ValueType → Source.ValueType
+  | .boolean => .boolean
+  | .integer => .integer
+  | .string => .string
+  | .enumeration id => .enumeration (names.enumeration id)
+  | .reference id => .reference (names.classId id)
+
+private def reifyOwner (names : CoreAliasAssignment) : PropertyOwner → Owner
+  | .class id => .class (names.classId id)
+  | .association id => .association (names.association id)
+
+private def reifyValue (names : CoreAliasAssignment) : VLMOF.Value → Source.Value
+  | .boolean value => .boolean value
+  | .integer value => .integer value
+  | .string value => .string value
+  | .enumeration enumeration literal =>
+      .enumeration (names.enumeration enumeration) (names.literal literal)
+  | .reference object => .reference (names.object object)
+
+/-- A total Core-to-source reifier.  Alias policy and semantic admissibility are
+stated separately in `ReificationConditions`; unnamed metadata becomes the empty
+display spelling and therefore cannot satisfy those conditions. -/
+def reifyModel (names : CoreAliasAssignment) (schema : Schema) : Model :=
+  { packages := schema.packages.map fun d =>
+      { alias := names.package d.id, name := sourceDisplayName d.name,
+        parent := d.parent.map names.package }
+    classes := schema.classes.map fun d =>
+      { alias := names.classId d.id, name := sourceDisplayName d.name,
+        package := d.package.map names.package, isAbstract := d.isAbstract,
+        directSupers := d.directSupers.map names.classId }
+    properties := schema.properties.map fun d =>
+      { alias := names.property d.id, name := sourceDisplayName d.name,
+        owner := reifyOwner names d.owner, type := reifyType names d.type,
+        multiplicity := d.multiplicity, aggregation := d.aggregation, isId := d.isId }
+    associations := schema.associations.map fun d =>
+      { alias := names.association d.id, name := sourceDisplayName d.name,
+        package := d.package.map names.package,
+        ends := [names.property d.ends.1, names.property d.ends.2] }
+    enumerations := schema.enumerations.map fun d =>
+      { alias := names.enumeration d.id, name := sourceDisplayName d.name,
+        package := d.package.map names.package }
+    literals := schema.literals.map fun d =>
+      { alias := names.literal d.id, name := sourceDisplayName d.name,
+        enumeration := names.enumeration d.enumeration } }
+
+def reifyInstance (names : CoreAliasAssignment) (snapshot : Snapshot) : Instance :=
+  { objects := snapshot.objects.map fun d =>
+      { alias := names.object d.id, classifier := names.classId d.classifier }
+    observations := snapshot.observations.map fun a =>
+      { object := names.object a.object, property := names.property a.property,
+        occurrences := a.occurrences.map (reifyValue names) } }
+
+def reifyDocument (names : CoreAliasAssignment) (schema : Schema)
+    (snapshot : Snapshot) : Document :=
+  { model := reifyModel names schema, snapshot := reifyInstance names snapshot }
+
+/-- Concrete sufficient conditions for a Core pair to be an exact source image.
+`sourceMeaning` is the independently defined declarative source predicate.  The two
+round-trip equations mention only the total structural translations above; no binder,
+checker, or existential elaboration result is hidden in this record. -/
+structure ReificationConditions (names : CoreAliasAssignment)
+    (schema : Schema) (snapshot : Snapshot) : Prop where
+  sourceMeaning : SourceSatisfies (reifyDocument names schema snapshot)
+  schemaRoundTrip : canonicalSchema (reifyModel names schema) = schema
+  snapshotRoundTrip : canonicalSnapshot (reifyModel names schema)
+    (reifyInstance names snapshot) = snapshot
+
+/-- The stated Core-side reification conditions construct a source document whose
+actual executable elaboration is exactly the requested Core pair. -/
+theorem reification_elaborates {names : CoreAliasAssignment}
+    {schema : Schema} {snapshot : Snapshot}
+    (h : ReificationConditions names schema snapshot) :
+    elaborate (reifyDocument names schema snapshot) = .ok (schema, snapshot) := by
+  have he := elaborate_eq_canonical h.sourceMeaning
+  simpa [reifyDocument, h.schemaRoundTrip, h.snapshotRoundTrip] using he
+
+theorem reification_target_conforms {names : CoreAliasAssignment}
+    {schema : Schema} {snapshot : Snapshot}
+    (h : ReificationConditions names schema snapshot) : SnapshotConforms schema snapshot := by
+  exact snapshotConforms_of_sourceSatisfies_of_elaborate h.sourceMeaning
+    (reification_elaborates h)
 
 def renameValue (r : TypedIdRenaming) : VLMOF.Value → VLMOF.Value
   | .boolean value => .boolean value
