@@ -1,7 +1,56 @@
 \section{Motivation}
-Consider a class inherited through two paths in a diamond. Its inherited
-property must be distinguished from two separately declared properties with
-the same name. Likewise, an ordered property with repeated values carries
-information that a set cannot retain. These examples motivate explicit
-identity and occurrence policies. Their exact EMOF obligations and worked
-valid and invalid instances remain to be established from the sources.
+Consider a railway metamodel with classes \emph{Element}, \emph{Segment} and
+\emph{Sensor}. A segment can inherit the same identifier property through two
+superclasses. Counting paths would then manufacture two identifiers; counting
+declaration identities exposes one. Conversely, unrelated declarations with the
+same display name must remain distinct. Neither strings as identities nor a
+naive concatenation of inherited property lists expresses this distinction.
+
+Now let a segment's \emph{monitoredBy} references and a sensor's \emph{monitors}
+references form opposite association ends. If the forward observation contains
+one sensor twice, a membership-only opposite test cannot distinguish that list
+from a single reference. Our profile retains occurrences and requires matching
+counts for each endpoint pair. If the reverse end has upper bound one, the
+forward pair count must therefore be at most one, even when the forward end is
+not declared unique. This is a derived interaction, not a separate uniqueness
+assumption. When a reference is composite, two incoming occurrences consume two
+ownership positions, even if they name the same parent.
+
+\begin{figure}[t]
+\centering
+\[
+\boxed{\mathrm{Segment}\ x}\quad
+\underset{q:[x]}{\overset{p:[y,y]}{\rightleftarrows}}\quad
+\boxed{\mathrm{Sensor}\ y}
+\]
+\caption{A separating snapshot: forward pair count two and reverse pair count
+one violate reciprocity although membership agrees. An upper-one reverse end
+also prevents repairing the snapshot merely by duplicating its reverse entry.}
+\label{fig:pair}
+\end{figure}
+
+Absence is another separating case. An optional Boolean observation can be
+empty or contain \texttt{false}; an optional Integer can be empty or contain zero.
+EMF's dynamic default-value behavior can obscure this distinction when a reader
+consults only the resulting scalar value. A bridge that invents a value for an
+omitted XML attribute changes the snapshot being checked. Our importer therefore
+tracks lexical presence, and adaptations of public files are separate artifacts.
+
+The following complete source document exercises absence-sensitive scalar values
+and repeated ordered occurrences. It is accepted by \texttt{check-dsl}.
+\begin{verbatim}
+class C {
+  active : Boolean [0..1] unordered unique;
+  scores : Integer [0..2] ordered nonunique;
+}
+object o : C {
+  observe C::active = [false];
+  observe C::scores = [0, 0];
+}
+\end{verbatim}
+Changing \texttt{scores} to unique rejects the repeated occurrence. Replacing
+\texttt{[false]} with \texttt{[]} denotes absence, not a Boolean conversion.
+Names such as \texttt{C::scores} are binding aliases; semantic access after
+elaboration uses a property identity. These examples motivate retaining an
+explicit source semantics and testing the entire tool boundary, in addition to
+proving a checker correct over an internal record type.

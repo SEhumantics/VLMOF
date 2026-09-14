@@ -1,6 +1,102 @@
 \section{Evaluation}
-No semantic, interoperability, or performance results are available in this
-version. Evaluation must distinguish proved statements from finite test
-observations and supported inputs from rejected or unsupported inputs.
-Public-case suitability, source-derived expectations, input provenance,
-and reproducible commands remain pending.
+\subsection{Evidence design and reproducibility}
+We distinguish universal Lean results, finite authored tests, native compatibility
+observations and runtime measurements. The authored runner records repository
+commit and dirty status, toolchain and Python versions, executable and input
+hashes, exact commands, exit codes, standard output/error and per-case expectations.
+It classifies accepted, rejected, unsupported, not-run and execution failure
+separately. An unexpected outcome fails the run rather than becoming a successful
+negative example. The integrated authored run uses commit \texttt{f0edde1}.
+
+The ten recorded authored cases all match their expected outcomes: three accepted,
+six rejected and one unsupported wire version. They exercise JSON and DSL input,
+absence versus false, occurrence typing, duplicate keys, unique and nonunique
+repetition, binding failure and malformed JSON. The standard build additionally
+runs five source-download tests and ten CLI test groups. The build verifies all
+six pinned OMG files and compiles the imported proof modules. These are finite
+checks of the implementation boundary, not samples used to infer the universal
+checker theorem.
+
+The proof-client experiment compiles an independent small client that uses
+observation-key injectivity from the library: two rows of a conforming snapshot
+with the same object/property key have equal occurrence lists. The client's
+record includes the axiom report. This demonstrates reuse of a conformance
+consequence rather than a second implementation of the checker.
+
+\subsection{Public inputs and explicit adaptation}
+Train Benchmark is pinned to commit
+\texttt{6490047d7449}; the six railway XMI
+snapshots share its Xcore metamodel. The original metamodel has no checked-in
+generated Ecore suitable for this route. A pinned Xcore compiler produces an
+intermediate Ecore, but its primitive mappings become EJavaObject and it includes
+a generator annotation. A separately named adapted metamodel removes exactly
+one annotation and changes three primitive mappings. The attributes \emph{RailwayElement.id}
+and \emph{Segment.length} become EInt,
+and \emph{Route.active} to EBoolean, using the original Xcore declarations as
+source evidence. The manifest records the original annotation details, each
+qualified type change and the input, output and Xcore hashes. This is an explicit
+adaptation, not a claim that the compiler directly preserved the intended types.
+
+The native snapshots omit some default enum values that their runtime interprets
+as FAILURE. Separate adapted copies materialize those occurrences. Table~\ref{tab:train}
+records every insertion count. The original files are unchanged; object identities
+are allocated independently of the ordinary \emph{id} attribute. A successful
+check of an adapted file therefore means conformance of that explicit adapted
+snapshot. It does not certify the omitted-value semantics of the raw original.
+
+\begin{table}[t]
+\caption{Integrated Train imports. All six adapted snapshots are accepted.
+Rows count explicit object/property observations; insertions count materialized
+enum defaults in the adapted XMI.}
+\label{tab:train}\centering\small
+\begin{tabular}{lrrrr}
+\hline
+Case & Objects & Rows & Insertions & Check seconds \\
+\hline
+batch-1 & 754 & 3,378 & 12 & 2.16 \\
+batch-2 & 2,389 & 10,723 & 58 & 10.88 \\
+inject-1 & 927 & 4,158 & 21 & 2.95 \\
+inject-2 & 3,407 & 15,314 & 76 & 17.79 \\
+repair-1 & 1,418 & 6,370 & 31 & 4.80 \\
+repair-2 & 2,687 & 12,072 & 58 & 11.15 \\
+\hline
+\end{tabular}
+\end{table}
+
+For each accepted Core input, the native route constructs a fresh Ecore/XMI pair,
+reloads it, compares declarations and observations using its recorded identity
+map, and checks the reloaded Core again. The bridge regression separately
+exercises explicit false/zero/empty String/first-enum values beside absent ones,
+repeated scalars, repeated reciprocal references, independent opposite ordering,
+changed numeric IDs and object traversal, duplicate maps and inconsistent inverse
+counts. Thus successful public round trips are accompanied by tests targeted at
+semantically consequential failure modes.
+
+EMF Compare is pinned to commit
+\texttt{9f25a964c1be}. Its metamodel is rejected
+for unsupported operations. Separate fixtures exercise defaults, derived
+features, custom datatypes, generics and broken references. These outcomes
+characterize the native boundary; none is counted as accepted EMOF compatibility.
+
+\subsection{Answers to the research questions}
+RQ1 is answered by the declarative definitions, the unconditional checker
+correspondence and finite-closure completeness. Their statements apply to the
+represented domain and have no empirical success-rate premise. The authored
+cases demonstrate distinctions that the tools must preserve, particularly
+duplicate identity versus duplicate value and absence versus explicit defaults.
+
+RQ2 is answered by Equation~\ref{eq:adequacy}: satisfaction is specified
+independently, and actual successful elaboration connects it in both directions
+to checker acceptance. Lexical admissibility contains only alias conditions;
+the reverse result does not assume source-model validity. The forward result
+also establishes elaboration success. These proofs do not certify parsing or
+imply unrestricted representation of every raw Core record.
+
+RQ3 is answered by the restricted native route and its explicit rejections and
+adaptations. All six adapted Train snapshots pass Core checking. Their counts and
+complete commands are retained with the result artifacts. Timing asks only whether
+the integrated checker completes on these fixed finite inputs and what wall time
+is observed on the development host. Each table entry is one CLI process measured
+with \texttt{/usr/bin/time}, using the same binary and host; import, export and
+Lean compilation are excluded. These single observations are not a benchmark
+against another tool, an asymptotic estimate or a controlled speedup claim.

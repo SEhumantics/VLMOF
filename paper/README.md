@@ -27,7 +27,9 @@ for full papers. This skeleton follows the submission policy, not that later
 production policy. Recheck the venue rules before submission.
 
 Author fields are empty because author information has not been supplied;
-they must be completed before submission. Bibliography commands are supplied
-as comments and can be enabled when reviewed references are actually cited.
-There are no dummy references. Scientific results are explicitly pending.
-The present two-page PDF verifies the build/layout only, not paper readiness.
+they must be completed before submission. The manuscript describes the delivered
+structural semantics, source adequacy, executable checker and bounded EMF route.
+Its proof and compatibility claims have different trust boundaries, stated in the
+text. Evaluation identifies the recorded artifact commit and named adaptations.
+The current draft is being prepared for independent Review 4; a successful PDF build is
+not a submission-readiness verdict.

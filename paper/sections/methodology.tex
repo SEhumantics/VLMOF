@@ -1,13 +1,160 @@
 \section{Methodology}
-The candidate boundary comprises nested packages, class inheritance,
-properties, primitive and enumeration values, collection attributes,
-multiplicity, opposites, static containment, and applicable identifier
-constraints. The source audit must establish whether these choices form a
-coherent restriction of EMOF 2.5.1. Dynamic behavior and general reflection
-are outside this candidate boundary.
+\subsection{A bounded interpretation of EMOF}
+The source manifest pins the normative MOF 2.5.1 PDF and adopted UML 2.5
+material \cite{omg_mof_251,omg_uml_25},
+and dated machine-readable metamodels, primitive declarations and auxiliary OCL.
+The clause audit covers all 32 restrictions in MOF 12.4 and records whether each
+restriction is represented, structurally excluded or deferred. Auxiliary files
+are evidence to compare with the prose: historical discrepancies and repeated
+XML identifiers are retained rather than repaired in the downloaded originals.
 
-Representation choices, schema well-formedness, snapshot conformance, and
-their interaction results are pending. The intended source-language result
-must connect independently stated source meaning to the core semantics,
-with its binding and representation premises explicit. No theorem statement
-is asserted by this skeleton.
+The profile includes nested packages, abstract classes, multiple inheritance,
+properties, binary associations, primitive and enumeration values, multiplicity,
+ordering, uniqueness, opposites and static containment. A binary association may
+have one association-owned nonnavigable end. Its observation is incidence data;
+it does not assert the existence of a reflective getter. Boolean, arbitrary
+Integer and XML-valid String values form the selected primitive domains. Empty
+String is a value; null is not an occurrence. Real, structured datatypes and
+behavioral state are outside the selected domain.
+
+Two choices require particular care. First, finite upper bounds are positive,
+with lower no greater than upper, following the creation prerequisites in MOF
+9.3.3[4--5], printed page 13. This is narrower than UML abstract syntax, which
+can represent a \(0..0\) multiplicity. Second, the profile admits repeated
+nonunique reference occurrences. MOF 10.6 also describes an indexed reflective
+insertion operation that forbids duplicate class references. We do not infer
+that every admitted static snapshot is reachable through that API. Optional
+opposite-end uniqueness compatibility is not silently imposed. These are named
+interpretation boundaries of the theorems.
+
+\subsection{Finite raw Core and declarative conformance}
+A schema \(S\) stores finite lists of packages, classes, properties, associations,
+enumerations and literals. Each kind has a distinct natural-number identity type.
+Names are optional metadata. A snapshot \(M\) stores identified objects and
+observation rows \((o,p,L)\), where \(L\) is a finite list of values. Raw records
+can contain duplicate IDs, dangling references and duplicate observation keys;
+constructing a record does not prove it valid.
+
+Schema well-formedness, written \(W(S)\), conjoins resolved and unique identities,
+valid names, package and inheritance acyclicity, valid ownership and types,
+normalized bounds and the selected association/identifier constraints. Inherited
+properties are selected by declaration identity from reflexive-transitive
+superclass reachability. This makes a diamond expose one declaration while
+retaining two distinct same-named declarations.
+
+Snapshot conformance, written \(C(S,M)\), includes \(W(S)\), unique object and
+observation identities, resolved concrete classifiers, and exactly one row for
+every applicable object/property pair, including an empty optional observation.
+Each occurrence must have the declared type; the list length must satisfy the
+bounds; a unique property requires a duplicate-free list. For a reference value,
+the target object's classifier must be a subtype of the declared class. An enum
+value retains both enumeration and literal identity.
+
+Let \(L_M(o,p)\) concatenate occurrences in all rows with key \((o,p)\), and
+let \(\#_v L\) count occurrences of \(v\). For opposite ends \(p,q\),
+conformance requires, for every object pair \(x,y\),
+\begin{equation}
+ \#_{\operatorname{ref}(y)} L_M(x,p)
+ = \#_{\operatorname{ref}(x)} L_M(y,q).
+\label{eq:opposite}
+\end{equation}
+The observation-key uniqueness conjunct later ensures that this aggregation is
+one row. Defining it on raw input also lets the checker diagnose malformed
+records without a hidden prevalidation assumption. Containment sums incoming
+composite reference occurrences globally, requires a total at most one per
+child, and forbids a nonempty containment path back to its source. The inherited
+\texttt{isID} restriction counts declarations, not globally unique runtime values.
+
+For ordered properties, observational equality is list equality. For unordered
+properties it is permutation, so duplicate counts remain observable. There are
+no first-class link identities distinguishing two equal repeated occurrences
+across opposite ends. Equation~\ref{eq:opposite} states the retained information.
+
+\subsection{Decisions and finite reachability}
+The executable functions \texttt{checkSchema} and \texttt{checkSnapshot} are proved
+correct over all raw represented schemas and snapshots:
+\begin{equation}
+ \operatorname{checkSnapshot}(S,M)=\mathsf{true}
+ \quad\Longleftrightarrow\quad C(S,M).
+\label{eq:checker}
+\end{equation}
+The analogous schema theorem characterizes \(W\). Diagnostic lists contain
+exactly the names of failed field checks. This is a field-level correspondence;
+it does not claim minimum repairs or source-position explanations.
+
+Reachability uses identity-deduplicated finite expansion. The proof distinguishes
+computed-path soundness from completeness: every computed entry has a stored
+path, while completeness requires closure of edges over a finite carrier. If an
+expansion has not stabilized, it contributes a fresh identity. There can be no
+more fresh identities than carrier elements; hence the class, package or object
+count suffices as the iteration bound. Resolved declarations discharge the
+carrier premises for conforming models. The implementation may stop at a fixed
+point early; a separate equality theorem shows that this optimization returns
+the same list as the fixed iteration count. Caching opposite occurrence lists
+and checking actual composite edges likewise preserve the original predicates.
+
+A derived library theorem combines Equation~\ref{eq:opposite} with an upper-one
+opposite to bound every forward pair count by one. Its separating examples omit
+each premise in turn. This is a use of conformance assumptions to establish an
+interaction property, beyond evaluating a finite fixture.
+
+\subsection{Independent symbolic meaning and actual elaboration}
+A source document \(d\) contains qualified alias declarations and symbolic object
+observations. Its satisfaction predicate \(\mathcal S(d)\) is defined directly
+using alias resolution, inductive superclass/package/containment paths,
+occurrence typing and the same stated static obligations. It does not invoke the
+Core checker, Core conformance or elaboration. Aliases and display names have
+separate roles: aliases bind references; display names survive as metadata.
+
+Elaboration \(E\) checks globally unique aliases, exact qualification and reference
+resolution, allocates per-kind identities by list position, and translates every
+occurrence. For all source documents, the forward theorem establishes
+\begin{equation}
+ \mathcal S(d)\ \Longrightarrow\
+ \exists S,M.\ E(d)=\mathsf{ok}(S,M)\ \land C(S,M)
+                  \land\operatorname{checkSnapshot}(S,M)=\mathsf{true}.
+\label{eq:forward}
+\end{equation}
+The Lean entry point is
+\texttt{elaborate\_complete\_and\_snapshot\_accepted}. The conditional preservation
+lemma also applies to any successful elaboration of that document.
+
+The proof follows actual successful binding computations. A list-index allocation
+relation connects each source declaration to its Core identity. Resolution is
+proved equivalent to unique alias lookup. Structural induction transports every
+value occurrence while preserving list length, count, duplicate-freedom, ordered
+equality and unordered permutation. Applicability equivalence combines inherited
+class-owned properties with both orientations of association-owned ends. The
+snapshot theorem then constructs every conformance field, including opposite
+counts and containment, from source premises. No target-conformance assumption
+is inserted into these transport lemmas.
+
+Representability is deliberately bounded. Source elaboration allocates finite
+per-kind index IDs and supplies display names; raw Core additionally represents
+unnamed declarations and arbitrary IDs. Core conformance alone therefore does
+not imply that a particular raw record is literally an elaboration result.
+Furthermore, the raw AST binder only checks nonempty alias components, whereas
+source satisfaction requires XML-valid alias characters. The reverse theorem states
+lexical admissibility explicitly: a raw AST alias containing a forbidden
+character is a counterexample to unqualified reflection. The textual parser is
+a trusted front end, and Equation~\ref{eq:forward} starts at its AST.
+
+Let $A(d)$ require XML-valid, nonempty declaration and object alias components.
+It contains no source-model validity or target-conformance premise. The reverse
+schema proof reflects all fields of $W(S)$ through successful bindings; the
+snapshot proof then reflects typing, applicability, counts and containment.
+Together they establish
+\begin{equation}
+\begin{aligned}
+ A(d)\ \Longrightarrow\ \bigl(\mathcal S(d)\ \Longleftrightarrow\
+ \exists S,M.\ &E(d)=\mathsf{ok}(S,M)\\
+ &{}\land\operatorname{checkSnapshot}(S,M)=\mathsf{true}\bigr).
+\end{aligned}
+\label{eq:adequacy}
+\end{equation}
+The exported theorem is \texttt{sourceSatisfies\_iff\_\allowbreak exists\_accepted} in
+\texttt{SourceAdequacy}. A corresponding theorem with an explicit successful
+elaboration premise equates source satisfaction directly with $C(S,M)$.
+The kernel axiom reports for these results contain only \texttt{propext},
+\texttt{Classical.choice} and \texttt{Quot.sound}, with no project axioms or
+unfinished proofs.

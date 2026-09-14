@@ -1,7 +1,43 @@
 \section{Introduction}
-A model-processing tool needs a precise account of which schemas and
-snapshots it accepts. This project investigates how a bounded structural
-EMOF language can connect authored models, declarative conformance, and
-executable checking. The source interpretation and contribution comparison
-are pending; a new implementation language alone would not establish a
-research contribution.
+A model checker is useful only if the model it checks is the model its user
+intended to supply. A textual metamodel may bind two names to the wrong
+declaration; an interchange adapter may collapse repeated references; and a
+checker may decide a predicate that omits an inherited constraint. Each component
+can appear reasonable while their composition changes conformance. EMOF makes
+these boundaries especially consequential: declaration identity differs from
+spelling, inheritance can expose the same declaration along several paths, and
+opposite ends constrain the counts of relationship occurrences.
+
+We develop VL-MOF, a Lean 4 formalization of a stated static structural fragment
+of EMOF 2.5.1. Its contract is a source-audited interpretation of the standard,
+not a claim to implement all of EMOF. The artifact separates a symbolic source
+model, independently defined source satisfaction, an identity-based finite Core,
+declarative Core conformance, and an executable checker. This separation permits
+proofs about actual elaboration rather than defining source validity to mean
+that elaboration passes the checker.
+
+The delivered adequacy result states that, under explicit lexical alias
+conditions, a source document satisfies its independent semantics exactly when
+it elaborates successfully to an accepted Core snapshot. Checker
+acceptance is equivalent to Core conformance for every represented input,
+including malformed raw records. The development also proves finite-closure
+completeness, preserves occurrence counts and ordering through binding, and uses
+the same checker for a bounded metadata interpretation pilot. A trusted Java
+adapter exercises a restricted Ecore/XMI boundary through real EMF loading and
+fresh resource construction.
+
+Executable MOF semantics, mechanized conformance preservation and textual
+metamodel languages are established prior work
+\cite{boronat_meseguer_2010,kezadri_etal_2014,jouault_bezivin_2006}.
+Our contribution is the checked connection between a separately specified
+symbolic meaning, actual elaboration and executable decisions for the stated
+fragment. Neither a new surface notation nor Lean itself is the scientific
+claim. The precise boundary matters: the Lean theorems do not certify the prose
+interpretation, textual parser, JSON decoder or EMF adapter.
+
+We organize the investigation around three questions. RQ1 asks whether identity,
+inherited applicability and occurrence-sensitive constraints admit a coherent
+finite semantics with a complete executable decision procedure. RQ2 asks which
+semantic guarantees connect authored symbolic documents to that procedure.
+RQ3 asks what a real EMF interchange experiment preserves, and which source
+constructs require rejection or explicitly recorded adaptation.

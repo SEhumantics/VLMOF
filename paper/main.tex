@@ -1,10 +1,10 @@
 \documentclass{llncs}
 \usepackage[T1]{fontenc}
-\usepackage{graphicx}
+\usepackage{graphicx,array}
 \usepackage{amsmath,amssymb}
 \usepackage[hidelinks]{hyperref}
-\title{A Structural EMOF Fragment in Lean: Working Manuscript}
-% Author information is intentionally unfilled until supplied by the author.
+\title{Connecting Symbolic EMOF Models to Verified Conformance Decisions}
+% Author information must be supplied by the author before submission.
 \author{}
 \institute{}
 \begin{document}
@@ -12,12 +12,20 @@
 \pagestyle{empty}
 \thispagestyle{empty}
 \begin{abstract}
-This working manuscript concerns a structural fragment of EMOF 2.5.1 and
-its intended realization in Lean. The current artifact supplies a pinned
-Lean environment and verified specification downloads. Semantic definitions,
-source-language correspondence, executable checking, interoperability, and
-evaluation results are pending. No completed semantic or novelty claim is
-made in this version.
+A model-processing pipeline can change conformance when name binding, inherited
+property identity or repeated reference occurrences are lost between tools.
+We formalize a stated static structural fragment of EMOF 2.5.1 in Lean 4,
+separating symbolic source satisfaction, actual elaboration, finite Core
+conformance and executable decisions. For lexically admissible source documents, satisfaction is equivalent to
+successful elaboration to an accepted Core snapshot. Checker acceptance is
+equivalent to Core conformance over all represented inputs. The development proves finite
+reachability completeness and occurrence-sensitive transport, and applies the
+common checker to a bounded metadata interpreter. A real EMF bridge constructs
+fresh resources and compares reloaded observations under an explicit identity
+bijection. Authored separating tests and six explicitly adapted Train snapshots
+exercise the executable boundary. The guarantee is bounded: standards
+interpretation, parsing and native adapters remain separate trust obligations;
+reflective behavior and full EMOF self-description are not claimed.
 \keywords{EMOF \and Metamodeling \and Lean \and Model conformance}
 \end{abstract}
 \input{sections/introduction}
@@ -27,7 +35,6 @@ made in this version.
 \input{sections/evaluation}
 \input{sections/discussion}
 \input{sections/conclusion}
-% Enable bibliography after reviewed references are cited in the manuscript.
-% \bibliographystyle{splncs04}
-% \bibliography{references}
+\bibliographystyle{splncs04}
+\bibliography{references}
 \end{document}

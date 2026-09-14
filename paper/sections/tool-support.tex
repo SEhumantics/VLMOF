@@ -1,6 +1,104 @@
 \section{Tool Support}
-The baseline pins Lean 4.33.1 and provides commands to download and verify
-five official OMG source files. It includes tests of the download tooling
-and an empty Lean library entry point. The authored language, proved checker,
-and limited EMF import/export path are pending. Parser and adapter boundaries
-will require separate evidence from the Lean theorem statements.
+\subsection{Interfaces and trust boundaries}
+The library builds with pinned Lean 4.33.1 and no external Lean mathematics
+library. The CLI accepts the symbolic notation through \texttt{check-dsl} and a
+versioned interchange through \texttt{check-json}. Both call the same Core checker.
+Each invocation emits one JSON report. Acceptance exits with code 0, invalid
+represented models with 1, malformed input or binding failure with 2, unsupported
+wire versions with 3, and file errors with 4. Phase-specific reports distinguish
+parsing and binding from semantic checking.
+
+Figure~\ref{fig:boundary} separates the proved relation from its trusted input
+routes. The JSON decoder represents raw records for subsequent semantic checking. It ignores unknown object fields, and the Lean JSON parser
+normalizes duplicate JSON member keys; provenance is producer metadata. These
+parser policies are distinct from the checker theorem about already decoded
+records.
+\begin{figure}[t]
+\centering
+\small
+\begin{tabular}{rcl}
+Source text & $\xrightarrow{\text{trusted parser}}$ & Source AST $d$ \\
+Source AST $d$ & $\xrightarrow{\text{elaboration }E}$ & Core $(S,M)$ \\
+Ecore/XMI & $\xrightarrow{\text{trusted adapter and decoder}}$ & Core $(S,M)$ \\
+Core $(S,M)$ & $\xrightarrow{\text{verified checker}}$ & Decision \\
+$\mathcal S(d)$ & $\Longrightarrow$ & $C(S,M)\iff\mathrm{accept}$
+\end{tabular}
+\caption{The formal claim begins at represented inputs. Text and native resource
+fidelity require separate testing and source audit. The middle arrow denotes
+interchange production, not a verified translation.}
+\label{fig:boundary}
+\end{figure}
+
+\subsection{A restricted real EMF bridge}
+The Java bridge uses EMF \texttt{ResourceSet} loading and dynamic EObjects. Its
+manifest identifies the allowed Ecore and XMI resources. Unsupported annotations,
+operations, generic constructs, defaults, derived/transient/volatile/read-only
+or unsettable features, custom datatypes and unresolved references are rejected.
+Native reference ends are class-owned; the broader Core representation of an
+association-owned end is outside this Ecore export domain. Native Integer values
+are restricted to EInt's signed 32-bit range, although the Core Integer domain is
+unbounded. Native names and a representable package structure are also required.
+
+Import allocates declarations by metamodel containment and objects by instance
+containment preorder. A structural XML presence pass distinguishes omitted
+attributes from explicitly serialized default values and ties each XML element
+to its loaded EObject. It validates root/child correspondence and typed element
+identity rather than assuming that arbitrary XML preorder equals object order.
+The emitter creates a row for every applicable feature, including absence.
+
+Export reconstructs fresh packages, classifiers, features and objects from Core
+JSON. It establishes both EOpposite pointers, allocates objects before references,
+and compares the resulting occurrence observations against the requested rows.
+This last check prevents inverse maintenance from silently repairing inconsistent
+input. Ordered ends are reconciled independently after reciprocal counts agree.
+Explicit scalar defaults are serialized while the emitted metamodel retains its
+ordinary feature flags. A regression caught the earlier asymmetric EOpposite
+construction: merely assigning one pointer caused reload to duplicate a reverse
+reference. Setting both pointers corrected the bridge, including repeated pairs.
+
+Generated native URIs are recorded alongside original Core IDs in an identity
+sidecar. On reimport, the comparator joins those URIs to the new Core IDs and
+requires a bijection covering every declaration and object. It remaps foreign
+IDs, checks declaration metadata and object classifiers, and compares every
+observation by sequence or multiset according to ordering. It rejects duplicate
+map entries and observation keys. Arbitrary numeric IDs and changed containment
+traversal are exercised by regression tests. This is an executable comparison
+under recorded identity evidence, not a formal proof of EMF serialization.
+
+\subsection{Metadata through the ordinary conformance path}
+The metadata pilot has fixed classes for class and scalar-attribute descriptions,
+eight ordinary properties and a three-literal scalar-type enumeration. The common
+snapshot checker validates these descriptions before an interpreter creates a
+Core schema. The fixture describes \emph{Person.active : Boolean [0..1]} and then
+checks a Person instance against the interpreted schema. A dangling owner fails
+metadata conformance; reversed bounds can be well-typed metadata yet fail the
+interpreted schema checker. Thus metadata typing does not replace cross-field
+schema obligations. Checked interpreter outputs satisfy the ordinary schema
+predicate, but the pilot is neither full EMOF self-description nor a proof that
+all conforming metadata denotes valid schemas.
+
+\begin{table}[t]
+\caption{Delivered semantic coverage and explicit limits. Evidence names refer
+to library modules or the stated bridge regressions.}
+\label{tab:coverage}\centering\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{.29\textwidth}>{\raggedright\arraybackslash}p{.60\textwidth}}
+\hline
+Area & Delivered evidence and boundary \\
+\hline
+Identity and inheritance & Typed IDs, resolved closure, diamond declaration identity;
+\texttt{FiniteClosure}, \texttt{ClosureSaturation}. \\
+Occurrences and opposites & Counts, order/permutation and pair reciprocity;
+\texttt{OccurrenceBindingCorrect}, \texttt{SnapshotContainmentCorrect}. \\
+Executable conformance & Unconditional acceptance and failed-field correspondence;
+\texttt{CheckAcceptance}. \\
+Symbolic translation & Independent satisfaction and conformance equivalence under explicit lexical
+conditions; \texttt{SourceAdequacy}. \\
+Native interchange & Fresh EMF export/reload under explicit URI identity mapping;
+behavioral regression evidence within a narrower native domain. \\
+Metadata & Fixed scalar-description vocabulary and checked interpretation;
+\texttt{MetadataPilot}; no full self-description. \\
+Deferred EMOF & Operations/parameters, remaining datatypes, behavioral defaults and
+unset history, reflective services, comments/tags and general derived behavior. \\
+\hline
+\end{tabular}
+\end{table}
