@@ -16,9 +16,9 @@ inductive Diagnostic where
   | snapshot (field : String)
   deriving DecidableEq, Repr
 
-private def refType : ValueType → Bool | .reference _ => true | _ => false
+def refType : ValueType → Bool | .reference _ => true | _ => false
 
-private def associationPairOK (a : AssociationDecl) (p q : PropertyDecl) : Bool :=
+def associationPairOK (a : AssociationDecl) (p q : PropertyDecl) : Bool :=
   decide (a.ends = (p.id, q.id)) && decide (p.id ≠ q.id) && refType p.type && refType q.type &&
   decide (ownerMatchesEnd a p) && decide (ownerMatchesEnd a q) &&
   decide (classOwnerIsSource p q) && decide (classOwnerIsSource q p) &&
