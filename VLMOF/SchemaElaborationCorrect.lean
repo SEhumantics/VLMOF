@@ -154,6 +154,30 @@ theorem mapM_ok_map_eq {f : α → Except ε β} {xs : List α} {ys : List β}
       subst ys
       simp [hkey _ _ hx, ih ht]
 
+private theorem uniqueBy_eq_of_mem_local {κ δ : Type} [DecidableEq κ] (key : δ → κ)
+    {xs : List δ} (h : uniqueBy key xs) {left right : δ}
+    (hl : left ∈ xs) (hr : right ∈ xs) (hk : key left = key right) : left = right := by
+  induction xs generalizing left right with
+  | nil => simp at hl
+  | cons x xs ih =>
+      simp only [uniqueBy, List.map_cons, List.nodup_cons] at h
+      rcases h with ⟨hnot, htail⟩
+      rcases List.mem_cons.mp hl with hleft | hl
+      · subst left
+        rcases List.mem_cons.mp hr with hright | hr
+        · exact hright.symm
+        · exfalso
+          apply hnot
+          rw [hk]
+          exact List.mem_map.mpr ⟨right, hr, rfl⟩
+      · rcases List.mem_cons.mp hr with hright | hr
+        · subst right
+          exfalso
+          apply hnot
+          rw [← hk]
+          exact List.mem_map.mpr ⟨left, hl, rfl⟩
+        · exact ih htail hl hr hk
+
 private theorem packageEntry_id {x : Package × Nat} {d : PackageDecl}
     (h : bindPackageEntry model x = .ok d) : d.id.val = x.2 := by
   unfold bindPackageEntry at h
@@ -726,6 +750,157 @@ private theorem propertyEntry_type_binding {x : Property × Nat} {d : PropertyDe
   subst d
   simpa using ht
 
+private theorem propertyEntry_owner_binding {x : Property × Nat} {d : PropertyDecl}
+    (hb : bindPropertyEntry model x = .ok d) : bindOwner model x.1.owner = .ok d.owner := by
+  unfold bindPropertyEntry at hb
+  cases hq : checkQualification x.1.alias (some (ownerName x.1.owner)) <;>
+    cases ho : bindOwner model x.1.owner <;>
+    cases ht : bindType model x.1.type <;>
+    simp [hq, ho, ht, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  simpa using ho
+
+private theorem associationEntry_ends {x : Association × Nat} {d : AssociationDecl}
+    (hb : bindAssociationEntry model x = .ok d) :
+    ∃ first second firstId secondId,
+      x.1.ends = [first, second] ∧ propertyId model first = .ok firstId ∧
+      propertyId model second = .ok secondId ∧ d.ends = (firstId, secondId) := by
+  unfold bindAssociationEntry at hb
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    cases hend : x.1.ends with
+    | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+    | cons first rest =>
+      cases rest with
+      | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+      | cons second tail =>
+        cases tail with
+        | cons third tail => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+        | nil =>
+          cases hf : propertyId model first with
+          | error error => simp [hq, hp, hend, hf, Bind.bind, Except.bind] at hb
+          | ok firstId =>
+            cases hs : propertyId model second with
+            | error error => simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind] at hb
+            | ok secondId =>
+              simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind, pure, Except.pure] at hb
+              all_goals try subst d
+              all_goals exact ⟨first, second, firstId, secondId, rfl, hf, hs, rfl⟩
+
+private theorem propertyEntry_resolves_id (h : ModelWellFormed model)
+    {x : Property × Nat} {d : PropertyDecl} (hx : x ∈ model.properties.zipIdx)
+    (hb : bindPropertyEntry model x = .ok d) : propertyId model x.1.alias = .ok d.id := by
+  have hn : (model.properties.map Property.alias).Nodup := by
+    have hall := h.uniqueQualifiedAliases
+    simp only [uniqueAliases, aliases, List.nodup_append] at hall
+    exact hall.1.1.1.2.1
+  have hi : (model.properties.map Property.alias)[x.2]? = some x.1.alias := by
+    have hg := List.mk_mem_zipIdx_iff_getElem?.mp hx
+    simp [List.getElem?_map, hg]
+  have hr : resolveIndex "property" (model.properties.map Property.alias) x.1.alias = .ok x.2 := by
+    rw [resolveIndex_iff_uniqueAliasAt]
+    exact uniqueAliasAt_of_nodup hn hi
+  unfold propertyId
+  rw [hr]
+  simp [Except.map]
+  cases hid : d.id with
+  | mk value =>
+      have hv := propertyEntry_id hb
+      simp [hid] at hv
+      subst value
+      rfl
+
+private theorem associationEntry_resolves_id (h : ModelWellFormed model)
+    {x : Association × Nat} {d : AssociationDecl} (hx : x ∈ model.associations.zipIdx)
+    (hb : bindAssociationEntry model x = .ok d) : associationId model x.1.alias = .ok d.id := by
+  have hn : (model.associations.map Association.alias).Nodup := by
+    have hall := h.uniqueQualifiedAliases
+    simp only [uniqueAliases, aliases, List.nodup_append] at hall
+    exact hall.1.1.2.1
+  have hi : (model.associations.map Association.alias)[x.2]? = some x.1.alias := by
+    have hg := List.mk_mem_zipIdx_iff_getElem?.mp hx
+    simp [List.getElem?_map, hg]
+  have hr : resolveIndex "association" (model.associations.map Association.alias) x.1.alias = .ok x.2 := by
+    rw [resolveIndex_iff_uniqueAliasAt]
+    exact uniqueAliasAt_of_nodup hn hi
+  unfold associationId
+  rw [hr]
+  simp [Except.map]
+  cases hid : d.id with
+  | mk value =>
+      have hv := associationEntry_id hb
+      simp [hid] at hv
+      subst value
+      rfl
+
+theorem ModelAllocation.propertyForSource (a : ModelAllocation model target)
+    {source : Property} (hs : source ∈ model.properties) :
+    ∃ index translated, (source, index) ∈ model.properties.zipIdx ∧
+      translated ∈ target.properties ∧
+      bindPropertyEntry model (source, index) = .ok translated := by
+  obtain ⟨index, hi⟩ := List.mem_iff_getElem?.mp hs
+  have hz : (source, index) ∈ model.properties.zipIdx :=
+    List.mk_mem_zipIdx_iff_getElem?.mpr hi
+  rcases mapM_ok_source a.properties hz with ⟨translated, ht, hb⟩
+  exact ⟨index, translated, hz, ht, hb⟩
+
+private theorem ownerMatches_translated {sa : Association} {ta : AssociationDecl}
+    {sp : Property} {tp : PropertyDecl}
+    (ha : associationId model sa.alias = .ok ta.id)
+    (hp : bindOwner model sp.owner = .ok tp.owner)
+    (hs : ownerMatches sa sp) : ownerMatchesEnd ta tp := by
+  cases ho : sp.owner with
+  | «class» name =>
+      cases hr : classId model name <;>
+        simp [ho, bindOwner, hr, Functor.map, Except.map] at hp
+      unfold ownerMatchesEnd
+      rw [← hp]
+      trivial
+  | association name =>
+      cases hr : associationId model name <;>
+        simp [ho, bindOwner, hr, Functor.map, Except.map] at hp
+      unfold ownerMatchesEnd
+      rw [← hp]
+      unfold ownerMatches at hs
+      rw [ho] at hs
+      subst name
+      exact Except.ok.inj (hr.symm.trans ha)
+
+private theorem classOwnerSource_translated {sp sq : Property} {tp tq : PropertyDecl}
+    (hop : bindOwner model sp.owner = .ok tp.owner)
+    (htq : bindType model sq.type = .ok tq.type)
+    (hs : classOwnerMatchesSource sp sq) : classOwnerIsSource tp tq := by
+  cases ho : sp.owner <;> cases hv : sq.type <;>
+    simp [classOwnerMatchesSource, ho, hv] at hs
+  case «class».reference owner source =>
+    cases hc : classId model owner <;>
+      simp [ho, bindOwner, hc, Functor.map, Except.map] at hop
+    cases hsId : classId model source <;>
+      simp [hv, bindType, hsId, Functor.map, Except.map] at htq
+    unfold classOwnerIsSource
+    rw [← hop, ← htq]
+    exact Except.ok.inj (hc.symm.trans (hs ▸ hsId))
+  case association.reference owner source =>
+    cases ha : associationId model owner <;>
+      simp [ho, bindOwner, ha, Functor.map, Except.map] at hop
+    cases hsId : classId model source <;>
+      simp [hv, bindType, hsId, Functor.map, Except.map] at htq
+    unfold classOwnerIsSource
+    rw [← hop, ← htq]
+    trivial
+
+private theorem atMostOneOwner_translated {sp sq : Property} {tp tq : PropertyDecl}
+    (hp : bindOwner model sp.owner = .ok tp.owner)
+    (hq : bindOwner model sq.owner = .ok tq.owner)
+    (hs : atMostOneAssociationOwner sp sq) : atMostOneAssociationOwned tp tq := by
+  cases hop : sp.owner <;> cases hoq : sq.owner <;>
+    simp [atMostOneAssociationOwner, hop, hoq] at hs
+  all_goals simp [hop, bindOwner, hoq, Functor.map, Except.map] at hp hq
+  all_goals split at hp <;> simp_all [atMostOneAssociationOwned]
+  all_goals split at hq <;> simp_all [atMostOneAssociationOwned]
+  all_goals rw [← hp, ← hq]
+  all_goals trivial
+
 theorem ModelAllocation.propertyTypesResolved (a : ModelAllocation model target) :
     ∀ d ∈ target.properties, match d.type with
       | .reference id => target.classDecls id ≠ []
@@ -932,5 +1107,256 @@ theorem ModelAllocation.packageAcyclic (a : ModelAllocation model target)
   have sourceCycle : PackageAncestor model parentName source.alias :=
     packageAncestors_to_packageAncestor h a hcycle hparentAlias hpackage
   exact h.packageAcyclic source hsource parentName hparentName sourceCycle
+
+theorem ModelAllocation.propertyOwnersResolved (a : ModelAllocation model target)
+    (h : ModelWellFormed model) :
+    ∀ p ∈ target.properties, match p.owner with
+      | .class c => target.classDecls c ≠ []
+      | .association aid => ∃ d ∈ target.associations, d.id = aid ∧
+          (d.ends.1 = p.id ∨ d.ends.2 = p.id) := by
+  intro p hp
+  rcases (mapM_ok_mem_iff a.properties).mp hp with ⟨x, hx, hb⟩
+  have hsource := List.fst_mem_of_mem_zipIdx hx
+  have howner := propertyEntry_owner_binding hb
+  have hpid := propertyEntry_resolves_id h hx hb
+  cases hsowner : x.1.owner with
+  | «class» className =>
+      cases hc : classId model className with
+      | error error => simp [hsowner, bindOwner, hc, Functor.map, Except.map] at howner
+      | ok classTarget =>
+          simp [hsowner, bindOwner, hc, Functor.map, Except.map] at howner
+          rw [← howner]
+          exact a.classResolved hc
+  | association associationName =>
+      cases haid : associationId model associationName with
+      | error error => simp [hsowner, bindOwner, haid, Functor.map, Except.map] at howner
+      | ok associationTarget =>
+          simp [hsowner, bindOwner, haid, Functor.map, Except.map] at howner
+          rw [← howner]
+          have hao := h.associationOwnedEnds x.1 hsource
+          rw [hsowner] at hao
+          rcases hao with ⟨sourceAssociation, hsa, halias, hendMem⟩
+          obtain ⟨index, hi⟩ := List.mem_iff_getElem?.mp hsa
+          have hz : (sourceAssociation, index) ∈ model.associations.zipIdx :=
+            List.mk_mem_zipIdx_iff_getElem?.mpr hi
+          rcases mapM_ok_source a.associations hz with ⟨translated, ht, hbind⟩
+          rcases associationEntry_ends hbind with
+            ⟨first, second, firstId, secondId, hends, hfirst, hsecond, htends⟩
+          have haid' := associationEntry_resolves_id h hz hbind
+          have htranslatedId : translated.id = associationTarget := by
+            apply Except.ok.inj
+            exact haid'.symm.trans (halias ▸ haid)
+          refine ⟨translated, ht, htranslatedId, ?_⟩
+          rw [hends] at hendMem
+          simp at hendMem
+          rcases hendMem with heq | heq
+          · rw [htends]
+            left
+            have : firstId = p.id := Except.ok.inj (hfirst.symm.trans (heq ▸ hpid))
+            exact this
+          · rw [htends]
+            right
+            have : secondId = p.id := Except.ok.inj (hsecond.symm.trans (heq ▸ hpid))
+            exact this
+
+theorem ModelAllocation.associationEnds (a : ModelAllocation model target)
+    (h : ModelWellFormed model) :
+    ∀ association ∈ target.associations, ∃ p q,
+      association.ends = (p.id, q.id) ∧ p ∈ target.properties ∧ q ∈ target.properties ∧
+      p.id ≠ q.id ∧ (∃ pc, p.type = .reference pc) ∧
+      (∃ qc, q.type = .reference qc) ∧ ownerMatchesEnd association p ∧
+      ownerMatchesEnd association q ∧ classOwnerIsSource p q ∧
+      classOwnerIsSource q p ∧ atMostOneAssociationOwned p q ∧
+      ¬(p.aggregation = .composite ∧ q.aggregation = .composite) := by
+  intro association ha
+  rcases (mapM_ok_mem_iff a.associations).mp ha with ⟨x, hx, hb⟩
+  have hsource := List.fst_mem_of_mem_zipIdx hx
+  rcases h.associationEnds x.1 hsource with
+    ⟨sp, sq, hsourceEnds, hsp, hsq, hneq, hpt, hqt, hop, hoq,
+      hsourcepq, hsourceqp, hone, hcomposite⟩
+  rcases a.propertyForSource hsp with ⟨pi, p, hpz, hp, hpb⟩
+  rcases a.propertyForSource hsq with ⟨qi, q, hqz, hq, hqb⟩
+  have hpid := propertyEntry_resolves_id h hpz hpb
+  have hqid := propertyEntry_resolves_id h hqz hqb
+  have hpo := propertyEntry_owner_binding hpb
+  have hqo := propertyEntry_owner_binding hqb
+  have hpty := propertyEntry_type_binding hpb
+  have hqty := propertyEntry_type_binding hqb
+  have haid := associationEntry_resolves_id h hx hb
+  rcases associationEntry_ends hb with
+    ⟨first, second, firstId, secondId, hends, hfirst, hsecond, htends⟩
+  have hpAlias : first = sp.alias := by
+    simpa [hsourceEnds] using (congrArg List.head? hends).symm
+  have hqAlias : second = sq.alias := by
+    have := congrArg (fun xs => xs.drop 1 |>.head?) hends
+    simpa [hsourceEnds] using this.symm
+  have hfirstId : firstId = p.id := Except.ok.inj (hfirst.symm.trans (hpAlias ▸ hpid))
+  have hsecondId : secondId = q.id := Except.ok.inj (hsecond.symm.trans (hqAlias ▸ hqid))
+  refine ⟨p, q, ?_, hp, hq, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simpa [hfirstId, hsecondId] using htends
+  · intro heq
+    have hi := resolveIndex_getElem (propertyId_resolve hpid)
+    have hj := resolveIndex_getElem (propertyId_resolve hqid)
+    rw [heq] at hi
+    exact hneq (Option.some.inj (hi.symm.trans hj))
+  · rcases hpt with ⟨source, hs⟩
+    rw [hs] at hpty
+    cases hc : classId model source <;> simp [bindType, hc, Functor.map, Except.map] at hpty
+    exact ⟨_, hpty.symm⟩
+  · rcases hqt with ⟨source, hs⟩
+    rw [hs] at hqty
+    cases hc : classId model source <;> simp [bindType, hc, Functor.map, Except.map] at hqty
+    exact ⟨_, hqty.symm⟩
+  · exact ownerMatches_translated haid hpo hop
+  · exact ownerMatches_translated haid hqo hoq
+  · exact classOwnerSource_translated hpo hqty hsourcepq
+  · exact classOwnerSource_translated hqo hpty hsourceqp
+  · exact atMostOneOwner_translated hpo hqo hone
+  · intro hc
+    apply hcomposite
+    exact ⟨(propertyEntry_data hpb).2.2.1.symm.trans hc.1,
+      (propertyEntry_data hqb).2.2.1.symm.trans hc.2⟩
+
+theorem ModelAllocation.containerUpperOne (a : ModelAllocation model target)
+    (h : ModelWellFormed model) :
+    ∀ association ∈ target.associations, ∀ p q,
+      association.ends = (p.id, q.id) → p ∈ target.properties → q ∈ target.properties →
+      (p.aggregation = .composite → q.multiplicity.upper = .finite 1) ∧
+      (q.aggregation = .composite → p.multiplicity.upper = .finite 1) := by
+  intro association ha p q hendsTarget hp hq
+  rcases (mapM_ok_mem_iff a.associations).mp ha with ⟨x, hx, hb⟩
+  have hsource := List.fst_mem_of_mem_zipIdx hx
+  rcases h.associationEnds x.1 hsource with ⟨sp, sq, hendsSource, hsp, hsq, _⟩
+  rcases a.propertyForSource hsp with ⟨pi, tp, hpz, htp, hpb⟩
+  rcases a.propertyForSource hsq with ⟨qi, tq, hqz, htq, hqb⟩
+  have hpid := propertyEntry_resolves_id h hpz hpb
+  have hqid := propertyEntry_resolves_id h hqz hqb
+  rcases associationEntry_ends hb with
+    ⟨first, second, firstId, secondId, hends, hfirst, hsecond, htends⟩
+  have hpAlias : first = sp.alias := by
+    simpa [hendsSource] using (congrArg List.head? hends).symm
+  have hqAlias : second = sq.alias := by
+    have hh := congrArg (fun xs => xs.drop 1 |>.head?) hends
+    simpa [hendsSource] using hh.symm
+  have hfirstId : firstId = tp.id := Except.ok.inj (hfirst.symm.trans (hpAlias ▸ hpid))
+  have hsecondId : secondId = tq.id := Except.ok.inj (hsecond.symm.trans (hqAlias ▸ hqid))
+  have hpair : association.ends = (tp.id, tq.id) := by
+    simpa [hfirstId, hsecondId] using htends
+  have hpeq : p = tp := by
+    apply uniqueBy_eq_of_mem_local PropertyDecl.id a.uniqueIds.2.2.1 hp htp
+    exact congrArg Prod.fst (hendsTarget.symm.trans hpair)
+  have hqeq : q = tq := by
+    apply uniqueBy_eq_of_mem_local PropertyDecl.id a.uniqueIds.2.2.1 hq htq
+    exact congrArg Prod.snd (hendsTarget.symm.trans hpair)
+  subst p
+  subst q
+  have hsourceUpper := h.containerUpperOne x.1 hsource sp sq hendsSource hsp hsq
+  constructor
+  · intro hc
+    have hcSource : sp.aggregation = .composite :=
+      (propertyEntry_data hpb).2.2.1.symm.trans hc
+    rw [(propertyEntry_data hqb).2.1]
+    exact hsourceUpper.1 hcSource
+  · intro hc
+    have hcSource : sq.aggregation = .composite :=
+      (propertyEntry_data hqb).2.2.1.symm.trans hc
+    rw [(propertyEntry_data hpb).2.1]
+    exact hsourceUpper.2 hcSource
+
+private theorem propertyIds_eq_iff {first second : Name} {firstId secondId : PropertyId}
+    (hf : propertyId model first = .ok firstId)
+    (hs : propertyId model second = .ok secondId) : firstId = secondId ↔ first = second := by
+  constructor
+  · intro hid
+    have hi := resolveIndex_getElem (propertyId_resolve hf)
+    have hj := resolveIndex_getElem (propertyId_resolve hs)
+    rw [hid] at hi
+    exact Option.some.inj (hi.symm.trans hj)
+  · intro hn
+    subst second
+    exact Except.ok.inj (hf.symm.trans hs)
+
+private def targetEndHit (id : PropertyId) (association : AssociationDecl) : Nat :=
+  if association.ends.1 = id then 1 else if association.ends.2 = id then 1 else 0
+
+private def sourceEndHit (alias : Name) (association : Association) : Nat :=
+  if alias ∈ association.ends then 1 else 0
+
+private theorem associationEndHit_translated
+    {source : Association} {translated : AssociationDecl} {property : Property}
+    {propertyTarget : PropertyDecl} {index : Nat}
+    (hb : bindAssociationEntry model (source, index) = .ok translated)
+    (hp : propertyId model property.alias = .ok propertyTarget.id) :
+    targetEndHit propertyTarget.id translated = sourceEndHit property.alias source := by
+  rcases associationEntry_ends hb with
+    ⟨first, second, firstId, secondId, hends, hfirst, hsecond, htends⟩
+  have hf : (firstId = propertyTarget.id) ↔ (first = property.alias) := propertyIds_eq_iff hfirst hp
+  have hsnd : (secondId = propertyTarget.id) ↔ (second = property.alias) := propertyIds_eq_iff hsecond hp
+  unfold targetEndHit sourceEndHit
+  rw [htends]
+  simp only [Prod.fst, Prod.snd]
+  rw [hends]
+  simp only [List.mem_cons, List.mem_singleton]
+  by_cases hfirstEq : first = property.alias
+  · simp [hfirstEq, hf]
+  · by_cases hsecondEq : second = property.alias
+    · simp [hfirstEq, hsecondEq, hf, hsnd]
+    · simp [hfirstEq, hsecondEq, hf, hsnd, Ne.symm hfirstEq, Ne.symm hsecondEq]
+
+theorem ModelAllocation.endMembershipUnique (a : ModelAllocation model target)
+    (h : ModelWellFormed model) :
+    ∀ p ∈ target.properties, (target.oppositeCandidates p.id).length ≤ 1 := by
+  intro p hp
+  rcases (mapM_ok_mem_iff a.properties).mp hp with ⟨x, hx, hb⟩
+  have hsource := List.fst_mem_of_mem_zipIdx hx
+  have hpid := propertyEntry_resolves_id h hx hb
+  have hmap : target.associations.map (targetEndHit p.id) =
+      model.associations.zipIdx.map (fun z => sourceEndHit x.1.alias z.1) := by
+    exact mapM_ok_map_eq a.associations (fun z translated hbind =>
+      associationEndHit_translated hbind hpid)
+  have hmap' : target.associations.map (targetEndHit p.id) =
+      model.associations.map (sourceEndHit x.1.alias) := by
+    rw [hmap]
+    have aux : ∀ (xs : List Association) (i : Nat),
+        (xs.zipIdx i).map (fun z => sourceEndHit x.1.alias z.1) =
+          xs.map (sourceEndHit x.1.alias) := by
+      intro xs i
+      induction xs generalizing i with
+      | nil => simp
+      | cons first rest ih => simp [List.zipIdx, ih]
+    exact aux model.associations 0
+  have hlenTarget : (target.oppositeCandidates p.id).length =
+      (target.associations.map (targetEndHit p.id)).sum := by
+    unfold Schema.oppositeCandidates
+    have aux : ∀ xs : List AssociationDecl,
+        (xs.flatMap fun association =>
+          if association.ends.1 = p.id then [association.ends.2]
+          else if association.ends.2 = p.id then [association.ends.1] else []).length =
+        (xs.map (targetEndHit p.id)).sum := by
+      intro xs
+      induction xs with
+      | nil => simp
+      | cons association rest ih =>
+          by_cases hf : association.ends.1 = p.id <;>
+            by_cases hs : association.ends.2 = p.id <;>
+            simp [targetEndHit, hf, hs, ih] <;> omega
+    exact aux target.associations
+  have hlenSource :
+      (model.associations.flatMap fun association =>
+        if x.1.alias ∈ association.ends then [association.alias] else []).length =
+      (model.associations.map (sourceEndHit x.1.alias)).sum := by
+    have aux : ∀ xs : List Association,
+        (xs.flatMap fun association =>
+          if x.1.alias ∈ association.ends then [association.alias] else []).length =
+        (xs.map (sourceEndHit x.1.alias)).sum := by
+      intro xs
+      induction xs with
+      | nil => simp
+      | cons association rest ih =>
+          by_cases hm : x.1.alias ∈ association.ends <;>
+            simp [sourceEndHit, hm, ih] <;> omega
+    exact aux model.associations
+  rw [hlenTarget, hmap', ← hlenSource]
+  exact h.endMembershipUnique x.1 hsource
 
 end VLMOF.Source
