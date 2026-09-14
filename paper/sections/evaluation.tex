@@ -39,7 +39,9 @@ adaptation, not a claim that the compiler directly preserved the intended types.
 
 The native snapshots omit some default enum values that their runtime interprets
 as FAILURE. Separate adapted copies materialize those occurrences. Table~\ref{tab:train}
-records every insertion count. The original files are unchanged; object identities
+records every insertion count. A raw batch-1 control using the profile Ecore is also accepted: those enum
+properties are optional. Materialization changes the represented default meaning;
+it is not required to repair conformance. The original files are unchanged; object identities
 are allocated independently of the ordinary \emph{id} attribute. A successful
 check of an adapted file therefore means conformance of that explicit adapted
 snapshot. It does not certify the omitted-value semantics of the raw original.
