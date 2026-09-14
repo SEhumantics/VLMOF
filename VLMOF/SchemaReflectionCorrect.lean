@@ -80,6 +80,18 @@ private theorem propertyBinding_components {x : Property × Nat} {d : PropertyDe
   subst d
   exact ⟨by simpa using hq, by simpa using ho, by simpa using ht, rfl⟩
 
+private theorem propertyBinding_data {x : Property × Nat} {d : PropertyDecl}
+    (hb : bindPropertyEntry model x = .ok d) :
+    d.multiplicity = x.1.multiplicity ∧ d.aggregation = x.1.aggregation ∧
+      d.isId = x.1.isId := by
+  unfold bindPropertyEntry at hb
+  cases hq : checkQualification x.1.alias (some (ownerName x.1.owner)) <;>
+    cases ho : bindOwner model x.1.owner <;>
+    cases ht : bindType model x.1.type <;>
+    simp [hq, ho, ht, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  exact ⟨rfl, rfl, rfl⟩
+
 private theorem enumerationBinding_components {x : Enumeration × Nat} {d : EnumerationDecl}
     (hb : bindEnumerationEntry model x = .ok d) :
     checkQualification x.1.alias x.1.package = .ok () ∧
@@ -363,5 +375,178 @@ theorem ModelAllocation.reflectedDisplayNames (a : ModelAllocation model target)
             have hn := wf.names.2.2.2.2.2 d hd
             rw [literalBinding_components hb |>.2.2] at hn
             simpa [validName, validDisplayName] using hn
+
+theorem ModelAllocation.reflectedPropertyFacts (a : ModelAllocation model target)
+    (wf : SchemaWellFormed target) :
+    (∀ p ∈ model.properties, multiplicityValid p.multiplicity) ∧
+    (∀ p ∈ model.properties, p.aggregation = .composite →
+      ∃ c, p.type = .reference c) := by
+  constructor
+  · intro p hp
+    rcases source_zip_mem hp with ⟨index, hz⟩
+    rcases mapM_ok_source a.properties hz with ⟨d, hd, hb⟩
+    rw [← (propertyBinding_data hb).1]
+    exact wf.multiplicities d hd
+  · intro p hp hcomposite
+    rcases source_zip_mem hp with ⟨index, hz⟩
+    rcases mapM_ok_source a.properties hz with ⟨d, hd, hb⟩
+    have hdcomposite : d.aggregation = .composite := by
+      rw [(propertyBinding_data hb).2.1]
+      exact hcomposite
+    rcases wf.compositeReferences d hd hdcomposite with ⟨id, htype⟩
+    have hbind := propertyBinding_components hb |>.2.2.1
+    cases ht : p.type with
+    | boolean => simp [ht, bindType, pure, Except.pure] at hbind; cases hbind.trans htype
+    | integer => simp [ht, bindType, pure, Except.pure] at hbind; cases hbind.trans htype
+    | string => simp [ht, bindType, pure, Except.pure] at hbind; cases hbind.trans htype
+    | reference name => exact ⟨name, rfl⟩
+    | enumeration name =>
+        cases he : enumerationId model name <;>
+          simp [ht, bindType, he, Functor.map, Except.map] at hbind
+        cases hbind.trans htype
+
+private theorem classBinding_id {x : Class × Nat} {d : ClassDecl}
+    (hb : bindClassEntry model x = .ok d) : d.id = ⟨x.2⟩ := by
+  unfold bindClassEntry at hb
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    cases hs : x.1.directSupers.mapM (classId model) <;>
+    simp [hq, hp, hs, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  rfl
+
+private theorem packageBinding_id {x : Package × Nat} {d : PackageDecl}
+    (hb : bindPackageEntry model x = .ok d) : d.id = ⟨x.2⟩ := by
+  unfold bindPackageEntry at hb
+  cases hq : checkQualification x.1.alias x.1.parent <;>
+    cases hp : optionalPackage model x.1.parent <;>
+    simp [hq, hp, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  rfl
+
+private theorem classId_of_allocated (hn : uniqueAliases model)
+    {c : Class} {index : Nat} {d : ClassDecl}
+    (hz : (c, index) ∈ model.classes.zipIdx)
+    (hb : bindClassEntry model (c, index) = .ok d) : classId model c.alias = .ok d.id := by
+  have hall := hn
+  simp only [uniqueAliases, aliases, List.nodup_append] at hall
+  have hclasses : (model.classes.map Class.alias).Nodup := hall.1.1.1.1.2.1
+  have hg := List.mk_mem_zipIdx_iff_getElem?.mp hz
+  have hi : (model.classes.map Class.alias)[index]? = some c.alias := by
+    simp [List.getElem?_map, hg]
+  have hr : resolveIndex "class" (model.classes.map Class.alias) c.alias = .ok index := by
+    rw [resolveIndex_iff_uniqueAliasAt]
+    exact uniqueAliasAt_of_nodup hclasses hi
+  unfold classId
+  rw [hr, classBinding_id hb]
+  rfl
+
+private theorem packageId_of_allocated (hn : uniqueAliases model)
+    {p : Package} {index : Nat} {d : PackageDecl}
+    (hz : (p, index) ∈ model.packages.zipIdx)
+    (hb : bindPackageEntry model (p, index) = .ok d) : packageId model p.alias = .ok d.id := by
+  have hall := hn
+  simp only [uniqueAliases, aliases, List.nodup_append] at hall
+  have hpackages : (model.packages.map Package.alias).Nodup := hall.1.1.1.1.1
+  have hg := List.mk_mem_zipIdx_iff_getElem?.mp hz
+  have hi : (model.packages.map Package.alias)[index]? = some p.alias := by
+    simp [List.getElem?_map, hg]
+  have hr : resolveIndex "package" (model.packages.map Package.alias) p.alias = .ok index := by
+    rw [resolveIndex_iff_uniqueAliasAt]
+    exact uniqueAliasAt_of_nodup hpackages hi
+  unfold packageId
+  rw [hr, packageBinding_id hb]
+  rfl
+
+private theorem classPath_target (a : ModelAllocation model target)
+    (hn : uniqueAliases model) {start finish : Name}
+    (path : ClassAncestor model start finish) {sid fid : ClassId}
+    (hs : classId model start = .ok sid) (hf : classId model finish = .ok fid) :
+    ∃ n, SuperPath target sid fid n := by
+  induction path generalizing sid fid with
+  | refl =>
+      have : sid = fid := by simpa [hs] using hf
+      subst fid
+      exact ⟨0, .refl sid⟩
+  | step path edge ih =>
+      rcases edge with ⟨c, hc, halias, hsuper⟩
+      rcases source_zip_mem hc with ⟨index, hz⟩
+      rcases mapM_ok_source a.classes hz with ⟨d, hd, hb⟩
+      have hmid0 := classId_of_allocated hn hz hb
+      rw [halias] at hmid0
+      have hcomponents := classBinding_components hb
+      rcases mapM_ok_source hcomponents.2.2.1 hsuper with ⟨next, hnext, hsuperId⟩
+      have hnextEq : next = fid := by
+        have := hsuperId.symm.trans hf
+        exact Except.ok.inj this
+      subst next
+      rcases ih hs hmid0 with ⟨n, hp⟩
+      exact ⟨n + 1, .step hp ⟨d, hd, rfl, hnext⟩⟩
+
+theorem ModelAllocation.reflectedInheritanceAcyclic (a : ModelAllocation model target)
+    (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
+    ∀ c ∈ model.classes, ∀ super ∈ c.directSupers,
+      ¬ ClassAncestor model super c.alias := by
+  intro c hc super hsuper hcycle
+  rcases source_zip_mem hc with ⟨index, hz⟩
+  rcases mapM_ok_source a.classes hz with ⟨d, hd, hb⟩
+  have hcid := classId_of_allocated hn hz hb
+  have hcomponents := classBinding_components hb
+  rcases mapM_ok_source hcomponents.2.2.1 hsuper with ⟨sid, hsid, hsuperId⟩
+  rcases classPath_target a hn hcycle hsuperId hcid with ⟨n, path⟩
+  have huniverse : sid ∈ classUniverse target :=
+    mem_classUniverse_of_classDecls_ne_nil (wf.supersResolved d hd sid hsid)
+  apply wf.inheritanceAcyclic d hd sid hsid
+  exact List.mem_eraseDups.mpr (path.mem_saturated wf huniverse)
+
+private theorem packagePath_target (a : ModelAllocation model target)
+    (hn : uniqueAliases model) {start finish : Name}
+    (path : PackageAncestor model start finish) {sid fid : PackageId}
+    (hs : packageId model start = .ok sid) (hf : packageId model finish = .ok fid) :
+    StoredPath (PackageParentEdge target) sid fid := by
+  induction path generalizing sid fid with
+  | refl =>
+      have : sid = fid := by simpa [hs] using hf
+      subst fid
+      exact .refl sid
+  | step path edge ih =>
+      rcases edge with ⟨p, hp, halias, hparent⟩
+      rcases source_zip_mem hp with ⟨index, hz⟩
+      rcases mapM_ok_source a.packages hz with ⟨d, hd, hb⟩
+      have hmid0 := packageId_of_allocated hn hz hb
+      rw [halias] at hmid0
+      have hoptional := packageBinding_components hb |>.2.1
+      rw [hparent] at hoptional
+      unfold optionalPackage at hoptional
+      simp [Functor.map, Except.map] at hoptional
+      rw [hf] at hoptional
+      simp [Functor.map, Except.map] at hoptional
+      have hparentTarget : d.parent = some fid := hoptional.symm
+      exact .step (ih hs hmid0) ⟨d, hd, rfl, hparentTarget⟩
+
+theorem ModelAllocation.reflectedPackageAcyclic (a : ModelAllocation model target)
+    (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
+    ∀ p ∈ model.packages, ∀ parent, p.parent = some parent →
+      ¬ PackageAncestor model parent p.alias := by
+  intro p hp parent hparent hcycle
+  rcases source_zip_mem hp with ⟨index, hz⟩
+  rcases mapM_ok_source a.packages hz with ⟨d, hd, hb⟩
+  have hpid := packageId_of_allocated hn hz hb
+  have hoptional := packageBinding_components hb |>.2.1
+  rw [hparent] at hoptional
+  unfold optionalPackage at hoptional
+  cases hr : packageId model parent with
+  | error error => simp [hr, Functor.map, Except.map] at hoptional
+  | ok parentId =>
+      simp [hr, Functor.map, Except.map] at hoptional
+      have hdparent : d.parent = some parentId := hoptional.symm
+      have path := packagePath_target a hn hcycle hr hpid
+      have hstart : parentId ∈ packageUniverse target := by
+        apply List.mem_map.mpr
+        rcases a.packageForId hr with ⟨_, translated, _, _, ht, hid, _⟩
+        exact ⟨translated, ht, hid⟩
+      apply wf.packageAcyclic d hd parentId hdparent
+      apply List.mem_eraseDups.mpr
+      exact (packageClosure_iff target wf hstart).mpr path
 
 end VLMOF.Source
