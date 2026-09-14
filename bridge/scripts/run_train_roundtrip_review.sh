@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 if [ "$#" -ne 1 ]; then echo "usage: $0 TRAIN_E1_OUTPUT_DIR" >&2; exit 64; fi
-input=$1; review=/home/xoruser/msc-5/repo/Lean4MDE/workers/bridge-review/bridge
-checker=/home/xoruser/msc-5/repo/Lean4MDE/VL-MOF/.lake/build/bin/vlmof
+input=$1; review=${BRIDGE:-$(cd "$(dirname "$0")/.." && pwd)}
+repo=$(cd "$review/../../.." && pwd); checker=${CHECKER:-$repo/VL-MOF/.lake/build/bin/vlmof}
 out="$input/roundtrip-review"; mkdir -p "$out"
 mvn -q -f "$review/pom.xml" test-compile
 for stem in railway-batch-1 railway-batch-2 railway-inject-1 railway-inject-2 railway-repair-1 railway-repair-2; do
