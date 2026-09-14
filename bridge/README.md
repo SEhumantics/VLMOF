@@ -135,24 +135,64 @@ mvn -q test-compile exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
   -Dexec.args='import src/main/resources/samples/broken-reference.ecore -- src/main/resources/samples/broken-reference.xmi'
 ```
 
-## Public Train adaptation
+## Public Train reproduction and adaptation
 
-The pinned raw Train snapshots are unsupported because required enum-valued
-`SwitchPosition.position` and `Switch.currentPosition` can be absent. After running
-the S3 fetch command, this script creates a separate copy and a SHA-256 insertion
-manifest; it never changes the public original.
+The public sources are pinned to Train Benchmark
+`6490047d7449f9a4b66cec032b9377bfc06a54d2` (EPL-1.0) and EMF Compare
+`9f25a964c1be423373587d8063a5b132714ebeae` (EPL-1.0). Obtain separate checkouts:
 
 ```sh
-python3 bridge/scripts/adapt_train_defaults.py \
-  /absolute/public-cases/trainbenchmark/models/railway-batch-1.xmi \
-  /tmp/train-adapted/railway-batch-1.xmi \
-  /tmp/train-adapted/railway-batch-1.manifest.json
+git clone https://github.com/FTSRG/trainbenchmark.git /absolute/trainbenchmark
+git -C /absolute/trainbenchmark checkout --detach 6490047d7449f9a4b66cec032b9377bfc06a54d2
+git clone https://github.com/eclipse-emf-compare/emf-compare.git /absolute/emf-compare
+git -C /absolute/emf-compare checkout --detach 9f25a964c1be423373587d8063a5b132714ebeae
 ```
 
-For the pinned batch-1 input it reports 12 insertions: six `position` and six
-`currentPosition`, all with the audited value `FAILURE`. This is source adaptation
-evidence only: an Ecore resource generated from the pinned Xcore declaration is not
-yet part of this bridge, so no Train EMF import result is claimed.
+From the repository root after building the Lean executable, run:
+
+```sh
+bash bridge/scripts/run_train_e1.sh /absolute/trainbenchmark /absolute/new-train-results
+bash bridge/scripts/run_train_roundtrip_review.sh /absolute/new-train-results
+```
+
+The output directory must be new. The first script checks the Train revision,
+compiles the pinned Xcore with the configured Maven Xcore dependency, performs
+explicit metamodel and instance adaptations, imports all six snapshots and runs
+`check-json`. The second constructs fresh Ecore/XMI resources, reloads them,
+compares through each generated native identity sidecar, and rechecks the Core.
+`CHECKER` can select an explicit executable; `BRIDGE` can select another built
+bridge directory. The integrated run accepted all six adapted snapshots and all
+six reloaded snapshots, with all six comparisons passing. These are compatibility
+observations, not a proved serializer or a whole-Ecore conformance claim.
+
+The generated Ecore contains a generator annotation and maps three source
+primitives to EJavaObject. `StripEcoreAnnotations` creates a separate profile Ecore,
+requires exactly one annotation removal, and maps `RailwayElement.id` and
+`Segment.length` to EInt and `Route.active` to EBoolean. Its JSON manifest records
+the qualified changes, original annotation details, Xcore source basis and
+input/output/Xcore hashes. The unadapted generated Ecore is rejected for annotation.
+
+`adapt_train_defaults.py` records every inserted `FAILURE` enum occurrence in a
+separate XMI and SHA-256 manifest. The six insertion counts are 12, 58, 21, 76, 31
+and 58 for batch-1, batch-2, inject-1, inject-2, repair-1 and repair-2. The batch-1
+control with raw XMI and the profile Ecore is also Core accepted: the six absent
+`position` and six absent `currentPosition` observations have lower bound zero.
+Materialization makes the intended runtime default values explicit; it is a
+meaning adaptation, not a necessary repair for structural acceptance. Originals
+are not changed. Neither acceptance result proves fidelity to reflective default
+semantics of the raw source.
+
+Run the behavioral negative suite from `bridge/`:
+
+```sh
+mvn -q test-compile
+python3 scripts/e1_import_negative_regression.py --emf-compare /absolute/emf-compare/plugins/org.eclipse.emf.compare/model/compare.ecore
+```
+
+It includes standalone datatype, default, derived, generic and broken-reference
+rejections. An EMF-generated cross-resource fixture rejects an omitted external
+Ecore and succeeds when both Ecore files are explicitly listed. EMF Compare is
+rejected for operations; omission of `--emf-compare` reports that case as not run.
 
 Run the authored-resource loading probe from this directory:
 
@@ -184,7 +224,7 @@ are required before making a source-fidelity or adaptation claim beyond this bou
 runtime mapping.
 
 The inventory command is a rejection preflight, not a complete EMOF validator.
-After using the retained S3 fetch command, run:
+Using the pinned checkout above, run:
 
 ```sh
 mvn -q test-compile exec:java \
@@ -197,8 +237,8 @@ constructs, custom data types, and external reference classifiers. The latter
 is an `OBSERVE`, rather than a rejection: an adapter decides support only after
 checking the complete explicit package manifest. This avoids calling a type in
 another explicitly loaded/nested package unsupported merely because it differs
-from the package currently inspected. A future adapter must report every
-unsupported construct before decode; this utility is evidence that the pinned
+from the package currently inspected. The importer rejects unsupported constructs before emitting Core JSON; this
+inventory utility is evidence that the pinned
 EMF Compare model has rejection-triggering features, not the whole diagnostic
 contract.
 
