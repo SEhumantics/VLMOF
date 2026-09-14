@@ -1,6 +1,6 @@
 # VL-MOF
 
-An EMOF formalization project in Lean 4. The current baseline provides a Lean
+An EMOF formalization project in Lean 4. The artifact provides a Lean
 build, reproducible specification downloads, and a finite raw representation of
 the structural profile, separate schema and snapshot conformance predicates, and
 proved consequences of opposite multiplicity. Executable schema and snapshot checkers are proved equivalent to those predicates.
@@ -105,13 +105,19 @@ It identifies supported forms, explicit interpretation choices and deferred beha
 
 ## Manuscript
 
-The [evaluation runner](experiments/README.md) records authored JSON/DSL cases and
-a proof-library client with input hashes, commands and observed outcomes. Public-case
-bridge evaluation remains pending.
+The [authored-case runner](experiments/README.md) records ten JSON/DSL cases and
+a proof-library client with input hashes, commands and observed outcomes. The
+[public-case runner](experiments/README-public.md) reproduces six explicitly
+adapted Train Benchmark snapshots through import, checking, fresh export and
+identity-mapped comparison, plus raw-input and unsupported-feature controls.
+It verifies pinned inputs and records each adaptation separately.
 
-Run `make -C paper` to build the working manuscript at `paper/build/main.pdf`.
+Run `make -C paper` to build the complete manuscript at `paper/build/main.pdf`.
 See [paper/README.md](paper/README.md) for TeX dependencies and venue rules.
-The manuscript skeleton has no completed semantic or evaluation claims.
+The paper presents the selected static profile, checker and source-adequacy
+theorems, metadata pilot, bridge experiments, related work and limitations.
+It distinguishes universal Lean results from finite runtime observations;
+author details remain unfilled.
 
 ## Development
 
@@ -119,7 +125,6 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
-
 
 
 

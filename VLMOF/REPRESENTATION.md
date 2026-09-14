@@ -37,10 +37,11 @@ two same-named feature declarations, an association-owned end, repeated links, o
 absence, permutation-sensitive observations, and representable malformed input. A small
 metadata schema and snapshot additionally represent the `Person` class as an ordinary
 object with an ordinary String-valued `name` observation. They use no special metadata
-constructors or access path and establish no M1 conformance or self-description theorem.
+constructors or access path; these raw examples alone establish no conformance.
+The separate [metadata pilot](METADATA.md) proves its bounded common-checker results.
 
 Primary interpretation locators are MOF 2.5.1 9.3.3, 9.4.1, 10.5-10.6, 12.4, and
-12.5 (printed pages 14-21 and 29-32), plus UML 2.5 9.9.4 (printed pages 130-134) and
+12.5 (printed pages 13-21 and 29-32), plus UML 2.5 9.9.4 (printed pages 130-134) and
 the pinned `UML.xmi` definitions of Package, Class, Property, Association, Enumeration,
 EnumerationLiteral, and MultiplicityElement. The occurrence-sensitive raw-state choice
 is the accepted profile interpretation recorded in `sources/PROFILE.md`; it does not

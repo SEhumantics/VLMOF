@@ -74,12 +74,14 @@ Run the boundary regression from `bridge/`:
 python3 scripts/e1_export_regression.py
 ```
 
-It creates a Core JSON document with explicit `false`, `0`, empty String and first
+The script first compiles the current Java sources, then creates a Core JSON
+document with explicit `false`, `0`, empty String and first
 enum values beside a second object whose corresponding features are empty. It also
 uses repeated scalar occurrences and repeated paired references. The test exports
 fresh resources, reimports them, compares observations, and asserts the separating
 values directly. Other cases exercise independent ordering at an inverse end,
-arbitrary IDs with changed object traversal order, and duplicate-map rejection.
+arbitrary IDs with changed object traversal order, duplicate-map rejection, and
+rejection of fractional foreign IDs.
 Inconsistent inverse counts are rejected before either output is written, and
 duplicate observation keys are rejected by comparison.
 

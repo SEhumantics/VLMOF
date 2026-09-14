@@ -6,6 +6,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MAIN = "org.vlmof.bridge.EmfInterchange"
 
+# exec:java alone neither compiles a fresh checkout nor refreshes stale classes.
+subprocess.run(["mvn", "-q", "test-compile"], cwd=ROOT, check=True)
+
 def many(): return {"lower": 0, "upper": {"tag": "unlimited"}, "ordered": True, "unique": False}
 def one(): return {"lower": 0, "upper": {"tag": "finite", "value": 1}, "ordered": False, "unique": True}
 def prop(i, name, typ, mult, aggregation="none"):

@@ -141,7 +141,8 @@ lexical admissibility explicitly: a raw AST alias containing a forbidden
 character is a counterexample to unqualified reflection. The textual parser is
 a trusted front end, and Equation~\ref{eq:adequacy} starts at its AST.
 
-Let $A(d)$ require XML-valid, nonempty declaration and object alias components.
+Let $A(d)$ require nonempty declaration and object aliases whose components are
+nonempty and XML-valid.
 It contains no source-model validity or target-conformance premise. The reverse
 schema proof reflects all fields of $W(S)$ through successful bindings; the
 snapshot proof then reflects typing, applicability, counts and containment.

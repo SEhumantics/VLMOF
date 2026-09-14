@@ -83,7 +83,7 @@ Printed pages, not PDF page indices:
 | EMOF scope, assembly, adopted UML | MOF 12.1-12.3, pp.25-28, Figures 12.1-12.5 |
 | All fixed EMOF restrictions | MOF 12.4[1]-[32], pp.29-31 |
 | Names, absence, static opposite/containment consequences | MOF 12.5, pp.31-32 |
-| Names, type/bounds, composite/opposite creation premises | MOF 9.3.3, p.14 |
+| Names, type/bounds, composite/opposite creation premises | MOF 9.3.3, pp.13-14 |
 | Identity/value equality and property access | MOF 9.4.1, pp.15-16 |
 | Extent identity and URI capabilities | MOF 10.1-10.3, pp.17-19 |
 | Collection and sequence behavior | MOF 10.5-10.6, pp.20-21 |
