@@ -8,7 +8,7 @@ repo=$(cd "$bridge/../../.." && pwd)
 checker=${CHECKER:-$repo/VL-MOF/.lake/build/bin/vlmof}
 xcore="$train/trainbenchmark-format-emf-model/src/railway.xcore"
 mvn -q -f "$bridge/pom.xml" exec:java -Dexec.mainClass=org.vlmof.bridge.XcoreToEcore -Dexec.args="$xcore $out/railway.generated.ecore"
-mvn -q -f "$bridge/pom.xml" exec:java -Dexec.mainClass=org.vlmof.bridge.StripEcoreAnnotations -Dexec.args="$out/railway.generated.ecore $out/railway.profile.ecore"
+mvn -q -f "$bridge/pom.xml" exec:java -Dexec.mainClass=org.vlmof.bridge.StripEcoreAnnotations -Dexec.args="$out/railway.generated.ecore $out/railway.profile.ecore $xcore $out/railway.profile.manifest.json"
 for stem in railway-batch-1 railway-batch-2 railway-inject-1 railway-inject-2 railway-repair-1 railway-repair-2; do
   python3 "$bridge/scripts/adapt_train_defaults.py" "$train/models/$stem.xmi" "$out/$stem.adapted.xmi" "$out/$stem.manifest.json"
   mvn -q -f "$bridge/pom.xml" exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange -Dexec.args="import $out/railway.profile.ecore -- $out/$stem.adapted.xmi" > "$out/$stem.e1.json"
