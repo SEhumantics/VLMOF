@@ -593,4 +593,183 @@ theorem ModelAllocation.literalResolved (a : ModelAllocation model target)
   have : d ∈ target.literalDecls id := by simp [Schema.literalDecls, hd, hid]
   simpa [hempty] using this
 
+private theorem optionalPackage_target_resolved (a : ModelAllocation model target)
+    {source : Option Name} {translated : Option PackageId}
+    (hb : optionalPackage model source = .ok translated) {id : PackageId}
+    (hid : translated = some id) : target.packageDecls id ≠ [] := by
+  cases source with
+  | none =>
+      have heq : translated = none := by
+        simpa [optionalPackage, pure, Except.pure] using (Except.ok.inj hb).symm
+      rw [heq] at hid
+      simp at hid
+  | some name =>
+      unfold optionalPackage at hb
+      cases hp : packageId model name with
+      | error error => simp [hp, Functor.map, Except.map] at hb
+      | ok package =>
+          simp [hp, Functor.map, Except.map] at hb
+          have hi : id = package := Option.some.inj (hid.symm.trans hb.symm)
+          subst id
+          exact a.packageResolved hp
+
+theorem ModelAllocation.packageParentsResolved (a : ModelAllocation model target) :
+    ∀ d ∈ target.packages, ∀ id, d.parent = some id → target.packageDecls id ≠ [] := by
+  intro d hd id hid
+  rcases (mapM_ok_mem_iff a.packages).mp hd with ⟨x, _, hb⟩
+  unfold bindPackageEntry at hb
+  cases hq : checkQualification x.1.alias x.1.parent <;>
+    cases hp : optionalPackage model x.1.parent <;>
+    simp [hq, hp, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  exact optionalPackage_target_resolved a hp hid
+
+theorem ModelAllocation.classPackagesResolved (a : ModelAllocation model target) :
+    ∀ d ∈ target.classes, ∀ id, d.package = some id → target.packageDecls id ≠ [] := by
+  intro d hd id hid
+  rcases (mapM_ok_mem_iff a.classes).mp hd with ⟨x, _, hb⟩
+  unfold bindClassEntry at hb
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    cases hs : x.1.directSupers.mapM (classId model) <;>
+    simp [hq, hp, hs, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  exact optionalPackage_target_resolved a hp hid
+
+theorem ModelAllocation.enumPackagesResolved (a : ModelAllocation model target) :
+    ∀ d ∈ target.enumerations, ∀ id, d.package = some id → target.packageDecls id ≠ [] := by
+  intro d hd id hid
+  rcases (mapM_ok_mem_iff a.enumerations).mp hd with ⟨x, _, hb⟩
+  unfold bindEnumerationEntry at hb
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    simp [hq, hp, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  exact optionalPackage_target_resolved a hp hid
+
+theorem ModelAllocation.associationPackagesResolved (a : ModelAllocation model target) :
+    ∀ d ∈ target.associations, ∀ id, d.package = some id → target.packageDecls id ≠ [] := by
+  intro d hd id hid
+  rcases (mapM_ok_mem_iff a.associations).mp hd with ⟨x, _, hb⟩
+  unfold bindAssociationEntry at hb
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    cases hend : x.1.ends with
+    | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+    | cons first rest =>
+      cases rest with
+      | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+      | cons second tail =>
+        cases tail with
+        | cons third tail => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at hb
+        | nil =>
+          cases hf : propertyId model first <;> cases hs : propertyId model second <;>
+            simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind, pure, Except.pure] at hb
+          all_goals subst d
+          all_goals exact optionalPackage_target_resolved a hp hid
+
+theorem ModelAllocation.supersResolved (a : ModelAllocation model target) :
+    ∀ d ∈ target.classes, ∀ id ∈ d.directSupers, target.classDecls id ≠ [] := by
+  intro d hd id hid
+  rcases (mapM_ok_mem_iff a.classes).mp hd with ⟨x, _, hb⟩
+  unfold bindClassEntry at hb
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    cases hs : x.1.directSupers.mapM (classId model) <;>
+    simp [hq, hp, hs, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  rcases (mapM_ok_mem_iff hs).mp hid with ⟨name, _, hn⟩
+  exact a.classResolved hn
+
+private theorem bindType_reference_resolved (a : ModelAllocation model target)
+    {source : Source.ValueType} {id : ClassId}
+    (hb : bindType model source = .ok (.reference id)) : target.classDecls id ≠ [] := by
+  cases source with
+  | boolean => simp [bindType, pure, Except.pure] at hb
+  | integer => simp [bindType, pure, Except.pure] at hb
+  | string => simp [bindType, pure, Except.pure] at hb
+  | enumeration name => cases he : enumerationId model name <;> simp [bindType, he, Functor.map, Except.map] at hb
+  | reference name =>
+      cases hc : classId model name with
+      | error error => simp [bindType, hc, Functor.map, Except.map] at hb
+      | ok cid =>
+          simp [bindType, hc, Functor.map, Except.map] at hb
+          have hid : id = cid := hb.symm
+          subst id
+          exact a.classResolved hc
+
+private theorem bindType_enumeration_resolved (a : ModelAllocation model target)
+    {source : Source.ValueType} {id : EnumerationId}
+    (hb : bindType model source = .ok (.enumeration id)) : target.enumerationDecls id ≠ [] := by
+  cases source with
+  | boolean => simp [bindType, pure, Except.pure] at hb
+  | integer => simp [bindType, pure, Except.pure] at hb
+  | string => simp [bindType, pure, Except.pure] at hb
+  | enumeration name =>
+      cases he : enumerationId model name with
+      | error error => simp [bindType, he, Functor.map, Except.map] at hb
+      | ok eid =>
+          simp [bindType, he, Functor.map, Except.map] at hb
+          have hid : id = eid := hb.symm
+          subst id
+          exact a.enumerationResolved he
+  | reference name => cases hc : classId model name <;> simp [bindType, hc, Functor.map, Except.map] at hb
+
+private theorem propertyEntry_type_binding {x : Property × Nat} {d : PropertyDecl}
+    (hb : bindPropertyEntry model x = .ok d) : bindType model x.1.type = .ok d.type := by
+  unfold bindPropertyEntry at hb
+  cases hq : checkQualification x.1.alias (some (ownerName x.1.owner)) <;>
+    cases ho : bindOwner model x.1.owner <;>
+    cases ht : bindType model x.1.type <;>
+    simp [hq, ho, ht, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  simpa using ht
+
+theorem ModelAllocation.propertyTypesResolved (a : ModelAllocation model target) :
+    ∀ d ∈ target.properties, match d.type with
+      | .reference id => target.classDecls id ≠ []
+      | .enumeration id => target.enumerationDecls id ≠ []
+      | _ => True := by
+  intro d hd
+  rcases (mapM_ok_mem_iff a.properties).mp hd with ⟨x, _, hb⟩
+  have ht := propertyEntry_type_binding hb
+  cases htype : d.type with
+  | boolean => trivial
+  | integer => trivial
+  | string => trivial
+  | enumeration id => exact bindType_enumeration_resolved a (htype ▸ ht)
+  | reference id => exact bindType_reference_resolved a (htype ▸ ht)
+
+theorem ModelAllocation.literalsResolved (a : ModelAllocation model target) :
+    ∀ d ∈ target.literals, target.enumerationDecls d.enumeration ≠ [] := by
+  intro d hd
+  rcases (mapM_ok_mem_iff a.literals).mp hd with ⟨x, _, hb⟩
+  unfold bindLiteralEntry at hb
+  cases hq : checkQualification x.1.alias (some x.1.enumeration) <;>
+    cases he : enumerationId model x.1.enumeration <;>
+    simp [hq, he, Bind.bind, Except.bind, pure, Except.pure] at hb
+  subst d
+  exact a.enumerationResolved he
+
+theorem ModelAllocation.compositeReferences (a : ModelAllocation model target)
+    (h : ModelWellFormed model) :
+    ∀ d ∈ target.properties, d.aggregation = .composite →
+      ∃ id, d.type = .reference id := by
+  intro d hd hc
+  rcases (mapM_ok_mem_iff a.properties).mp hd with ⟨x, hx, hb⟩
+  have hs := List.fst_mem_of_mem_zipIdx hx
+  have hagg : x.1.aggregation = .composite := by
+    rw [← (propertyEntry_data hb).2.2.1]
+    exact hc
+  rcases h.compositesAreReferences x.1 hs hagg with ⟨name, hsource⟩
+  have ht := propertyEntry_type_binding hb
+  rw [hsource] at ht
+  unfold bindType at ht
+  cases hid : classId model name with
+  | error error => simp [hid, Functor.map, Except.map] at ht
+  | ok id =>
+      have : d.type = .reference id := by
+        simpa [hid, Functor.map, Except.map] using ht.symm
+      exact ⟨id, this⟩
+
 end VLMOF.Source
