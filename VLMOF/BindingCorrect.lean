@@ -1,5 +1,6 @@
 import VLMOF.Elaboration
 import Init.Data.List.Nat.Range
+import Init.Data.List.Nat.Pairwise
 
 /-!
 # Binding identity guarantees
@@ -114,7 +115,38 @@ theorem checkAliases_iff (kind : String) (names : List Name) :
 theorem checkQualification_iff (name : Name) (owner : Option Name) :
     checkQualification name owner = .ok () ↔ name.dropLast = owner.getD [] := by
   simp [checkQualification, pure, Except.pure]
+theorem uniqueAliasAt_of_nodup {names : List Name} (hn : names.Nodup)
+    {name : Name} {index : Nat} (hi : names[index]? = some name) :
+    UniqueAliasAt names name index := by
+  refine ⟨hi, ?_⟩
+  intro other ho
+  obtain ⟨bi, ei⟩ := List.getElem?_eq_some_iff.mp hi
+  obtain ⟨bo, eo⟩ := List.getElem?_eq_some_iff.mp ho
+  have ii := hn.idxOf_getElem index bi
+  have io := hn.idxOf_getElem other bo
+  rw [ei] at ii
+  rw [eo] at io
+  exact io.symm.trans ii
+
+/-- The logical binding environment is exactly a duplicate-free alias list whose
+components satisfy the source alias policy. -/
+theorem aliasEnvironment_iff (names : List Name) :
+    AliasEnvironment names ↔ names.Nodup ∧ ∀ name ∈ names, validAlias name = true := by
+  constructor
+  · intro h
+    refine ⟨?_, fun name hm => (h name hm).1⟩
+    rw [List.Nodup, List.pairwise_iff_getElem]
+    intro i j bi bj hij eq
+    obtain ⟨index, hindex⟩ := (h names[i] (List.getElem_mem bi)).2
+    have hi := hindex.2 i (List.getElem?_eq_some_iff.mpr ⟨bi, rfl⟩)
+    have hj := hindex.2 j (List.getElem?_eq_some_iff.mpr ⟨bj, eq.symm⟩)
+    have : i = j := hi.trans hj.symm
+    omega
+  · rintro ⟨hn, hv⟩ name hm
+    obtain ⟨index, hi⟩ := List.mem_iff_getElem?.mp hm
+    exact ⟨hv name hm, index, uniqueAliasAt_of_nodup hn hi⟩
 end VLMOF.Source
+
 
 
 
