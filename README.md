@@ -40,6 +40,10 @@ The checker API is `checkSchema` / `checkSnapshot` in `VLMOF/Check.lean`.
 prevalidated-input assumption. Diagnostic lists report exactly the failed named
 field checks. A user-facing CLI is still pending.
 
+The [metadata pilot](VLMOF/METADATA.md) treats class/attribute descriptions as
+ordinary checked objects, interprets them into a schema, and validates an instance.
+It documents which semantic constraints remain outside the metadata vocabulary.
+
 ## Reading the specification
 
 Start with clause 12 of `sources/raw/MOF-2.5.1.pdf`. For searchable text, install
@@ -78,6 +82,7 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
+
 
 
 

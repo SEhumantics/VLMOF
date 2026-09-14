@@ -5,3 +5,4 @@ import VLMOF.ClosureCorrect
 import VLMOF.SemanticExamples
 import VLMOF.CheckAcceptance
 import VLMOF.CheckExamples
+import VLMOF.MetadataPilot
