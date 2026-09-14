@@ -1,41 +1,31 @@
 \section{Evaluation}
 \subsection{Evidence design and reproducibility}
-We distinguish universal Lean results, finite authored tests, native compatibility
-observations and runtime measurements. The authored runner records repository
-commit and dirty status, toolchain and Python versions, executable and input
-hashes, exact commands, exit codes, standard output/error and per-case expectations.
-It classifies accepted, rejected, unsupported, not-run and execution failure
-separately. An unexpected outcome fails the run rather than becoming a successful
-negative example.
+We separate universal proofs, finite tests, native compatibility observations and
+single-run timings. Runners record hashes, commands and outcomes; distinguish
+accepted, rejected, unsupported, not-run and execution failure; and fail on
+unexpected outcomes.
 
-The companion supplement \texttt{VL-MOF-review4-supplement.zip} provides
-\texttt{README.md}, \texttt{INDEX.json}, the source Git bundle and this PDF.
-Its \texttt{evidence/authored/} and \texttt{evidence/public/} directories contain
-\texttt{results.json}, input hashes and retained command logs; \texttt{reviews/}
-contains the independent assessments and fresh reproduction. The index records
-full commits and file hashes. The reviewed source candidate is \texttt{4aa3bed};
-the shipped revision, including review fixes, is identified in the index.
-The authored measurements use \texttt{f0edde1}. The public runner and Java bridge
-use \texttt{6985361}, while its checker was built at \texttt{b5e86cc}; the public
-manifest identifies that executable and every bridge source by SHA-256. Its 67
-commands retain resolved Maven dependencies and unchanged input hashes. Fresh
-review reproduces the qualitative outcomes and structural counts at the candidate;
-Table~\ref{tab:train} retains the earlier single-run timings.
+The companion \texttt{VL-MOF-review4-supplement.zip} contains a source Git bundle,
+this PDF and reproduction instructions. Its \texttt{INDEX.json} identifies the
+shipped revision and file hashes. Directories \texttt{evidence/authored/} and
+\texttt{evidence/public/} hold \texttt{results.json}, input hashes and command logs;
+\texttt{reviews/} holds independent assessments and fresh reproduction.
+The reviewed candidate is \texttt{4aa3bed}; authored measurements use
+\texttt{f0edde1}. The public runner and Java bridge use \texttt{6985361}, with
+checker built at \texttt{b5e86cc}. The public manifest hashes that executable and
+every bridge source and retains resolved dependencies for all 67 commands.
+Fresh review reproduces candidate outcomes and structural counts;
+Table~\ref{tab:train} retains the earlier timings.
 
-The ten recorded authored cases all match their expected outcomes: three accepted,
-six rejected and one unsupported wire version. They exercise JSON and DSL input,
-absence versus false, occurrence typing, duplicate keys, unique and nonunique
-repetition, binding failure and malformed JSON. The standard build additionally
-runs five source-download tests and ten CLI test groups. The build verifies all
-six pinned OMG files and compiles the imported proof modules. These are finite
-checks of the implementation boundary, not samples used to infer the universal
-checker theorem.
+All ten authored cases match expectations: three accepted, six rejected and one
+unsupported wire version. They exercise absence, typing, duplication, binding and
+malformed input. The build verifies six pinned OMG files, runs five acquisition
+tests and ten CLI groups, and compiles the proofs. These finite boundary checks
+do not establish the universal checker theorem.
 
-The proof-client experiment compiles an independent small client that uses
-observation-key injectivity from the library: two rows of a conforming snapshot
-with the same object/property key have equal occurrence lists. The client's
-record includes the axiom report. This demonstrates reuse of a conformance
-consequence rather than a second implementation of the checker.
+An independent proof client reuses observation-key injectivity: conforming rows
+with the same object/property key have equal occurrence lists. Its record includes
+an axiom report, demonstrating use of a library consequence.
 
 \subsection{Public inputs and explicit adaptation}
 Train Benchmark is pinned to commit
