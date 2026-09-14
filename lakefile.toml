@@ -1,9 +1,14 @@
 name = "vlmof"
 version = "0.1.0"
-defaultTargets = ["VLMOF"]
+defaultTargets = ["VLMOF", "vlmof"]
 
 [leanOptions]
 autoImplicit = false
 
 [[lean_lib]]
 name = "VLMOF"
+
+[[lean_exe]]
+name = "vlmof"
+root = "Main"
+

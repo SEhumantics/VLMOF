@@ -13,7 +13,9 @@ test:
 
 check: verify test
 	lake build
+	$(PYTHON) scripts/test_cli.py -v
 
 text: verify
 	mkdir -p sources/text
 	pdftotext -layout sources/raw/MOF-2.5.1.pdf sources/text/MOF-2.5.1.txt
+

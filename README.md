@@ -38,7 +38,18 @@ yet import into or export from the Lean core.
 The checker API is `checkSchema` / `checkSnapshot` in `VLMOF/Check.lean`.
 `CheckAcceptance.lean` proves acceptance iff the corresponding predicate, with no
 prevalidated-input assumption. Diagnostic lists report exactly the failed named
-field checks. A user-facing CLI is still pending.
+field checks. The command-line interface reads the versioned JSON interchange:
+
+```sh
+lake exe vlmof check-json examples/simple.json
+```
+
+The command emits one JSON report. Exit codes are 0 accepted, 1 invalid represented
+model, 2 malformed input or usage, 3 unsupported wire version, and 4 file error.
+The decoder is a tested boundary, not a proved XML/JSON parser. It ignores unknown
+object fields; the Lean JSON parser normalizes duplicate keys. Provenance is carried
+as producer-supplied metadata, not independently verified. The source DSL and Java
+EMF import/export workflow remain under development.
 
 The [metadata pilot](VLMOF/METADATA.md) treats class/attribute descriptions as
 ordinary checked objects, interprets them into a schema, and validates an instance.
@@ -82,6 +93,7 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
+
 
 
 

@@ -1,0 +1,65 @@
+{
+  "version": "vlmof-e1-1",
+  "provenance": {
+    "kind": "authored-cli-test"
+  },
+  "schema": {
+    "packages": [],
+    "classes": [
+      {
+        "id": 0,
+        "name": "C",
+        "package": null,
+        "abstract": false,
+        "supers": []
+      }
+    ],
+    "properties": [
+      {
+        "id": 0,
+        "name": "active",
+        "owner": {
+          "tag": "class",
+          "id": 0
+        },
+        "type": {
+          "tag": "boolean"
+        },
+        "multiplicity": {
+          "lower": 0,
+          "upper": {
+            "tag": "finite",
+            "value": 1
+          },
+          "ordered": false,
+          "unique": true
+        },
+        "aggregation": "none",
+        "idProperty": false
+      }
+    ],
+    "associations": [],
+    "enumerations": [],
+    "literals": []
+  },
+  "snapshot": {
+    "objects": [
+      {
+        "id": 0,
+        "classifier": 0
+      }
+    ],
+    "observations": [
+      {
+        "object": 0,
+        "property": 0,
+        "occurrences": [
+          {
+            "tag": "boolean",
+            "value": false
+          }
+        ]
+      }
+    ]
+  }
+}
