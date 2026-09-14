@@ -96,6 +96,25 @@ mvn -q test-compile exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
   -Dexec.args='import src/main/resources/samples/broken-reference.ecore -- src/main/resources/samples/broken-reference.xmi'
 ```
 
+## Public Train adaptation
+
+The pinned raw Train snapshots are unsupported because required enum-valued
+`SwitchPosition.position` and `Switch.currentPosition` can be absent. After running
+the S3 fetch command, this script creates a separate copy and a SHA-256 insertion
+manifest; it never changes the public original.
+
+```sh
+python3 bridge/scripts/adapt_train_defaults.py \
+  /absolute/public-cases/trainbenchmark/models/railway-batch-1.xmi \
+  /tmp/train-adapted/railway-batch-1.xmi \
+  /tmp/train-adapted/railway-batch-1.manifest.json
+```
+
+For the pinned batch-1 input it reports 12 insertions: six `position` and six
+`currentPosition`, all with the audited value `FAILURE`. This is source adaptation
+evidence only: an Ecore resource generated from the pinned Xcore declaration is not
+yet part of this bridge, so no Train EMF import result is claimed.
+
 Run the authored-resource loading probe from this directory:
 
 ```sh
