@@ -363,6 +363,25 @@ private theorem enumerationEntry_name {x : Enumeration × Nat} {d : EnumerationD
   subst d
   rfl
 
+private theorem associationEntry_name {x : Association × Nat} {d : AssociationDecl}
+    (h : bindAssociationEntry model x = .ok d) : d.name = some x.1.name := by
+  unfold bindAssociationEntry at h
+  cases hq : checkQualification x.1.alias x.1.package <;>
+    cases hp : optionalPackage model x.1.package <;>
+    cases hend : x.1.ends with
+    | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at h
+    | cons first rest =>
+      cases rest with
+      | nil => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at h
+      | cons second tail =>
+        cases tail with
+        | cons third tail => simp [hq, hp, hend, Bind.bind, Except.bind, pure, Except.pure] at h
+        | nil =>
+          cases hf : propertyId model first <;> cases hs : propertyId model second <;>
+            simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind, pure, Except.pure] at h
+          all_goals subst d
+          all_goals rfl
+
 private theorem literalEntry_name {x : Literal × Nat} {d : LiteralDecl}
     (h : bindLiteralEntry model x = .ok d) : d.name = some x.1.name := by
   unfold bindLiteralEntry at h
@@ -389,6 +408,26 @@ theorem ModelAllocation.classNames (a : ModelAllocation model target)
   have hs := List.fst_mem_of_mem_zipIdx hx
   rw [classEntry_name hb]
   simpa [validName, validDisplayName] using h.displayNames.2.1 x.1 hs
+
+theorem ModelAllocation.otherNames (a : ModelAllocation model target)
+    (h : ModelWellFormed model) :
+    (∀ d ∈ target.associations, validName d.name) ∧
+    (∀ d ∈ target.enumerations, validName d.name) ∧
+    (∀ d ∈ target.literals, validName d.name) := by
+  constructor
+  · intro d hd
+    rcases (mapM_ok_mem_iff a.associations).mp hd with ⟨x, hx, hb⟩
+    rw [associationEntry_name hb]
+    exact h.displayNames.2.2.2.1 x.1 (List.fst_mem_of_mem_zipIdx hx)
+  · constructor
+    · intro d hd
+      rcases (mapM_ok_mem_iff a.enumerations).mp hd with ⟨x, hx, hb⟩
+      rw [enumerationEntry_name hb]
+      exact h.displayNames.2.2.2.2.1 x.1 (List.fst_mem_of_mem_zipIdx hx)
+    · intro d hd
+      rcases (mapM_ok_mem_iff a.literals).mp hd with ⟨x, hx, hb⟩
+      rw [literalEntry_name hb]
+      exact h.displayNames.2.2.2.2.2 x.1 (List.fst_mem_of_mem_zipIdx hx)
 
 theorem ModelAllocation.propertyFacts (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
@@ -1358,5 +1397,130 @@ theorem ModelAllocation.endMembershipUnique (a : ModelAllocation model target)
     exact aux model.associations
   rw [hlenTarget, hmap', ← hlenSource]
   exact h.endMembershipUnique x.1 hsource
+
+private theorem ModelAllocation.inheritedPropertySource (a : ModelAllocation model target)
+    (h : ModelWellFormed model) {c : ClassDecl} (hc : c ∈ target.classes)
+    {p : PropertyDecl} (hp : p ∈ target.properties)
+    (hselected : p.isId && match p.owner with
+      | .class owner => (target.ancestors c.id).contains owner
+      | .association _ => false) :
+    ∃ sourceClass ∈ model.classes, ∃ sourceProperty ∈ model.properties,
+      ClassAliasAt model c.id sourceClass.alias ∧ sourceProperty.isId = true ∧
+      (∃ owner, sourceProperty.owner = .class owner ∧
+        ClassAncestor model sourceClass.alias owner) ∧
+      propertyId model sourceProperty.alias = .ok p.id := by
+  rcases a.classEdgeSource hc with ⟨sourceClass, hsourceClass, hcAlias, _⟩
+  rcases (mapM_ok_mem_iff a.properties).mp hp with ⟨x, hx, hb⟩
+  have hsourceProperty := List.fst_mem_of_mem_zipIdx hx
+  have hid : p.isId = true := (Bool.and_eq_true_iff.mp hselected).1
+  have hownerSelected := (Bool.and_eq_true_iff.mp hselected).2
+  have hownerBinding := propertyEntry_owner_binding hb
+  cases hsourceOwner : x.1.owner with
+  | association name =>
+      cases ha : associationId model name <;>
+        simp [hsourceOwner, bindOwner, ha, Functor.map, Except.map] at hownerBinding
+      rw [← hownerBinding] at hownerSelected
+      simp at hownerSelected
+  | «class» ownerName =>
+      cases ho : classId model ownerName with
+      | error error =>
+          simp [hsourceOwner, bindOwner, ho, Functor.map, Except.map] at hownerBinding
+      | ok ownerId =>
+          simp [hsourceOwner, bindOwner, ho, Functor.map, Except.map] at hownerBinding
+          rw [← hownerBinding] at hownerSelected
+          have hancestorMem : ownerId ∈ target.ancestors c.id :=
+            List.contains_iff_mem.mp hownerSelected
+          have hownerAlias : ClassAliasAt model ownerId ownerName :=
+            resolveIndex_getElem (classId_resolve ho)
+          have hancestor : ClassAncestor model sourceClass.alias ownerName :=
+            isSubtype_to_classAncestor h a hancestorMem hcAlias hownerAlias
+          refine ⟨sourceClass, hsourceClass, x.1, hsourceProperty, hcAlias, ?_,
+            ⟨ownerName, hsourceOwner, hancestor⟩, propertyEntry_resolves_id h hx hb⟩
+          exact (propertyEntry_data hb).2.2.2.symm.trans hid
+
+theorem ModelAllocation.inheritedIdCount (a : ModelAllocation model target)
+    (h : ModelWellFormed model) : ∀ c ∈ target.classes,
+    (target.properties.filter (fun p => p.isId && match p.owner with
+      | .class owner => (target.ancestors c.id).contains owner
+      | .association _ => false)).length ≤ 1 := by
+  intro c hc
+  let selected := target.properties.filter (fun p => p.isId && match p.owner with
+    | .class owner => (target.ancestors c.id).contains owner
+    | .association _ => false)
+  have hn : selected.Nodup := by
+    exact List.filter_sublist.nodup (nodup_of_map_nodup PropertyDecl.id a.uniqueIds.2.2.1)
+  change selected.length ≤ 1
+  cases hs : selected with
+  | nil => simp
+  | cons first rest =>
+      cases hr : rest with
+      | nil => simp
+      | cons second tail =>
+          have hfirst : first ∈ selected := by simp [hs]
+          have hsecond : second ∈ selected := by simp [hs, hr]
+          have hfilt := List.mem_filter.mp hfirst
+          have hsilt := List.mem_filter.mp hsecond
+          rcases a.inheritedPropertySource h hc hfilt.1 hfilt.2 with
+            ⟨sourceClass, hsc, sourceFirst, hsf, hcAlias, hfirstId, hfirstOwner, hfirstResolve⟩
+          rcases a.inheritedPropertySource h hc hsilt.1 hsilt.2 with
+            ⟨sourceClass', hsc', sourceSecond, hss, hcAlias', hsecondId, hsecondOwner,
+              hsecondResolve⟩
+          have hclasses : sourceClass = sourceClass' := by
+            apply uniqueBy_eq_of_mem_local Class.alias
+            · have hall := h.uniqueQualifiedAliases
+              simp only [uniqueAliases, aliases, List.nodup_append] at hall
+              exact hall.1.1.1.1.2.1
+            · exact hsc
+            · exact hsc'
+            · exact classAliasAt_unique h hcAlias hcAlias'
+          subst sourceClass'
+          have halias : sourceFirst.alias = sourceSecond.alias :=
+            h.inheritedIdCount sourceClass hsc sourceFirst hsf sourceSecond hss
+              hfirstId hsecondId hfirstOwner hsecondOwner
+          have htargetIds : first.id = second.id := by
+            apply Except.ok.inj
+            exact hfirstResolve.symm.trans (halias ▸ hsecondResolve)
+          have heq : first = second :=
+            uniqueBy_eq_of_mem_local PropertyDecl.id a.uniqueIds.2.2.1 hfilt.1 hsilt.1 htargetIds
+          have hne : first ≠ second := by
+            rw [hs, List.nodup_cons, hr, List.nodup_cons] at hn
+            exact fun heq' => hn.1 (by simp [heq'])
+          exact False.elim (hne heq)
+
+/-- Successful executable allocation preserves every declaration-side semantic
+constraint of a well-formed source model. -/
+theorem schemaWellFormed_of_modelWellFormed_of_bindModel
+    (h : ModelWellFormed model) (hb : bindModel model = .ok target) :
+    SchemaWellFormed target := by
+  have a := modelAllocation_of_bindModel hb
+  have hu := a.uniqueIds
+  have hproperties := a.propertyFacts h
+  have hotherNames := a.otherNames h
+  exact {
+    uniquePackageIds := hu.1
+    uniqueClassIds := hu.2.1
+    uniquePropertyIds := hu.2.2.1
+    uniqueAssociationIds := hu.2.2.2.1
+    uniqueEnumerationIds := hu.2.2.2.2.1
+    uniqueLiteralIds := hu.2.2.2.2.2
+    names := ⟨a.packageNames h, a.classNames h, hproperties.1,
+      hotherNames.1, hotherNames.2.1, hotherNames.2.2⟩
+    packageParentsResolved := a.packageParentsResolved
+    packageAcyclic := a.packageAcyclic h
+    classPackagesResolved := a.classPackagesResolved
+    enumPackagesResolved := a.enumPackagesResolved
+    associationPackagesResolved := a.associationPackagesResolved
+    supersResolved := a.supersResolved
+    inheritanceAcyclic := a.inheritanceAcyclic h
+    multiplicities := hproperties.2
+    propertyOwnersResolved := a.propertyOwnersResolved h
+    propertyTypesResolved := a.propertyTypesResolved
+    compositeReferences := a.compositeReferences h
+    literalsResolved := a.literalsResolved
+    associationEnds := a.associationEnds h
+    endMembershipUnique := a.endMembershipUnique h
+    containerUpperOne := a.containerUpperOne h
+    inheritedIdCount := a.inheritedIdCount h
+  }
 
 end VLMOF.Source
