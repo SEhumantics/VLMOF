@@ -123,14 +123,69 @@ public final class EmfInterchange {
   private void allocateObjects(List<Resource> xmis) {
     for (Resource r : xmis) { for (EObject root : r.getContents()) allocateObjectTree(root); }
   }
-  private static void xmlElements(Element e, List<Element> out) { out.add(e); NodeList nodes=e.getChildNodes(); for(int i=0;i<nodes.getLength();i++) if(nodes.item(i).getNodeType()==Node.ELEMENT_NODE) xmlElements((Element)nodes.item(i),out); }
+  private static List<Element> childElements(Element parent) {
+    List<Element> result=new ArrayList<>(); NodeList children=parent.getChildNodes();
+    for(int i=0;i<children.getLength();i++) if(children.item(i) instanceof Element e) result.add(e);
+    return result;
+  }
+  private static void checkElementIdentity(Resource resource, EObject object, Element element) {
+    String id=element.getAttributeNS("http://www.omg.org/XMI","id");
+    if(!id.isEmpty() && resource.getEObject(id)!=object)
+      throw new IllegalArgumentException("REJECT lexical-presence object identity mismatch " + id);
+    String type=element.getAttributeNS("http://www.w3.org/2001/XMLSchema-instance","type");
+    if(!type.isEmpty()) {
+      int colon=type.indexOf(':'); String local=colon<0?type:type.substring(colon+1);
+      String namespace=element.lookupNamespaceURI(colon<0?null:type.substring(0,colon));
+      if(!local.equals(object.eClass().getName()) || !java.util.Objects.equals(namespace,object.eClass().getEPackage().getNsURI()))
+        throw new IllegalArgumentException("REJECT lexical-presence classifier mismatch " + type);
+    }
+  }
+  private void bindLexicalElement(Resource resource, EObject object, Element element) {
+    checkElementIdentity(resource,object,element);
+    java.util.Set<String> present=new java.util.HashSet<>();
+    for(int i=0;i<element.getAttributes().getLength();i++) {
+      Node attribute=element.getAttributes().item(i);
+      if(attribute.getNamespaceURI()==null || attribute.getNamespaceURI().isEmpty()) present.add(attribute.getNodeName());
+    }
+    Map<EStructuralFeature,List<Element>> byFeature=new IdentityHashMap<>();
+    for(Element child:childElements(element)) {
+      EStructuralFeature feature=object.eClass().getEStructuralFeature(child.getLocalName());
+      if(feature==null) throw new IllegalArgumentException("REJECT lexical-presence unknown feature " + child.getTagName());
+      if("true".equals(child.getAttributeNS("http://www.w3.org/2001/XMLSchema-instance","nil")))
+        throw new IllegalArgumentException("REJECT null occurrence outside Core value domain " + feature.getName());
+      byFeature.computeIfAbsent(feature,ignored -> new ArrayList<>()).add(child);
+    }
+    for(Map.Entry<EStructuralFeature,List<Element>> row:byFeature.entrySet()) {
+      EStructuralFeature feature=row.getKey(); List<Element> elements=row.getValue();
+      if(!feature.isMany() && (elements.size()!=1 || present.contains(feature.getName())))
+        throw new IllegalArgumentException("REJECT duplicate scalar XML representation " + feature.getName());
+      present.add(feature.getName());
+      if(feature instanceof EReference reference && reference.isContainment()) {
+        Object raw=object.eGet(feature,false); List<?> targets=raw instanceof List<?> list?list:(raw==null?List.of():List.of(raw));
+        if(elements.size()!=targets.size()) throw new IllegalArgumentException("REJECT lexical-presence containment arity " + feature.getName());
+        for(int i=0;i<targets.size();i++) bindLexicalElement(resource,(EObject)targets.get(i),elements.get(i));
+      }
+    }
+    lexicalFeatures.put(object,present);
+  }
   private void trackLexicalFeatures(List<Resource> xmis) throws Exception {
-    for(Resource r:xmis) {
-      if(!r.getURI().isFile()) { diagnostics.add("REJECT lexical-presence-unavailable for non-file XMI "+r.getURI()); continue; }
-      DocumentBuilderFactory factory=DocumentBuilderFactory.newInstance(); factory.setNamespaceAware(true); List<Element> elements=new ArrayList<>(); xmlElements(factory.newDocumentBuilder().parse(Path.of(r.getURI().toFileString()).toFile()).getDocumentElement(),elements);
-      List<EObject> all=new ArrayList<>(); for(EObject root:r.getContents()){ all.add(root); TreeIterator<EObject> it=root.eAllContents(); while(it.hasNext())all.add(it.next()); }
-      if(elements.size()!=all.size()) { for(Element e:elements) { String id=e.getAttributeNS("http://www.omg.org/XMI","id"); EObject o=id.isEmpty()?null:r.getEObject(id); if(o!=null) { java.util.Set<String> names=new java.util.HashSet<>(); for(int a=0;a<e.getAttributes().getLength();a++) names.add(e.getAttributes().item(a).getLocalName()==null?e.getAttributes().item(a).getNodeName():e.getAttributes().item(a).getLocalName()); lexicalFeatures.put(o,names); } } if(lexicalFeatures.size()<all.size()) { diagnostics.add("REJECT lexical-presence-unmappable XML element/object traversal "+r.getURI()); continue; } }
-      else for(int i=0;i<all.size();i++) { java.util.Set<String> names=new java.util.HashSet<>(); Element e=elements.get(i); for(int a=0;a<e.getAttributes().getLength();a++) names.add(e.getAttributes().item(a).getLocalName()==null?e.getAttributes().item(a).getNodeName():e.getAttributes().item(a).getLocalName()); lexicalFeatures.put(all.get(i),names); }
+    for(Resource resource:xmis) {
+      if(!resource.getURI().isFile()) throw new IllegalArgumentException("REJECT lexical-presence unavailable for non-file XMI " + resource.getURI());
+      DocumentBuilderFactory factory=DocumentBuilderFactory.newInstance(); factory.setNamespaceAware(true);
+      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl",true);
+      Element document=factory.newDocumentBuilder().parse(Path.of(resource.getURI().toFileString()).toFile()).getDocumentElement();
+      boolean wrapper="XMI".equals(document.getLocalName()) && "http://www.omg.org/XMI".equals(document.getNamespaceURI());
+      List<Element> elements=wrapper?childElements(document):List.of(document);
+      if(elements.size()!=resource.getContents().size()) throw new IllegalArgumentException("REJECT lexical-presence root arity " + resource.getURI());
+      for(int i=0;i<elements.size();i++) {
+        EObject object=resource.getContents().get(i); Element element=elements.get(i);
+        if(!object.eClass().getName().equals(element.getLocalName()) || !java.util.Objects.equals(object.eClass().getEPackage().getNsURI(),element.getNamespaceURI()))
+          throw new IllegalArgumentException("REJECT lexical-presence root classifier " + element.getTagName());
+        bindLexicalElement(resource,object,element);
+        TreeIterator<EObject> nested=object.eAllContents();
+        while(nested.hasNext()) if(!lexicalFeatures.containsKey(nested.next()))
+          throw new IllegalArgumentException("REJECT lexical-presence unmapped contained object " + resource.getURI());
+      }
     }
   }
   private void allocateObjectTree(EObject o) {
@@ -324,5 +379,6 @@ public final class EmfInterchange {
     System.out.println(JSON.writeValueAsString(document));
   }
 }
+
 
 
