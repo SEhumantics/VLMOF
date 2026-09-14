@@ -12,6 +12,53 @@ namespace VLMOF
 
 def classUniverse (s : Schema) : List ClassId := s.classes.map ClassDecl.id
 
+def closureAdvance {α : Type} [DecidableEq α] (step : List α → List α)
+    (seen : List α) : List α :=
+  seen ++ (step seen).eraseDups.filter (fun x => !seen.contains x)
+
+theorem closureAdvance_strict_of_unseen_step {α : Type} [DecidableEq α]
+    (step : List α → List α) {seen : List α} {x : α}
+    (hstep : x ∈ step seen) (hunseen : x ∉ seen) :
+    seen.length < (closureAdvance step seen).length := by
+  unfold closureAdvance
+  rw [List.length_append]
+  apply Nat.lt_add_of_pos_right
+  apply List.length_pos_of_mem
+  rw [List.mem_filter]
+  refine ⟨?_, by simpa using hunseen⟩
+  exact List.mem_eraseDups.mpr hstep
+
+theorem closureAdvance_eq_of_step_subset {α : Type} [DecidableEq α]
+    (step : List α → List α) (seen : List α)
+    (hclosed : ∀ x, x ∈ step seen → x ∈ seen) : closureAdvance step seen = seen := by
+  unfold closureAdvance
+  have hempty : (step seen).eraseDups.filter (fun x => !seen.contains x) = [] := by
+    apply List.eq_nil_iff_forall_not_mem.mpr
+    intro x hx
+    rw [List.mem_filter] at hx
+    simp at hx
+    exact hx.2 (hclosed x hx.1)
+  rw [hempty]
+  simp
+
+theorem iterateClosure_succ_eq_advance {α : Type} [DecidableEq α]
+    (step : List α → List α) (n : Nat) (seen : List α) :
+    iterateClosure step (n + 1) seen =
+      iterateClosure step n (closureAdvance step seen) := by
+  rfl
+
+theorem iterateClosure_of_closureAdvance_eq {α : Type} [DecidableEq α]
+    (step : List α → List α) (seen : List α)
+    (hstable : closureAdvance step seen = seen) :
+    ∀ n, iterateClosure step n seen = seen := by
+  intro n
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    rw [iterateClosure_succ_eq_advance]
+    rw [hstable]
+    exact ih
+
 theorem mem_classUniverse_of_classDecls_ne_nil {s : Schema} {id : ClassId}
     (h : s.classDecls id ≠ []) : id ∈ classUniverse s := by
   unfold Schema.classDecls at h
