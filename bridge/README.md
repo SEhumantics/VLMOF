@@ -74,10 +74,11 @@ support a source-fidelity claim.
 
 EMF's ordinary `eIsSet` cannot distinguish an omitted optional scalar from an XMI
 scalar explicitly written with its default (`false`, `0`, empty string, or the first
-enum literal). The importer therefore rejects either ambiguous state with
-`REJECT ambiguous-instance-default-lexical-presence`; it never drops an explicit
-default and reports success. Unsettable features are also outside this profile, so
-they cannot be used as a workaround.
+enum literal). For file-backed XMI, the importer pairs original XML elements with
+the EMF containment preorder and retains lexical attribute presence, so an explicit
+default is emitted while an omission stays empty. A wrapper/XML shape that cannot be
+paired is rejected as `lexical-presence-unmappable`; non-file resources are rejected
+as lexical-presence unavailable. Unsettable features remain outside this profile.
 
 All packages used by a classifier must appear in the supplied Ecore manifest (nested
 packages count through their explicit parent). A proxy or a reference to an object
