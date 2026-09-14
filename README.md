@@ -4,7 +4,9 @@ An EMOF formalization project in Lean 4. The current baseline provides a Lean
 build, reproducible specification downloads, and a finite raw representation of
 the structural profile, separate schema and snapshot conformance predicates, and
 proved consequences of opposite multiplicity. Executable schema and snapshot checkers are proved equivalent to those predicates.
-The source-language conformance correspondence remains under development.
+The symbolic source language has independent satisfaction predicates and proved
+binding completeness. The full source-to-core conformance correspondence remains
+under development.
 
 ## Getting started
 
@@ -48,8 +50,16 @@ The command emits one JSON report. Exit codes are 0 accepted, 1 invalid represen
 model, 2 malformed input or usage, 3 unsupported wire version, and 4 file error.
 The decoder is a tested boundary, not a proved XML/JSON parser. It ignores unknown
 object fields; the Lean JSON parser normalizes duplicate keys. Provenance is carried
-as producer-supplied metadata, not independently verified. The source DSL and Java
-EMF import/export workflow remain under development.
+as producer-supplied metadata, not independently verified. The Java EMF import/export
+workflow remains under development.
+
+The [symbolic DSL](VLMOF/DSL.md) supports qualified aliases, inheritance,
+associations and occurrence lists. Its parser and binding examples are compiled
+by the default build. Binding preserves identity distinctions, occurrence counts,
+uniqueness, ordered equality and unordered permutation. `SourceSemantics.lean`
+defines satisfaction directly over symbolic declarations; `ElaborationComplete.lean`
+proves that every satisfying source document binds successfully. This result does
+not yet establish conformance of the resulting core schema and snapshot.
 
 The [metadata pilot](VLMOF/METADATA.md) treats class/attribute descriptions as
 ordinary checked objects, interprets them into a schema, and validates an instance.

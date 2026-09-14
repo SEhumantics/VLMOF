@@ -8,3 +8,8 @@ import VLMOF.CheckExamples
 import VLMOF.MetadataPilot
 import VLMOF.ClosureSaturation
 import VLMOF.FiniteClosure
+import VLMOF.ElaborationComplete
+import VLMOF.SourceExamples
+import VLMOF.SourceSemanticExamples
+import VLMOF.DSLExamples
+import VLMOF.OccurrenceBindingCorrect
