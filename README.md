@@ -41,9 +41,16 @@ files. To download again, run `python3 scripts/sources.py fetch --refresh`.
 A failed download or hash mismatch leaves an existing file untouched. Hashes
 are changed only through an explicit manifest edit after inspecting the source.
 
+## Manuscript
+
+Run `make -C paper` to build the working manuscript at `paper/build/main.pdf`.
+See [paper/README.md](paper/README.md) for TeX dependencies and venue rules.
+The manuscript skeleton has no completed semantic or evaluation claims.
+
 ## Development
 
 Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
+
