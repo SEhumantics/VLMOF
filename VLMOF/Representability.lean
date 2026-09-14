@@ -676,6 +676,29 @@ def reifyDocument (names : CoreAliasAssignment) (schema : Schema)
     (snapshot : Snapshot) : Document :=
   { model := reifyModel names schema, snapshot := reifyInstance names snapshot }
 
+/-- Schema-only sufficient conditions.  They mention the declarative source model
+contract and a structural round trip, but no successful binding result. -/
+structure ModelReificationConditions (names : CoreAliasAssignment)
+    (schema : Schema) : Prop where
+  sourceModelWF : ModelWellFormed (reifyModel names schema)
+  schemaRoundTrip : canonicalSchema (reifyModel names schema) = schema
+
+/-- A well-formed reified source model whose structural canonical form is `schema`
+passes the actual binder with exactly that result. -/
+theorem model_reification_binds {names : CoreAliasAssignment} {schema : Schema}
+    (h : ModelReificationConditions names schema) :
+    bindModel (reifyModel names schema) = .ok schema := by
+  obtain ⟨target, hb⟩ := bindModel_complete h.sourceModelWF
+  have ht : target = schema := (bindModel_eq_canonical hb).trans h.schemaRoundTrip
+  subst target
+  exact hb
+
+theorem model_reification_target_wellFormed {names : CoreAliasAssignment}
+    {schema : Schema} (h : ModelReificationConditions names schema) :
+    SchemaWellFormed schema := by
+  exact schemaWellFormed_of_modelWellFormed_of_bindModel h.sourceModelWF
+    (model_reification_binds h)
+
 /-- Concrete sufficient conditions for a Core pair to be an exact source image.
 `sourceMeaning` is the independently defined declarative source predicate.  The two
 round-trip equations mention only the total structural translations above; no binder,

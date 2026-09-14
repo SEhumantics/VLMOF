@@ -51,7 +51,13 @@ arbitrary Core pair is representable.
 
 `CoreAliasAssignment` supplies qualified aliases independently of optional Core
 metadata. `reifyModel`, `reifyInstance`, and `reifyDocument` then translate a Core pair
-to symbolic source records. `ReificationConditions` is an explicit sufficient domain:
+to symbolic source records. At schema level, `ModelReificationConditions` requires
+only `ModelWellFormed` for the constructed source model and the structural schema
+round trip. `model_reification_binds` proves that the actual binder returns the exact
+requested schema, and `model_reification_target_wellFormed` derives its Core validity.
+Neither theorem assumes binding success.
+
+`ReificationConditions` is the corresponding full-document sufficient domain:
 
 1. the constructed document satisfies the declarative source semantics;
 2. its structural canonical schema is the requested schema;
