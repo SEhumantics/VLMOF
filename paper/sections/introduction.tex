@@ -1,12 +1,9 @@
 \section{Introduction}
-A model checker is useful only if the model it checks is the model its user
-intended to supply. A textual metamodel may bind two names to the wrong
-declaration; an interchange adapter may collapse repeated references; and a
-checker may decide a predicate that omits an inherited constraint. Each component
-can appear reasonable while their composition changes conformance. EMOF makes
-these boundaries especially consequential: declaration identity differs from
-spelling, inheritance can expose the same declaration along several paths, and
-opposite ends constrain the counts of relationship occurrences.
+A model-processing pipeline can change conformance by binding the wrong
+declaration, collapsing repeated references or omitting inherited constraints.
+EMOF makes these boundaries consequential: declaration identity differs from
+spelling, a diamond exposes one inherited declaration along several paths, and
+opposite ends constrain relationship occurrence counts.
 
 We develop VL-MOF, a Lean 4 formalization of a stated static structural fragment
 of EMOF 2.5.1. Its contract is a source-audited interpretation of the standard,

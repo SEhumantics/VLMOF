@@ -6,7 +6,9 @@ commit and dirty status, toolchain and Python versions, executable and input
 hashes, exact commands, exit codes, standard output/error and per-case expectations.
 It classifies accepted, rejected, unsupported, not-run and execution failure
 separately. An unexpected outcome fails the run rather than becoming a successful
-negative example. The integrated authored run uses commit \texttt{f0edde1}.
+negative example. The authored run uses commit \texttt{f0edde1}; the public runner uses
+\texttt{6985361} with checker provenance \texttt{b5e86cc}. Its 67 command
+records retain the resolved Maven dependencies and unchanged input hashes.
 
 The ten recorded authored cases all match their expected outcomes: three accepted,
 six rejected and one unsupported wire version. They exercise JSON and DSL input,
@@ -55,12 +57,12 @@ enum defaults in the adapted XMI.}
 \hline
 Case & Objects & Rows & Insertions & Check seconds \\
 \hline
-batch-1 & 754 & 3,378 & 12 & 2.16 \\
-batch-2 & 2,389 & 10,723 & 58 & 10.88 \\
-inject-1 & 927 & 4,158 & 21 & 2.95 \\
-inject-2 & 3,407 & 15,314 & 76 & 17.79 \\
-repair-1 & 1,418 & 6,370 & 31 & 4.80 \\
-repair-2 & 2,687 & 12,072 & 58 & 11.15 \\
+batch-1 & 754 & 3,378 & 12 & 2.17 \\
+batch-2 & 2,389 & 10,723 & 58 & 9.52 \\
+inject-1 & 927 & 4,158 & 21 & 2.79 \\
+inject-2 & 3,407 & 15,314 & 76 & 17.59 \\
+repair-1 & 1,418 & 6,370 & 31 & 4.75 \\
+repair-2 & 2,687 & 12,072 & 58 & 11.53 \\
 \hline
 \end{tabular}
 \end{table}
@@ -94,11 +96,10 @@ the reverse result does not assume source-model validity. The forward result
 also establishes elaboration success. These proofs do not certify parsing or
 imply unrestricted representation of every raw Core record.
 
-RQ3 is answered by the restricted native route and its explicit rejections and
-adaptations. All six adapted Train snapshots pass Core checking. Their counts and
-complete commands are retained with the result artifacts. Timing asks only whether
-the integrated checker completes on these fixed finite inputs and what wall time
-is observed on the development host. Each table entry is one CLI process measured
-with \texttt{/usr/bin/time}, using the same binary and host; import, export and
-Lean compilation are excluded. These single observations are not a benchmark
-against another tool, an asymptotic estimate or a controlled speedup claim.
+RQ3 is answered by six accepted adapted routes, the accepted raw-XMI control
+and two unsupported metamodel controls, with no failed or skipped stages.
+The operational timing question is completion on these fixed inputs. Table entries
+are one CLI process each, measured by Python's monotonic wall clock on WSL2/Linux,
+an Intel i5-14400F and one checker binary. Import, export and compilation are
+excluded. Concurrent development load was not controlled; these observations
+are neither comparative benchmarks nor speedup claims.

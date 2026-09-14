@@ -30,7 +30,13 @@ interpretation boundaries of the theorems.
 \subsection{Finite raw Core and declarative conformance}
 A schema \(S\) stores finite lists of packages, classes, properties, associations,
 enumerations and literals. Each kind has a distinct natural-number identity type.
-Names are optional metadata. A snapshot \(M\) stores identified objects and
+Names are optional metadata. The schema supplies an implicit outer Package
+scope: a missing explicit package reference means ownership by this scope, not
+an ownerless Class, Enumeration or Association. Its fresh identity is outside the
+stored package IDs; its fixed display name is Model. The scope has no authoring
+alias or reflective API. This representation convention reconciles root-level
+declarations with the UML ownership requirement; materializing it as
+an EMOF object graph is not a proved bridge operation. A snapshot \(M\) stores identified objects and
 observation rows \((o,p,L)\), where \(L\) is a finite list of values. Raw records
 can contain duplicate IDs, dangling references and duplicate observation keys;
 constructing a record does not prove it valid.
@@ -62,8 +68,11 @@ The observation-key uniqueness conjunct later ensures that this aggregation is
 one row. Defining it on raw input also lets the checker diagnose malformed
 records without a hidden prevalidation assumption. Containment sums incoming
 composite reference occurrences globally, requires a total at most one per
-child, and forbids a nonempty containment path back to its source. The inherited
-\texttt{isID} restriction counts declarations, not globally unique runtime values.
+child, and forbids a nonempty containment path back to its source. For an unpaired nonunique composite slot, this rejects two occurrences of the
+same child even with one parent and one slot. It is a deliberately stronger
+restriction than distinct-container uniqueness, not a claim that EMOF requires
+that stronger rule. The inherited \texttt{isID} restriction counts declarations,
+not globally unique runtime values.
 
 For ordered properties, observational equality is list equality. For unordered
 properties it is permutation, so duplicate counts remain observable. There are
@@ -108,16 +117,9 @@ separate roles: aliases bind references; display names survive as metadata.
 
 Elaboration \(E\) checks globally unique aliases, exact qualification and reference
 resolution, allocates per-kind identities by list position, and translates every
-occurrence. For all source documents, the forward theorem establishes
-\begin{equation}
- \mathcal S(d)\ \Longrightarrow\
- \exists S,M.\ E(d)=\mathsf{ok}(S,M)\ \land C(S,M)
-                  \land\operatorname{checkSnapshot}(S,M)=\mathsf{true}.
-\label{eq:forward}
-\end{equation}
-The Lean entry point is
-\texttt{elaborate\_complete\_and\_snapshot\_accepted}. The conditional preservation
-lemma also applies to any successful elaboration of that document.
+occurrence. Every satisfying source document elaborates successfully to a
+conforming Core snapshot and is accepted by the checker. This forward result
+has no lexical premise beyond those already implied by source satisfaction.
 
 The proof follows actual successful binding computations. A list-index allocation
 relation connects each source declaration to its Core identity. Resolution is
@@ -137,7 +139,7 @@ Furthermore, the raw AST binder only checks nonempty alias components, whereas
 source satisfaction requires XML-valid alias characters. The reverse theorem states
 lexical admissibility explicitly: a raw AST alias containing a forbidden
 character is a counterexample to unqualified reflection. The textual parser is
-a trusted front end, and Equation~\ref{eq:forward} starts at its AST.
+a trusted front end, and Equation~\ref{eq:adequacy} starts at its AST.
 
 Let $A(d)$ require XML-valid, nonempty declaration and object alias components.
 It contains no source-model validity or target-conformance premise. The reverse
@@ -161,3 +163,10 @@ elaboration premise equates source satisfaction directly with $C(S,M)$.
 The kernel axiom reports for these results contain only \texttt{propext},
 \texttt{Classical.choice} and \texttt{Quot.sound}, with no project axioms or
 unfinished proofs.
+
+\texttt{Representability} additionally identifies successful binding with total
+structural canonical images and proves their consecutive per-kind ID ranges.
+An explicit-alias reifier is sufficient when the constructed source satisfies
+its independent semantics and canonical schema/snapshot round trips equal the
+requested Core values. This does not prove that every named conforming Core graph
+admits such aliases, or that arbitrary typed renamings preserve conformance.

@@ -52,9 +52,8 @@ and compares the resulting occurrence observations against the requested rows.
 This last check prevents inverse maintenance from silently repairing inconsistent
 input. Ordered ends are reconciled independently after reciprocal counts agree.
 Explicit scalar defaults are serialized while the emitted metamodel retains its
-ordinary feature flags. A regression caught the earlier asymmetric EOpposite
-construction: merely assigning one pointer caused reload to duplicate a reverse
-reference. Setting both pointers corrected the bridge, including repeated pairs.
+ordinary feature flags. Regression tests exercise both opposite pointers, independent inverse ordering
+and repeated reference pairs.
 
 Generated native URIs are recorded alongside original Core IDs in an identity
 sidecar. On reimport, the comparator joins those URIs to the new Core IDs and
@@ -66,15 +65,13 @@ traversal are exercised by regression tests. This is an executable comparison
 under recorded identity evidence, not a formal proof of EMF serialization.
 
 \subsection{Metadata through the ordinary conformance path}
-The metadata pilot has fixed classes for class and scalar-attribute descriptions,
-eight ordinary properties and a three-literal scalar-type enumeration. The common
-snapshot checker validates these descriptions before an interpreter creates a
-Core schema. The fixture describes \emph{Person.active : Boolean [0..1]} and then
-checks a Person instance against the interpreted schema. A dangling owner fails
-metadata conformance; reversed bounds can be well-typed metadata yet fail the
-interpreted schema checker. Thus metadata typing does not replace cross-field
-schema obligations. Checked interpreter outputs satisfy the ordinary schema
-predicate, but the pilot is neither full EMOF self-description nor a proof that
+The fixed metadata vocabulary has class/attribute descriptions, eight ordinary
+properties and a three-literal scalar-type enumeration. The common checker
+validates descriptions before interpretation into a Core schema. The fixture
+describes \emph{Person.active : Boolean [0..1]} and checks a Person instance.
+A dangling owner fails metadata conformance; reversed bounds can pass metadata
+typing yet fail interpreted schema validity. Checked outputs satisfy the ordinary
+schema predicate. The pilot is neither full self-description nor a proof that
 all conforming metadata denotes valid schemas.
 
 \begin{table}[t]
