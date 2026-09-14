@@ -37,13 +37,13 @@ def checkAliasEntries (kind : String) (environment : List Name) : List Name → 
 
 def checkAliases (kind : String) (names : List Name) : BindingResult Unit :=
   checkAliasEntries kind names names
-private def packageId (model : Model) (name : Name) : BindingResult PackageId :=
+def packageId (model : Model) (name : Name) : BindingResult PackageId :=
   (resolveIndex "package" (model.packages.map Package.alias) name).map PackageId.mk
-private def classId (model : Model) (name : Name) : BindingResult ClassId :=
+def classId (model : Model) (name : Name) : BindingResult ClassId :=
   (resolveIndex "class" (model.classes.map Class.alias) name).map ClassId.mk
-private def propertyId (model : Model) (name : Name) : BindingResult PropertyId :=
+def propertyId (model : Model) (name : Name) : BindingResult PropertyId :=
   (resolveIndex "property" (model.properties.map Property.alias) name).map PropertyId.mk
-private def associationId (model : Model) (name : Name) : BindingResult AssociationId :=
+def associationId (model : Model) (name : Name) : BindingResult AssociationId :=
   (resolveIndex "association" (model.associations.map Association.alias) name).map AssociationId.mk
 def enumerationId (model : Model) (name : Name) : BindingResult EnumerationId :=
   (resolveIndex "enumeration" (model.enumerations.map Enumeration.alias) name).map EnumerationId.mk
@@ -52,7 +52,7 @@ def literalId (model : Model) (name : Name) : BindingResult LiteralId :=
 def objectId (snapshot : Instance) (name : Name) : BindingResult ObjectId :=
   (resolveIndex "object" (snapshot.objects.map Object.alias) name).map ObjectId.mk
 
-private def optionalPackage (model : Model) : Option Name → BindingResult (Option PackageId)
+def optionalPackage (model : Model) : Option Name → BindingResult (Option PackageId)
   | none => pure none
   | some name => some <$> packageId model name
 
@@ -62,18 +62,18 @@ def checkQualification (name : Name) (owner : Option Name) : BindingResult Unit 
   if name.dropLast = owner.getD [] then pure ()
   else throw ("alias qualification disagrees with owner: " ++ showName name)
 
-private def bindType (model : Model) : Source.ValueType → BindingResult VLMOF.ValueType
+def bindType (model : Model) : Source.ValueType → BindingResult VLMOF.ValueType
   | .boolean => pure .boolean
   | .integer => pure .integer
   | .string => pure .string
   | .enumeration name => .enumeration <$> enumerationId model name
   | .reference name => .reference <$> classId model name
 
-private def bindOwner (model : Model) : Owner → BindingResult PropertyOwner
+def bindOwner (model : Model) : Owner → BindingResult PropertyOwner
   | .class name => .class <$> classId model name
   | .association name => .association <$> associationId model name
 
-private def ownerName : Owner → Name
+def ownerName : Owner → Name
   | .class name | .association name => name
 
 /-- Bind each represented declaration exactly once and preserve input list order.
@@ -157,6 +157,5 @@ example : checkQualification ["p", "A", "x"] (some ["p", "B"]) =
 
 end BindingExamples
 end VLMOF.Source
-
 
 
