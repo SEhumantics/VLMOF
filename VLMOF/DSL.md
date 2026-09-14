@@ -23,3 +23,18 @@ Malformed numbers and string escapes, missing punctuation, unsupported keywords,
 abstract enums/associations, and malformed value separators produce positioned
 `Except String` diagnostics. Association end membership is retained as a pair;
 binding performs reference and ownership checks later.
+
+## Semantic guarantee
+
+The parser returns `Source.Document`; source satisfaction is independently defined
+in [SourceSemantics.lean](SourceSemantics.lean). [SourceAdequacy.lean](SourceAdequacy.lean)
+proves `sourceSatisfies_iff_exists_accepted`: for a `LexicallyAdmissible` document,
+source satisfaction holds exactly when actual elaboration succeeds and its Core
+snapshot is accepted. Lexical admissibility requires nonempty, XML-valid declaration
+and object aliases. It does not assume that declarations or observations conform.
+The fixed-result theorem `sourceSatisfies_iff_accepted` additionally takes the actual
+successful elaboration result.
+
+This theorem starts at the AST, not the source bytes. Parsing and the claim that a
+particular parsed document meets the lexical condition remain separate obligations.
+Alias spelling is distinct from display metadata and from allocated Core identity.
