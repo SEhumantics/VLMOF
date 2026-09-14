@@ -1,4 +1,4 @@
-"""Process-level checks of the published JSON command, with authored wire inputs."""
+"""Process-level checks of JSON and DSL commands using authored inputs."""
 import copy
 import json
 from pathlib import Path
@@ -87,6 +87,51 @@ class CommandTests(unittest.TestCase):
         result = subprocess.run([str(BINARY)], capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 2)
         self.assertEqual(json.loads(result.stdout)['status'], 'usage')
+
+
+class DslCommandTests(unittest.TestCase):
+    def invoke(self, source, code, status):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'input.dsl'
+            path.write_text(source, encoding='utf-8')
+            result = subprocess.run([str(BINARY), 'check-dsl', str(path)],
+                                    capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+        self.assertEqual(result.stderr, '')
+        report = json.loads(result.stdout)
+        self.assertEqual(report['status'], status)
+        return report
+
+    def test_authored_values_and_absence(self):
+        source = (ROOT / 'examples' / 'simple.dsl').read_text(encoding='utf-8')
+        self.invoke(source, 0, 'accepted')
+        self.invoke(source.replace('[false]', '[]'), 0, 'accepted')
+        report = self.invoke(source.replace('observe C::active = [false];', ''), 1, 'invalid')
+        self.assertIn({'phase': 'snapshot', 'field': 'observations exact'}, report['diagnostics'])
+        report = self.invoke(source.replace('[false]', '[0]'), 1, 'invalid')
+        self.assertIn({'phase': 'snapshot', 'field': 'values typed'}, report['diagnostics'])
+
+    def test_parse_and_binding_failures(self):
+        self.invoke('class C {', 2, 'parse-malformed')
+        self.invoke('class C { } object o : Missing { }', 2, 'binding-failure')
+        self.invoke('class C { } class C { }', 2, 'binding-failure')
+        self.invoke('class C { } object o : C { observe absent = []; }', 2, 'binding-failure')
+
+    def test_unique_and_nonunique_occurrences(self):
+        source = (ROOT / 'examples' / 'simple.dsl').read_text(encoding='utf-8')
+        report = self.invoke(source.replace('ordered nonunique', 'ordered unique'), 1, 'invalid')
+        self.assertIn({'phase': 'snapshot', 'field': 'unique occurrences'}, report['diagnostics'])
+
+    def test_diamond_inherits_one_property_identity(self):
+        source = '''class A { value : String [0..1] unordered unique; }
+class B extends A { }
+class C extends A { }
+class D extends B, C { }
+object o : D { observe A::value = [""]; }'''
+        self.invoke(source, 0, 'accepted')
+        report = self.invoke(source.replace('observe A::value = [""];',
+            'observe A::value = [""]; observe A::value = [];'), 1, 'invalid')
+        self.assertIn({'phase': 'snapshot', 'field': 'unique observation keys'}, report['diagnostics'])
 
 
 if __name__ == '__main__':
