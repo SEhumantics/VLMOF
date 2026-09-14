@@ -4,6 +4,8 @@ import VLMOF.Elaboration
 namespace VLMOF.Source
 namespace DSLExamples
 
+/-- Binding-only regression: deliberately retains schema and snapshot violations
+for the later conformance layer (including orphan end and duplicate observation). -/
 def source : String :=
   "package p { enum Color { red; } class A { first : Integer [0..2] ordered nonunique; second : String [0..1] unordered unique; link : p::B [0..*] unordered nonunique; } class B { back : p::A [0..1] unordered unique; } class Diamond extends p::A, p::B { } association R { end owned : p::B [0..*] ordered nonunique; end host : p::A [1..1] unordered unique composite; ends p::A::link, p::R::owned; } } object obj : p::Diamond { observe p::A::first = [1, -2, 1]; observe p::A::link = [@obj, @obj]; observe p::A::second = []; observe p::R::owned = [@obj]; observe p::A::second = [p::Color::red]; }"
 
@@ -37,3 +39,4 @@ example : (parse "class X { p : Integer [0..1] unordered unique; }").isOk := by 
 
 end DSLExamples
 end VLMOF.Source
+

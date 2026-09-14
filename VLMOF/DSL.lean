@@ -282,7 +282,7 @@ private def parseValue : M Value := do
   | .word w _ =>
       let q ← qgo [w]
       match q.reverse with
-      | literal :: rest => pure (.enumeration rest.reverse q)
+      | _literal :: rest => pure (.enumeration rest.reverse q)
       | [] => fail "malformed enumeration value"
   | t => fail s!"expected value, found {repr t}"
 
@@ -352,3 +352,4 @@ example : (parse "abstract enum Bad { x; }").isOk = false := by native_decide
 
 end Examples
 end VLMOF.Source
+

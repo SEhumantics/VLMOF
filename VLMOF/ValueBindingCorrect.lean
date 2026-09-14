@@ -50,6 +50,45 @@ theorem bindValue_iff (model : Model) (snapshot : Instance)
     cases lid
     simp
 
+/-- Every occurrence has a corresponding value in the same position; no set
+conversion, default insertion, or duplicate removal is part of binding. -/
+def OccurrencesBind (model : Model) (snapshot : Instance) :
+    List Source.Value → List VLMOF.Value → Prop
+  | [], [] => True
+  | source :: sources, target :: targets =>
+      ValueBinds model snapshot source target ∧ OccurrencesBind model snapshot sources targets
+  | _, _ => False
+
+theorem bindOccurrences_iff (model : Model) (snapshot : Instance)
+    (sources : List Source.Value) (targets : List VLMOF.Value) :
+    sources.mapM (bindValue model snapshot) = .ok targets ↔
+      OccurrencesBind model snapshot sources targets := by
+  induction sources generalizing targets with
+  | nil => cases targets <;> simp [OccurrencesBind, pure, Except.pure]
+  | cons source sources ih =>
+    have hv : ∀ target, ValueBinds model snapshot source target ↔
+        bindValue model snapshot source = .ok target := fun target => (bindValue_iff _ _ _ target).symm
+    have ht : ∀ targets, OccurrencesBind model snapshot sources targets ↔
+        sources.mapM (bindValue model snapshot) = .ok targets := fun targets => (ih targets).symm
+    cases hs : bindValue model snapshot source <;>
+      cases hss : sources.mapM (bindValue model snapshot) <;>
+      cases targets <;>
+      simp [List.mapM_cons, OccurrencesBind, hv, ht, hs, hss,
+        Bind.bind, Except.bind, pure, Except.pure]
+
+theorem OccurrencesBind.length_eq {model : Model} {snapshot : Instance}
+    {sources : List Source.Value} {targets : List VLMOF.Value}
+    (h : OccurrencesBind model snapshot sources targets) : sources.length = targets.length := by
+  induction sources generalizing targets with
+  | nil => cases targets <;> simp_all [OccurrencesBind]
+  | cons source sources ih =>
+    cases targets with
+    | nil => simp [OccurrencesBind] at h
+    | cons target targets =>
+      simp only [OccurrencesBind] at h
+      simpa using congrArg Nat.succ (ih h.2)
 end VLMOF.Source
+
+
 
 
