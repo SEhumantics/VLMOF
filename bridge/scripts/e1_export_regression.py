@@ -103,3 +103,39 @@ failed=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',
     f'-Dexec.args=compare {source} {duplicatefile}'],cwd=ROOT,capture_output=True,text=True)
 assert failed.returncode != 0 and 'duplicate observation key' in failed.stdout+failed.stderr
 print("E1 EXPORT REGRESSION OK explicit-defaults omitted-values repeated-scalars reciprocal-order repeated-paired-links")
+
+# Explicit IDs survive containment traversal reordering and arbitrary per-kind allocation.
+remapped=copy.deepcopy(doc)
+remapped['snapshot']['objects'].reverse()
+ids={g:{x['id']:17+13*i for i,x in enumerate(remapped['schema'][g])} for g in ['packages','classes','properties','associations','enumerations','literals']}
+ids['objects']={0:81,1:23}
+for g, rows in remapped['schema'].items():
+    for row in rows:
+        row['id']=ids[g][row['id']]
+        for f,k in [('package','packages'),('parent','packages'),('enumeration','enumerations')]:
+            if row.get(f) is not None: row[f]=ids[k][row[f]]
+        if 'supers' in row: row['supers']=[ids['classes'][x] for x in row['supers']]
+        if 'ends' in row: row['ends']=[ids['properties'][x] for x in row['ends']]
+        if 'owner' in row: row['owner']['id']=ids['classes'][row['owner']['id']]
+        if row.get('type',{}).get('id') is not None:
+            t=row['type']; t['id']=ids['classes' if t['tag']=='reference' else 'enumerations'][t['id']]
+for row in remapped['snapshot']['objects']:
+    row['id']=ids['objects'][row['id']]; row['classifier']=ids['classes'][row['classifier']]
+for row in remapped['snapshot']['observations']:
+    row['object']=ids['objects'][row['object']]; row['property']=ids['properties'][row['property']]
+    for v in row['occurrences']:
+        for f,k in [('object','objects'),('enumeration','enumerations'),('literal','literals')]:
+            if f in v: v[f]=ids[k][v[f]]
+rf=d/'arbitrary-ids.json'; rf.write_text(json.dumps(remapped))
+rx=d/'arbitrary.xmi'; re=d/'arbitrary.ecore'; rr=d/'arbitrary-reloaded.json'
+run(f'export {rf} {re} {rx}')
+result=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',f'-Dexec.args=import {re} -- {rx}'],cwd=ROOT,capture_output=True,text=True)
+assert result.returncode == 0, result.stdout+result.stderr
+rr.write_text(result.stdout)
+run(f'compare {rf} {rr} {rx}.ids.json')
+mapdata=json.loads(Path(str(rx)+'.ids.json').read_text())
+mapdata['identities']['objects'].append(copy.deepcopy(mapdata['identities']['objects'][0]))
+badmap=d/'bad-map.json'; badmap.write_text(json.dumps(mapdata))
+failed=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',f'-Dexec.args=compare {rf} {rr} {badmap}'],cwd=ROOT,capture_output=True,text=True)
+assert failed.returncode != 0 and 'duplicate source native identity' in failed.stdout+failed.stderr
+print('E1 IDENTITY REGRESSION OK arbitrary IDs containment order duplicate-map rejection')

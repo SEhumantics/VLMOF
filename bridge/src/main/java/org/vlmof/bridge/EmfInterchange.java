@@ -79,6 +79,39 @@ public final class EmfInterchange {
   private static void named(ObjectNode n, String key, String value) { if (value == null) n.putNull(key); else n.put(key, value); }
   private static void idOrNull(ObjectNode n, String key, Integer value) { if (value == null) n.putNull(key); else n.put(key, value); }
 
+  private static ObjectNode identityRow(int id, String nativeIdentity) {
+    ObjectNode row=object(); row.put("id",id); row.put("identity",nativeIdentity); return row;
+  }
+  private static <T extends EObject> ArrayNode nativeRows(Map<T,Integer> entries) {
+    ArrayNode rows=array();
+    for(Map.Entry<T,Integer> entry:entries.entrySet()) rows.add(identityRow(entry.getValue(),loc(entry.getKey())));
+    return rows;
+  }
+  private static <T extends EObject> ArrayNode exportedRows(Map<Integer,T> entries) {
+    ArrayNode rows=array(); java.util.Set<String> identities=new java.util.HashSet<>();
+    for(Map.Entry<Integer,T> entry:entries.entrySet()) {
+      String identity=loc(entry.getValue());
+      if(!identities.add(identity)) throw new IllegalArgumentException("REJECT ambiguous generated native identity " + identity);
+      rows.add(identityRow(entry.getKey(),identity));
+    }
+    return rows;
+  }
+  private static String associationIdentity(EObject left, EObject right) {
+    List<String> ends=new ArrayList<>(List.of(loc(left),loc(right))); Collections.sort(ends);
+    ArrayNode values=array(); for(String end:ends) values.add(end); return values.toString();
+  }
+  private ObjectNode nativeIdentities(JsonNode schema) {
+    ObjectNode result=object(); result.set("packages",nativeRows(packages)); result.set("classes",nativeRows(classes));
+    result.set("properties",nativeRows(properties)); result.set("enumerations",nativeRows(enums));
+    result.set("literals",nativeRows(literals)); result.set("objects",nativeRows(objects));
+    Map<Integer,EStructuralFeature> byId=new LinkedHashMap<>(); properties.forEach((feature,id)->byId.put(id,feature));
+    ArrayNode associations=array(); for(JsonNode association:schema.withArray("associations")) {
+      JsonNode ends=association.get("ends"); associations.add(identityRow(integer(association,"id"),
+        associationIdentity(byId.get(ends.get(0).intValue()),byId.get(ends.get(1).intValue()))));
+    }
+    result.set("associations",associations); return result;
+  }
+
   private static void registerPackageTree(ResourceSet set, EPackage p) {
     set.getPackageRegistry().put(p.getNsURI(), p);
     for (EPackage child : p.getESubpackages()) registerPackageTree(set, child);
@@ -227,7 +260,7 @@ public final class EmfInterchange {
     ObjectNode snapshot = object(); ArrayNode os = array(), observations = array();
     for (EObject o : objectOrder) { int objectId = objects.get(o); ObjectNode on = object(); on.put("id", objectId); on.put("classifier", classes.get(o.eClass())); os.add(on); for (EStructuralFeature f : o.eClass().getEAllStructuralFeatures()) { if (!properties.containsKey(f)) continue; ObjectNode ob = object(); ob.put("object", objectId); ob.put("property", properties.get(f)); ArrayNode occ = array(); Object raw = o.eGet(f, false); if (raw instanceof List<?> values) for (Object v : values) occ.add(value(v, f)); else if (raw != null && (o.eIsSet(f) || lexicalFeatures.getOrDefault(o,java.util.Set.of()).contains(f.getName()))) occ.add(value(raw, f)); ob.set("occurrences", occ); observations.add(ob); } }
     snapshot.set("objects", os); snapshot.set("observations", observations); out.set("snapshot", snapshot);
-    ObjectNode provenance = object(); provenance.put("allocation", "manifest-order package containment; manifest-order XMI containment preorder"); provenance.put("associationOwnership", "Ecore references are class-owned; paired references are exported as associations with class-owned ends"); ArrayNode pm = array(); for (String p : ecorePaths) pm.add(p); provenance.set("ecoreManifest", pm); ArrayNode im = array(); for (String p : xmiPaths) im.add(p); provenance.set("xmiManifest", im); out.set("provenance", provenance); return out;
+    ObjectNode provenance = object(); provenance.put("allocation", "manifest-order package containment; manifest-order XMI containment preorder"); provenance.put("associationOwnership", "Ecore references are class-owned; paired references are exported as associations with class-owned ends"); ArrayNode pm = array(); for (String p : ecorePaths) pm.add(p); provenance.set("ecoreManifest", pm); ArrayNode im = array(); for (String p : xmiPaths) im.add(p); provenance.set("xmiManifest", im); provenance.set("identities",nativeIdentities(schema)); out.set("provenance", provenance); return out;
   }
   private void emitPackage(EPackage p, ArrayNode ps, ArrayNode cs, ArrayNode fs, ArrayNode as, ArrayNode es, ArrayNode ls) {
     ObjectNode pn = object(); pn.put("id", packages.get(p)); named(pn, "name", p.getName()); idOrNull(pn, "parent", p.getESuperPackage() == null ? null : packages.get(p.getESuperPackage())); ps.add(pn);
@@ -253,8 +286,8 @@ public final class EmfInterchange {
     if (!n.has(field) || !n.get(field).isIntegralNumber() || !n.get(field).canConvertToInt()) throw new IllegalArgumentException("E1 export malformed integer `" + field + "`");
     return n.get(field).intValue();
   }
-  private static void canonicalIds(JsonNode items, String label) {
-    int expected=0; for(JsonNode item:items) { if(integer(item,"id")!=expected++) throw new IllegalArgumentException("REJECT E1 export noncanonical "+label+" id; export records only manifest-order allocations"); }
+  private static void uniqueIds(JsonNode items, String label) {
+    java.util.Set<Integer> seen=new java.util.HashSet<>(); for(JsonNode item:items) { int id=integer(item,"id"); if(id<0 || !seen.add(id)) throw new IllegalArgumentException("REJECT E1 export negative or duplicate "+label+" id"); }
   }
   private static String text(JsonNode n, String field) {
     if (!n.has(field) || !n.get(field).isTextual()) throw new IllegalArgumentException("E1 export malformed string `" + field + "`");
@@ -270,8 +303,8 @@ public final class EmfInterchange {
     JsonNode d = JSON.readTree(input.toFile());
     if (!"vlmof-e1-1".equals(text(d, "version"))) throw new IllegalArgumentException("E1 export unsupported version");
     JsonNode s = d.get("schema"), snap = d.get("snapshot"); if (s == null || snap == null) throw new IllegalArgumentException("E1 export requires schema and snapshot");
-    for(String kind:List.of("packages","classes","properties","associations","enumerations","literals")) canonicalIds(s.withArray(kind),kind);
-    canonicalIds(snap.withArray("objects"),"objects"); EcoreFactory f = EcoreFactory.eINSTANCE;
+    for(String kind:List.of("packages","classes","properties","associations","enumerations","literals")) uniqueIds(s.withArray(kind),kind);
+    uniqueIds(snap.withArray("objects"),"objects"); EcoreFactory f = EcoreFactory.eINSTANCE;
     Map<Integer,EPackage> pkgs = new LinkedHashMap<>(); Map<Integer,EClass> cls = new LinkedHashMap<>(); Map<Integer,EEnum> ens = new LinkedHashMap<>(); Map<Integer,EEnumLiteral> lits = new LinkedHashMap<>(); Map<Integer,EStructuralFeature> features = new LinkedHashMap<>();
     for (JsonNode p : s.withArray("packages")) { if(p.path("name").isNull()) throw new IllegalArgumentException("REJECT E1 export unnamed package"); EPackage q = f.createEPackage(); q.setName(text(p,"name")); q.setNsPrefix(q.getName()); q.setNsURI("https://vlmof.example/export/" + integer(p,"id")); pkgs.put(integer(p,"id"),q); }
     for (JsonNode p : s.withArray("packages")) if (!p.path("parent").isNull()) { EPackage parent=pkgs.get(integer(p,"parent")); if(parent==null) throw new IllegalArgumentException("E1 export dangling package parent"); parent.getESubpackages().add(pkgs.get(integer(p,"id"))); }
@@ -296,7 +329,10 @@ public final class EmfInterchange {
     Map<Integer,EObject> os=new LinkedHashMap<>(); for(JsonNode o:snap.withArray("objects")) { EClass k=cls.get(integer(o,"classifier")); if(k==null) throw new IllegalArgumentException("E1 export dangling object classifier"); if(k.isAbstract()) throw new IllegalArgumentException("E1 export cannot instantiate abstract class"); os.put(integer(o,"id"),EcoreUtil.create(k)); }
     Map<EObject,Map<EStructuralFeature,List<Object>>> expected=new IdentityHashMap<>(); for(JsonNode ob:snap.withArray("observations")) { EObject owner=os.get(integer(ob,"object")); EStructuralFeature sf=features.get(integer(ob,"property")); if(owner==null||sf==null) throw new IllegalArgumentException("E1 export dangling observation"); List<Object> values=new ArrayList<>(); for(JsonNode v:ob.withArray("occurrences")) { String tag=text(v,"tag"); if("reference".equals(tag)) { EObject target=os.get(integer(v,"object")); if(target==null) throw new IllegalArgumentException("E1 export dangling reference occurrence"); values.add(target); } else if("boolean".equals(tag)) { if(!v.has("value")||!v.get("value").isBoolean()) throw new IllegalArgumentException("E1 export malformed Boolean occurrence"); values.add(v.get("value").booleanValue()); } else if("integer".equals(tag)) { if(!v.has("value")||!v.get("value").isIntegralNumber()||!v.get("value").canConvertToInt()) throw new IllegalArgumentException("REJECT E1 Integer outside Ecore EInt range"); values.add(v.get("value").intValue()); } else if("string".equals(tag)) { if(!v.has("value")||!v.get("value").isTextual()) throw new IllegalArgumentException("E1 export malformed String occurrence"); values.add(v.get("value").textValue()); } else if("enumeration".equals(tag)) { EEnumLiteral l=lits.get(integer(v,"literal")); if(l==null || l.getEEnum()!=ens.get(integer(v,"enumeration"))) throw new IllegalArgumentException("E1 export dangling enumeration occurrence"); values.add(l); } else throw new IllegalArgumentException("E1 export unsupported occurrence "+tag); }
       if(!owner.eClass().getEAllStructuralFeatures().contains(sf)) throw new IllegalArgumentException("E1 export inapplicable observation"); if(expected.computeIfAbsent(owner, ignored -> new IdentityHashMap<>()).putIfAbsent(sf,values)!=null) throw new IllegalArgumentException("E1 export duplicate observation key"); if(inverseAssigned.contains(integer(ob,"property"))) continue; if(sf.isMany()) ((EList<Object>)owner.eGet(sf)).addAll(values); else if(values.size()>1) throw new IllegalArgumentException("E1 export multiple values for single-valued feature"); else if(values.size()==1) owner.eSet(sf,values.getFirst()); }
-    reconcileObservations(os.values(), expected); Resource xr=set.createResource(fileUri(xmiOut.toString())); for(Map.Entry<Integer,EObject> entry:os.entrySet()) ((XMIResource)xr).setID(entry.getValue(),"o"+entry.getKey()); for(EObject o:os.values()) if(o.eContainer()==null) xr.getContents().add(o); ByteArrayOutputStream instanceBytes=new ByteArrayOutputStream(); xr.save(instanceBytes,Map.of()); java.nio.file.Files.write(ecoreOut,schemaBytes.toByteArray()); java.nio.file.Files.write(xmiOut,instanceBytes.toByteArray());
+    reconcileObservations(os.values(), expected); Resource xr=set.createResource(fileUri(xmiOut.toString())); for(Map.Entry<Integer,EObject> entry:os.entrySet()) ((XMIResource)xr).setID(entry.getValue(),"o"+entry.getKey()); for(EObject o:os.values()) if(o.eContainer()==null) xr.getContents().add(o); ByteArrayOutputStream instanceBytes=new ByteArrayOutputStream(); xr.save(instanceBytes,Map.of()); ObjectNode identities=object(); identities.set("packages",exportedRows(pkgs)); identities.set("classes",exportedRows(cls)); identities.set("properties",exportedRows(features)); identities.set("enumerations",exportedRows(ens)); identities.set("literals",exportedRows(lits)); identities.set("objects",exportedRows(os));
+    ArrayNode associationIdentities=array(); for(JsonNode association:s.withArray("associations")) { JsonNode ends=association.get("ends"); associationIdentities.add(identityRow(integer(association,"id"),associationIdentity(features.get(ends.get(0).intValue()),features.get(ends.get(1).intValue())))); } identities.set("associations",associationIdentities);
+    ObjectNode correspondence=object(); correspondence.put("version","vlmof-e1-map-1"); correspondence.set("identities",identities);
+    java.nio.file.Files.write(ecoreOut,schemaBytes.toByteArray()); java.nio.file.Files.write(xmiOut,instanceBytes.toByteArray()); JSON.writerWithDefaultPrettyPrinter().writeValue(Path.of(xmiOut.toString()+".ids.json").toFile(),correspondence);
   }
   /** Inverse maintenance supplies membership, but each end has its own order.
    * Moving within a reference list preserves the opposite membership. Validate
@@ -342,31 +378,28 @@ public final class EmfInterchange {
   private static <K> void uniquePut(Map<K,JsonNode> map, K key, JsonNode row, String label) {
     if(map.putIfAbsent(key,row)!=null) throw new IllegalArgumentException("REJECT duplicate " + label + " in comparison: " + key);
   }
-  /** Compare two E1 documents after applying a recorded target-id→source-id map.
-   * Names are deliberately not used as identities.  The generated exporter currently
-   * preserves numeric allocation, so its recorded map is identity; keeping it explicit
-   * makes this comparison valid when an exporter changes allocation. */
-  private static void compareDocuments(Path leftPath, Path rightPath) throws Exception {
+  /** Compare under an explicit native identity correspondence, or require identical IDs. */
+  private static void compareDocuments(Path leftPath, Path rightPath, Path mapPath) throws Exception {
     JsonNode left=JSON.readTree(leftPath.toFile()), right=JSON.readTree(rightPath.toFile());
+    if(mapPath!=null) right=IdentityCorrespondence.normalize(left,right,JSON.readTree(mapPath.toFile()));
     if(!"vlmof-e1-1".equals(text(left,"version")) || !"vlmof-e1-1".equals(text(right,"version"))) throw new IllegalArgumentException("compare needs vlmof-e1-1 documents");
-    // Structural declarations are expected under the explicit allocation map supplied by
-    // the E1 exporter. Current map is identity; reject rather than guessing by spelling.
+    // Compare every declaration field after identity normalization.
     for(String kind:List.of("packages","classes","properties","associations","enumerations","literals")) if(!canon(left.path("schema").path(kind)).equals(canon(right.path("schema").path(kind)))) throw new IllegalStateException("ROUNDTRIP MISMATCH declaration " + kind);
     Map<Integer,Boolean> ordered=new LinkedHashMap<>(); for(JsonNode p:left.path("schema").withArray("properties")) ordered.put(integer(p,"id"),p.path("multiplicity").path("ordered").asBoolean());
     Map<String,JsonNode> lo=new LinkedHashMap<>(), ro=new LinkedHashMap<>(); for(JsonNode o:left.path("snapshot").withArray("objects")) uniquePut(lo,o.path("id").asText(),o,"object ID"); for(JsonNode o:right.path("snapshot").withArray("objects")) uniquePut(ro,o.path("id").asText(),o,"object ID"); if(!lo.keySet().equals(ro.keySet())) throw new IllegalStateException("ROUNDTRIP MISMATCH object identity map"); for(String id:lo.keySet()) if(integer(lo.get(id),"classifier")!=integer(ro.get(id),"classifier")) throw new IllegalStateException("ROUNDTRIP MISMATCH classifier object "+id);
     Map<String,JsonNode> la=new LinkedHashMap<>(), ra=new LinkedHashMap<>(); for(JsonNode o:left.path("snapshot").withArray("observations")) uniquePut(la,o.path("object").asText()+":"+o.path("property").asText(),o,"observation key"); for(JsonNode o:right.path("snapshot").withArray("observations")) uniquePut(ra,o.path("object").asText()+":"+o.path("property").asText(),o,"observation key"); if(!la.keySet().equals(ra.keySet())) throw new IllegalStateException("ROUNDTRIP MISMATCH observation domain");
     for(String key:la.keySet()) { JsonNode a=la.get(key), b=ra.get(key); List<String> av=new ArrayList<>(),bv=new ArrayList<>(); for(JsonNode v:a.withArray("occurrences"))av.add(canon(v)); for(JsonNode v:b.withArray("occurrences"))bv.add(canon(v)); int property=integer(a,"property"); if(!ordered.getOrDefault(property,true)){Collections.sort(av);Collections.sort(bv);} if(!av.equals(bv)) throw new IllegalStateException("ROUNDTRIP MISMATCH occurrences "+key); }
-    System.out.println("ROUNDTRIP OK declarations/objects/occurrences compared (identity allocation map)");
+    System.out.println("ROUNDTRIP OK declarations/objects/occurrences compared ("+(mapPath==null?"identical IDs":"explicit native identity map")+")");
   }
   public static void main(String[] args) throws Exception {
-    if (args.length == 3 && "compare".equals(args[0])) { compareDocuments(Path.of(args[1]), Path.of(args[2])); return; }
+    if ((args.length == 3 || args.length == 4) && "compare".equals(args[0])) { compareDocuments(Path.of(args[1]), Path.of(args[2]),args.length==4?Path.of(args[3]):null); return; }
     if (args.length == 4 && "export".equals(args[0])) { exportDocument(Path.of(args[1]), Path.of(args[2]), Path.of(args[3])); return; }
     int divider = -1; for (int i=0;i<args.length;i++) if ("--".equals(args[i])) { divider=i; break; }
     if (args.length == 0 || divider <= 0 || divider == args.length-1) throw new IllegalArgumentException("usage: EmfInterchange import|roundtrip package.ecore [...] -- instance.xmi [...] | export interchange.json out.ecore out.xmi");
     boolean roundTrip = "roundtrip".equals(args[0]);
     if (!"import".equals(args[0]) && !roundTrip) throw new IllegalArgumentException("usage command must be `import` or `roundtrip`");
     List<String> ep = List.of(java.util.Arrays.copyOfRange(args, 1, divider)); List<String> xp = List.of(java.util.Arrays.copyOfRange(args, divider+1, args.length));
-    Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("ecore", new EcoreResourceFactoryImpl()); Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("xmi", new XMIResourceFactoryImpl()); ResourceSet set = new ResourceSetImpl(); List<Resource> er = new ArrayList<>(); List<EPackage> roots = new ArrayList<>();
+    Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("ecore", new EcoreResourceFactoryImpl()); Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("xmi", new XMIResourceFactoryImpl()); List<Path> manifest = new ArrayList<>(); for(String path:ep) manifest.add(Path.of(path)); for(String path:xp) manifest.add(Path.of(path)); ResourceSet set = new ClosedManifestResourceSet(manifest); List<Resource> er = new ArrayList<>(); List<EPackage> roots = new ArrayList<>();
     for (String path : ep) { Resource r = set.getResource(fileUri(path), true); er.add(r); for (EObject root : r.getContents()) { if (!(root instanceof EPackage p)) throw new IllegalArgumentException("REJECT non-package Ecore root: " + loc(root)); roots.add(p); registerPackageTree(set, p); } }
     EmfInterchange bridge = new EmfInterchange(); bridge.preflight(set, er); for (EPackage p : roots) bridge.allocatePackage(p); for (EPackage p : roots) bridge.allocateDeclarations(p); bridge.require(bridge.diagnostics.isEmpty()); List<Resource> xr = new ArrayList<>(); for (String path : xp) { Resource r=set.createResource(fileUri(path)); r.load(Map.of()); xr.add(r); } bridge.trackLexicalFeatures(xr); bridge.noProxies(xr); bridge.allocateObjects(xr); ObjectNode document = bridge.emit(roots, xr, ep, xp);
     if (roundTrip) {
@@ -377,8 +410,3 @@ public final class EmfInterchange {
     System.out.println(JSON.writeValueAsString(document));
   }
 }
-
-
-
-
-

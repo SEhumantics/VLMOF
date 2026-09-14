@@ -45,7 +45,7 @@ mvn -q exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
 mvn -q exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
   -Dexec.args='import /tmp/e1-export.ecore -- /tmp/e1-export.xmi' > /tmp/e1-reloaded.json
 mvn -q exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
-  -Dexec.args='compare /tmp/e1-input.json /tmp/e1-reloaded.json'
+  -Dexec.args='compare /tmp/e1-input.json /tmp/e1-reloaded.json /tmp/e1-export.xmi.ids.json'
 ```
 
 It reconstructs packages, enums/literals, classes/supertypes, attributes and
@@ -59,10 +59,14 @@ rejected with an `E1 export` or `REJECT` diagnostic.
 classifiers, observation domains and occurrence values. It uses sequence equality
 for ordered features and sorted occurrence multisets for unordered ones. JSON member
 order is ignored, and duplicate object or observation identities are rejected.
-The exporter currently requires consecutive IDs in each declaration/object list;
-comparison requires those IDs to survive reimport. The tested fixtures satisfy that
-condition. Arbitrary renaming and changed containment-traversal allocation remain
-unimplemented; the comparator reports such differences as mismatches.
+The exporter accepts distinct nonnegative IDs within Java's integer range. It writes
+an `out.xmi.ids.json` sidecar recording each source ID and generated native URI.
+The importer records reloaded IDs and native URIs in provenance. Supplying that
+sidecar to `compare` constructs a bijection, rejects missing/duplicate/extra identities,
+and remaps all foreign IDs before comparison. Names are not used to guess matches.
+Without the optional sidecar, comparison requires identical numeric IDs. Native URI
+identities are location dependent; relocating exported resources requires a separately
+justified correspondence. These producer records are not cryptographic attestations.
 
 Run the boundary regression from `bridge/`:
 
@@ -74,7 +78,8 @@ It creates a Core JSON document with explicit `false`, `0`, empty String and fir
 enum values beside a second object whose corresponding features are empty. It also
 uses repeated scalar occurrences and repeated paired references. The test exports
 fresh resources, reimports them, compares observations, and asserts the separating
-values directly. Another case exercises independent ordering at an inverse end.
+values directly. Other cases exercise independent ordering at an inverse end,
+arbitrary IDs with changed object traversal order, and duplicate-map rejection.
 Inconsistent inverse counts are rejected before either output is written, and
 duplicate observation keys are rejected by comparison.
 
@@ -172,8 +177,8 @@ as well as operations, generic constructs, derived/transient/volatile/read-only/
 unsettable features, defaults, unsupported datatypes, proxies and classifiers outside
 the declared package closure before an E1 document is emitted.
 
-The JSON provenance currently records manifest locations and allocation policy. It
-does not yet retain input byte digests, Ecore/XMI locators, `xmi:id` lexical status,
+The JSON provenance records manifest locations, allocation policy and native URI
+identities. It does not yet retain input byte digests, `xmi:id` lexical status,
 feature lexical-default status, occurrence origin, or an adaptation manifest. Those
 are required before making a source-fidelity or adaptation claim beyond this bounded
 runtime mapping.

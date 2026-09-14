@@ -17,6 +17,7 @@ public final class ClosedManifestResourceSet extends ResourceSetImpl {
   }
   public boolean permits(URI uri) { return allowed.contains(uri); }
   @Override public Resource getResource(URI uri, boolean loadOnDemand) {
+    if (org.eclipse.emf.ecore.EcorePackage.eNS_URI.equals(uri.toString())) return org.eclipse.emf.ecore.EcorePackage.eINSTANCE.eResource();
     if (loadOnDemand && !permits(uri)) throw new IllegalArgumentException("REJECT resource outside explicit manifest closure: " + uri);
     return super.getResource(uri, loadOnDemand);
   }
