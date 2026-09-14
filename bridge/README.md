@@ -72,16 +72,16 @@ python3 scripts/e1_export_regression.py
 
 It creates a Core JSON document with explicit `false`, `0`, empty String and first
 enum values beside a second object whose corresponding features are empty. It also
-uses repeated scalar occurrences and simple paired references. The test exports
+uses repeated scalar occurrences and repeated paired references. The test exports
 fresh resources, reimports them, compares observations, and asserts the separating
 values directly. Another case exercises independent ordering at an inverse end.
 Inconsistent inverse counts are rejected before either output is written, and
 duplicate observation keys are rejected by comparison.
 
-Repeated paired reference occurrences are explicitly unsupported by this native
-EOpposite export path: the pinned EMF reload reproduced an inverse-list index error.
-The regression checks rejection before file creation. Core and DSL semantics still
-support those occurrences; this restriction is confined to the EMF adapter.
+Repeated paired reference occurrences survive export and reimport. Both Ecore
+opposite pointers are set explicitly; setting only one pointer produces asymmetric
+metadata and can duplicate occurrences during reload. The regression checks the
+complete reciprocal case, alongside independent ordering at the inverse end.
 
 The exporter constructs opposite membership once, checks every supplied occurrence
 list, and reorders each ordered end independently. It does not repair inconsistent

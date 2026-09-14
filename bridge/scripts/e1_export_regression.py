@@ -57,11 +57,16 @@ assert observations[(0,3)] == [value("enumeration")]
 assert observations[(0,5)] == [value("reference",1)]
 assert observations[(1,6)] == [value("reference",0)]
 assert observations[(0,7)] == [value("integer",0),value("integer",0)]
-bad=copy.deepcopy(doc); bad["snapshot"]["observations"][5]["occurrences"].append(value("reference",1))
-badfile=d/"repeated-paired.json"; badfile.write_text(json.dumps(bad))
-failed=subprocess.run(["mvn","-q","exec:java",f"-Dexec.mainClass={MAIN}",f"-Dexec.args=export {badfile} {d/'bad.ecore'} {d/'bad.xmi'}"],cwd=ROOT,capture_output=True,text=True)
-assert failed.returncode != 0 and "UNSUPPORTED repeated paired reference occurrence" in failed.stdout + failed.stderr
-assert not (d/'bad.ecore').exists() and not (d/'bad.xmi').exists()
+repeated=copy.deepcopy(doc)
+repeated["snapshot"]["observations"][5]["occurrences"].append(value("reference",1))
+repeated["snapshot"]["observations"][14]["occurrences"].append(value("reference",0))
+repeatedfile=d/"repeated-paired.json"; repeatedfile.write_text(json.dumps(repeated))
+run(f'export {repeatedfile} {d/"repeated.ecore"} {d/"repeated.xmi"}')
+result=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',
+    f'-Dexec.args=import {d/"repeated.ecore"} -- {d/"repeated.xmi"}'],cwd=ROOT,capture_output=True,text=True)
+assert result.returncode == 0, result.stdout+result.stderr
+repeatedreload=d/'repeated-reloaded.json'; repeatedreload.write_text(result.stdout)
+run(f'compare {repeatedfile} {repeatedreload}')
 
 # Opposite membership determines counts, but each ordered end has its own sequence.
 ordered=copy.deepcopy(doc)
@@ -97,4 +102,4 @@ duplicatefile=d/'duplicate-key.json'; duplicatefile.write_text(json.dumps(duplic
 failed=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',
     f'-Dexec.args=compare {source} {duplicatefile}'],cwd=ROOT,capture_output=True,text=True)
 assert failed.returncode != 0 and 'duplicate observation key' in failed.stdout+failed.stderr
-print("E1 EXPORT REGRESSION OK explicit-defaults omitted-values repeated-scalars simple-opposites repeated-paired-unsupported")
+print("E1 EXPORT REGRESSION OK explicit-defaults omitted-values repeated-scalars reciprocal-order repeated-paired-links")
