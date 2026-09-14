@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.file.Path;
-import java.security.MessageDigest;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -14,11 +15,13 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EAttribute;
+import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EClassifier;
 import org.eclipse.emf.ecore.EDataType;
 import org.eclipse.emf.ecore.EEnum;
 import org.eclipse.emf.ecore.EEnumLiteral;
+import org.eclipse.emf.ecore.EGenericType;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EPackage;
@@ -47,6 +50,7 @@ public final class EmfInterchange {
   private final IdentityHashMap<EEnum, Integer> enums = new IdentityHashMap<>();
   private final IdentityHashMap<EEnumLiteral, Integer> literals = new IdentityHashMap<>();
   private final IdentityHashMap<EObject, Integer> objects = new IdentityHashMap<>();
+  private final List<EObject> objectOrder = new ArrayList<>();
   private int nextPackage, nextClass, nextProperty, nextEnum, nextLiteral, nextObject;
 
   private static URI fileUri(String path) { return URI.createFileURI(Path.of(path).toAbsolutePath().toString()); }
@@ -63,6 +67,11 @@ public final class EmfInterchange {
   private static void named(ObjectNode n, String key, String value) { if (value == null) n.putNull(key); else n.put(key, value); }
   private static void idOrNull(ObjectNode n, String key, Integer value) { if (value == null) n.putNull(key); else n.put(key, value); }
 
+  private static void registerPackageTree(ResourceSet set, EPackage p) {
+    set.getPackageRegistry().put(p.getNsURI(), p);
+    for (EPackage child : p.getESubpackages()) registerPackageTree(set, child);
+  }
+
   private void preflight(ResourceSet set, List<Resource> ecores) {
     for (Resource r : ecores) {
       for (EObject root : r.getContents()) inspect(root);
@@ -71,8 +80,10 @@ public final class EmfInterchange {
     require(diagnostics.isEmpty());
   }
   private void inspect(EObject item) {
+    if (item instanceof EAnnotation) reject("annotation", item);
     if (item instanceof EOperation) reject("operation", item);
     if (item instanceof ETypeParameter) reject("generic-type-parameter", item);
+    if (item instanceof EGenericType g && (!g.getETypeArguments().isEmpty() || g.getETypeParameter() != null || g.getEUpperBound() != null || g.getELowerBound() != null)) reject("generic-type", item);
     if (item instanceof EStructuralFeature f) {
       if (f.isDerived()) reject("derived-feature", f);
       if (f.isTransient()) reject("transient-feature", f);
@@ -100,7 +111,9 @@ public final class EmfInterchange {
   private void allocateObjects(List<Resource> xmis) {
     for (Resource r : xmis) { for (EObject root : r.getContents()) allocateObjectTree(root); }
   }
-  private void allocateObjectTree(EObject o) { if (objects.putIfAbsent(o, nextObject++) == null) for (EObject c : o.eContents()) allocateObjectTree(c); }
+  private void allocateObjectTree(EObject o) {
+    if (!objects.containsKey(o)) { objects.put(o, nextObject++); objectOrder.add(o); for (EObject c : o.eContents()) allocateObjectTree(c); }
+  }
 
   private ObjectNode upper(int upper) { ObjectNode n = object(); if (upper < 0) n.put("tag", "unlimited"); else { n.put("tag", "finite"); n.put("value", upper); } return n; }
   private ObjectNode type(EClassifier t) {
@@ -135,25 +148,44 @@ public final class EmfInterchange {
     ObjectNode out = object(); out.put("version", "vlmof-e1-1"); ObjectNode schema = object(); ArrayNode ps = array(), cs = array(), fs = array(), as = array(), es = array(), ls = array();
     for (EPackage p : roots) emitPackage(p, ps, cs, fs, as, es, ls); schema.set("packages", ps); schema.set("classes", cs); schema.set("properties", fs); schema.set("associations", as); schema.set("enumerations", es); schema.set("literals", ls); out.set("schema", schema);
     ObjectNode snapshot = object(); ArrayNode os = array(), observations = array();
-    for (Map.Entry<EObject,Integer> entry : objects.entrySet()) { EObject o = entry.getKey(); ObjectNode on = object(); on.put("id", entry.getValue()); on.put("classifier", classes.get(o.eClass())); os.add(on); for (EStructuralFeature f : o.eClass().getEAllStructuralFeatures()) { if (!properties.containsKey(f)) continue; ObjectNode ob = object(); ob.put("object", entry.getValue()); ob.put("property", properties.get(f)); ArrayNode occ = array(); Object raw = o.eGet(f, false); if (raw instanceof List<?> values) for (Object v : values) occ.add(value(v, f)); else if (raw != null) occ.add(value(raw, f)); ob.set("occurrences", occ); observations.add(ob); } }
+    for (EObject o : objectOrder) { int objectId = objects.get(o); ObjectNode on = object(); on.put("id", objectId); on.put("classifier", classes.get(o.eClass())); os.add(on); for (EStructuralFeature f : o.eClass().getEAllStructuralFeatures()) { if (!properties.containsKey(f)) continue; ObjectNode ob = object(); ob.put("object", objectId); ob.put("property", properties.get(f)); ArrayNode occ = array(); Object raw = o.eGet(f, false); if (raw instanceof List<?> values) for (Object v : values) occ.add(value(v, f)); else if (raw != null) occ.add(value(raw, f)); ob.set("occurrences", occ); observations.add(ob); } }
     snapshot.set("objects", os); snapshot.set("observations", observations); out.set("snapshot", snapshot);
     ObjectNode provenance = object(); provenance.put("allocation", "manifest-order package containment; manifest-order XMI containment preorder"); provenance.put("associationOwnership", "Ecore references are class-owned; paired references are exported as associations with class-owned ends"); ArrayNode pm = array(); for (String p : ecorePaths) pm.add(p); provenance.set("ecoreManifest", pm); ArrayNode im = array(); for (String p : xmiPaths) im.add(p); provenance.set("xmiManifest", im); out.set("provenance", provenance); return out;
   }
   private void emitPackage(EPackage p, ArrayNode ps, ArrayNode cs, ArrayNode fs, ArrayNode as, ArrayNode es, ArrayNode ls) {
     ObjectNode pn = object(); pn.put("id", packages.get(p)); named(pn, "name", p.getName()); idOrNull(pn, "parent", p.getESuperPackage() == null ? null : packages.get(p.getESuperPackage())); ps.add(pn);
-    for (EClassifier c : p.getEClassifiers()) if (c instanceof EClass k && classes.containsKey(k)) { ObjectNode cn = object(); cn.put("id", classes.get(k)); named(cn, "name", k.getName()); cn.put("package", packages.get(p)); cn.put("abstract", k.isAbstract()); ArrayNode supers = array(); for (EClass s : k.getESuperTypes()) supers.add(classes.get(s)); cn.set("supers", supers); cs.add(cn); for (EStructuralFeature f : k.getEStructuralFeatures()) fs.add(property(f)); }
+    for (EClassifier c : p.getEClassifiers()) if (c instanceof EClass k && classes.containsKey(k)) { ObjectNode cn = object(); cn.put("id", classes.get(k)); named(cn, "name", k.getName()); cn.put("package", packages.get(p)); cn.put("abstract", k.isAbstract()); ArrayNode supers = array(); for (EClass s : k.getESuperTypes()) { Integer sid = classes.get(s); if (sid == null) throw new IllegalArgumentException("REJECT superclass outside package manifest: " + s.getName()); supers.add(sid); } cn.set("supers", supers); cs.add(cn); for (EStructuralFeature f : k.getEStructuralFeatures()) fs.add(property(f)); }
     for (EClassifier c : p.getEClassifiers()) if (c instanceof EEnum e) { ObjectNode en = object(); en.put("id", enums.get(e)); named(en, "name", e.getName()); en.put("package", packages.get(p)); es.add(en); for (EEnumLiteral l : e.getELiterals()) { ObjectNode ln = object(); ln.put("id", literals.get(l)); named(ln, "name", l.getName()); ln.put("enumeration", enums.get(e)); ls.add(ln); } }
     // A pair is emitted once, while both Ecore ends retain their actual class ownership.
     for (EClassifier c : p.getEClassifiers()) if (c instanceof EClass k) for (EReference r : k.getEReferences()) if (r.getEOpposite() != null && properties.get(r) < properties.get(r.getEOpposite())) { ObjectNode an = object(); an.put("id", as.size()); named(an, "name", r.getName() + "__" + r.getEOpposite().getName()); an.put("package", packages.get(p)); ArrayNode ends = array(); ends.add(properties.get(r)); ends.add(properties.get(r.getEOpposite())); an.set("ends", ends); as.add(an); }
     for (EPackage c : p.getESubpackages()) emitPackage(c, ps, cs, fs, as, es, ls);
   }
+  private static List<Resource> reloadExports(List<Resource> original, List<EPackage> roots) throws Exception {
+    ResourceSet set = new ResourceSetImpl();
+    set.getResourceFactoryRegistry().getExtensionToFactoryMap().put("xmi", new XMIResourceFactoryImpl());
+    for (EPackage p : roots) registerPackageTree(set, p);
+    List<Resource> reloaded = new ArrayList<>(); int n = 0;
+    for (Resource r : original) {
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream(); r.save(bytes, Map.of());
+      Resource copy = set.createResource(URI.createURI("memory:/e1-export-" + n++ + ".xmi"));
+      copy.load(new ByteArrayInputStream(bytes.toByteArray()), Map.of()); reloaded.add(copy);
+    }
+    return reloaded;
+  }
   public static void main(String[] args) throws Exception {
     int divider = -1; for (int i=0;i<args.length;i++) if ("--".equals(args[i])) { divider=i; break; }
     if (args.length == 0 || divider <= 0 || divider == args.length-1) throw new IllegalArgumentException("usage: EmfInterchange import package.ecore [...] -- instance.xmi [...]");
-    if (!"import".equals(args[0])) throw new IllegalArgumentException("only `import` is supported; export requires a decoded Core document and is intentionally not inferred from XML");
+    boolean roundTrip = "roundtrip".equals(args[0]);
+    if (!"import".equals(args[0]) && !roundTrip) throw new IllegalArgumentException("usage command must be `import` or `roundtrip`");
     List<String> ep = List.of(java.util.Arrays.copyOfRange(args, 1, divider)); List<String> xp = List.of(java.util.Arrays.copyOfRange(args, divider+1, args.length));
     Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("ecore", new EcoreResourceFactoryImpl()); Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("xmi", new XMIResourceFactoryImpl()); ResourceSet set = new ResourceSetImpl(); List<Resource> er = new ArrayList<>(); List<EPackage> roots = new ArrayList<>();
-    for (String path : ep) { Resource r = set.getResource(fileUri(path), true); er.add(r); for (EObject root : r.getContents()) { if (!(root instanceof EPackage p)) throw new IllegalArgumentException("REJECT non-package Ecore root: " + loc(root)); roots.add(p); set.getPackageRegistry().put(p.getNsURI(), p); } }
-    EmfInterchange bridge = new EmfInterchange(); bridge.preflight(set, er); for (EPackage p : roots) bridge.allocatePackage(p); for (EPackage p : roots) bridge.allocateDeclarations(p); bridge.require(bridge.diagnostics.isEmpty()); List<Resource> xr = new ArrayList<>(); for (String path : xp) xr.add(set.getResource(fileUri(path), true)); bridge.noProxies(xr); bridge.allocateObjects(xr); System.out.println(JSON.writeValueAsString(bridge.emit(roots, xr, ep, xp)));
+    for (String path : ep) { Resource r = set.getResource(fileUri(path), true); er.add(r); for (EObject root : r.getContents()) { if (!(root instanceof EPackage p)) throw new IllegalArgumentException("REJECT non-package Ecore root: " + loc(root)); roots.add(p); registerPackageTree(set, p); } }
+    EmfInterchange bridge = new EmfInterchange(); bridge.preflight(set, er); for (EPackage p : roots) bridge.allocatePackage(p); for (EPackage p : roots) bridge.allocateDeclarations(p); bridge.require(bridge.diagnostics.isEmpty()); List<Resource> xr = new ArrayList<>(); for (String path : xp) xr.add(set.getResource(fileUri(path), true)); bridge.noProxies(xr); bridge.allocateObjects(xr); ObjectNode document = bridge.emit(roots, xr, ep, xp);
+    if (roundTrip) {
+      List<Resource> reloaded = reloadExports(xr, roots); EmfInterchange after = new EmfInterchange(); for (EPackage p : roots) after.allocatePackage(p); for (EPackage p : roots) after.allocateDeclarations(p); after.noProxies(reloaded); after.allocateObjects(reloaded); ObjectNode exported = after.emit(roots, reloaded, ep, xp);
+      if (!document.get("schema").equals(exported.get("schema")) || !document.get("snapshot").equals(exported.get("snapshot"))) throw new IllegalStateException("roundtrip changed E1 schema or occurrence observations");
+      document.with("provenance").put("roundTrip", "EMF XMI save/load compared schema and snapshot with deterministic manifest identity allocation");
+    }
+    System.out.println(JSON.writeValueAsString(document));
   }
 }

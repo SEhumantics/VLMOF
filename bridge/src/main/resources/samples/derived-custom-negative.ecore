@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="bad" nsURI="https://vlmof.example/e1/derived-custom-negative" nsPrefix="bad">
+  <eClassifiers xsi:type="ecore:EDataType" name="Money" instanceClassName="java.math.BigDecimal"/>
+  <eClassifiers xsi:type="ecore:EClass" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="A">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="computed" derived="true" eType="#//Money"/>
+  </eClassifiers>
+</ecore:EPackage>
