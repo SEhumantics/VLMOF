@@ -1,6 +1,7 @@
 package org.vlmof.bridge;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.file.Path;
@@ -25,6 +26,8 @@ import org.eclipse.emf.ecore.EGenericType;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EPackage;
+import org.eclipse.emf.ecore.EcoreFactory;
+import org.eclipse.emf.ecore.EcorePackage;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.ETypeParameter;
@@ -172,9 +175,50 @@ public final class EmfInterchange {
     }
     return reloaded;
   }
+  private static int integer(JsonNode n, String field) {
+    if (!n.has(field) || !n.get(field).canConvertToInt()) throw new IllegalArgumentException("E1 export malformed integer `" + field + "`");
+    return n.get(field).intValue();
+  }
+  private static String text(JsonNode n, String field) {
+    if (!n.has(field) || !n.get(field).isTextual()) throw new IllegalArgumentException("E1 export malformed string `" + field + "`");
+    return n.get(field).textValue();
+  }
+  private static void copyMultiplicity(JsonNode source, EStructuralFeature target) {
+    target.setLowerBound(integer(source, "lower")); JsonNode upper = source.get("upper"); String tag = text(upper, "tag"); target.setUpperBound("unlimited".equals(tag) ? -1 : integer(upper, "value"));
+    target.setOrdered(source.path("ordered").asBoolean()); target.setUnique(source.path("unique").asBoolean());
+  }
+  /** Builds a fresh dynamic Ecore model from an E1 document; it never reuses source EObjects. */
+  private static void exportDocument(Path input, Path ecoreOut, Path xmiOut) throws Exception {
+    JsonNode d = JSON.readTree(input.toFile());
+    if (!"vlmof-e1-1".equals(text(d, "version"))) throw new IllegalArgumentException("E1 export unsupported version");
+    JsonNode s = d.get("schema"), snap = d.get("snapshot"); if (s == null || snap == null) throw new IllegalArgumentException("E1 export requires schema and snapshot");
+    EcoreFactory f = EcoreFactory.eINSTANCE;
+    Map<Integer,EPackage> pkgs = new LinkedHashMap<>(); Map<Integer,EClass> cls = new LinkedHashMap<>(); Map<Integer,EEnum> ens = new LinkedHashMap<>(); Map<Integer,EEnumLiteral> lits = new LinkedHashMap<>(); Map<Integer,EStructuralFeature> features = new LinkedHashMap<>();
+    for (JsonNode p : s.withArray("packages")) { EPackage q = f.createEPackage(); q.setName(p.path("name").isNull() ? "package" + integer(p,"id") : p.path("name").asText()); q.setNsPrefix(q.getName()); q.setNsURI("https://vlmof.example/export/" + integer(p,"id")); pkgs.put(integer(p,"id"),q); }
+    for (JsonNode p : s.withArray("packages")) if (!p.path("parent").isNull()) { EPackage parent=pkgs.get(integer(p,"parent")); if(parent==null) throw new IllegalArgumentException("E1 export dangling package parent"); parent.getESubpackages().add(pkgs.get(integer(p,"id"))); }
+    for (JsonNode e : s.withArray("enumerations")) { EEnum en=f.createEEnum(); en.setName(e.path("name").isNull()?"Enum"+integer(e,"id"):e.path("name").asText()); EPackage p=pkgs.get(integer(e,"package")); if(p==null) throw new IllegalArgumentException("E1 export dangling enum package"); p.getEClassifiers().add(en); ens.put(integer(e,"id"),en); }
+    for (JsonNode l : s.withArray("literals")) { EEnumLiteral el=f.createEEnumLiteral(); el.setName(l.path("name").isNull()?"literal"+integer(l,"id"):l.path("name").asText()); EEnum en=ens.get(integer(l,"enumeration")); if(en==null) throw new IllegalArgumentException("E1 export dangling literal enumeration"); en.getELiterals().add(el); lits.put(integer(l,"id"),el); }
+    for (JsonNode c : s.withArray("classes")) { EClass k=f.createEClass(); k.setName(c.path("name").isNull()?"Class"+integer(c,"id"):c.path("name").asText()); k.setAbstract(c.path("abstract").asBoolean()); EPackage p=pkgs.get(integer(c,"package")); if(p==null) throw new IllegalArgumentException("E1 export dangling class package"); p.getEClassifiers().add(k); cls.put(integer(c,"id"),k); }
+    for (JsonNode c : s.withArray("classes")) { EClass k=cls.get(integer(c,"id")); for(JsonNode superId:c.withArray("supers")) { EClass parent=cls.get(superId.intValue()); if(parent==null) throw new IllegalArgumentException("E1 export superclass outside document"); k.getESuperTypes().add(parent); } }
+    for (JsonNode p : s.withArray("properties")) {
+      JsonNode owner=p.get("owner"); if (!"class".equals(text(owner,"tag"))) throw new IllegalArgumentException("REJECT association-owned end cannot be exported to Ecore: property " + integer(p,"id"));
+      EClass k=cls.get(integer(owner,"id")); if(k==null) throw new IllegalArgumentException("E1 export dangling property owner"); JsonNode type=p.get("type"); String tag=text(type,"tag"); EStructuralFeature sf;
+      if ("reference".equals(tag)) { EReference r=f.createEReference(); EClass target=cls.get(integer(type,"id")); if(target==null) throw new IllegalArgumentException("E1 export dangling reference type"); r.setEType(target); r.setContainment("composite".equals(text(p,"aggregation"))); sf=r; }
+      else { EAttribute a=f.createEAttribute(); if("boolean".equals(tag)) a.setEType(EcorePackage.Literals.EBOOLEAN); else if("integer".equals(tag)) a.setEType(EcorePackage.Literals.EINT); else if("string".equals(tag)) a.setEType(EcorePackage.Literals.ESTRING); else if("enumeration".equals(tag)) { EEnum en=ens.get(integer(type,"id")); if(en==null) throw new IllegalArgumentException("E1 export dangling enum type"); a.setEType(en); } else throw new IllegalArgumentException("E1 export unsupported value type "+tag); a.setID(p.path("idProperty").asBoolean()); sf=a; }
+      sf.setName(p.path("name").isNull()?"property"+integer(p,"id"):p.path("name").asText()); copyMultiplicity(p.get("multiplicity"),sf); k.getEStructuralFeatures().add(sf); features.put(integer(p,"id"),sf);
+    }
+    for (JsonNode a : s.withArray("associations")) { JsonNode ends=a.withArray("ends"); if(ends.size()!=2) throw new IllegalArgumentException("E1 export association must have exactly two ends"); EStructuralFeature left=features.get(ends.get(0).intValue()), right=features.get(ends.get(1).intValue()); if(!(left instanceof EReference l) || !(right instanceof EReference r)) throw new IllegalArgumentException("REJECT association endpoints must be class-owned references"); l.setEOpposite(r); }
+    EPackage root=null; for(JsonNode p:s.withArray("packages")) if(p.path("parent").isNull()) { if(root!=null) throw new IllegalArgumentException("REJECT multiple root packages: export needs one Ecore root"); root=pkgs.get(integer(p,"id")); } if(root==null) throw new IllegalArgumentException("E1 export needs a root package");
+    ResourceSet set=new ResourceSetImpl(); set.getResourceFactoryRegistry().getExtensionToFactoryMap().put("ecore",new EcoreResourceFactoryImpl()); set.getResourceFactoryRegistry().getExtensionToFactoryMap().put("xmi",new XMIResourceFactoryImpl()); registerPackageTree(set,root); Resource er=set.createResource(fileUri(ecoreOut.toString())); er.getContents().add(root); er.save(Map.of());
+    Map<Integer,EObject> os=new LinkedHashMap<>(); for(JsonNode o:snap.withArray("objects")) { EClass k=cls.get(integer(o,"classifier")); if(k==null) throw new IllegalArgumentException("E1 export dangling object classifier"); if(k.isAbstract()) throw new IllegalArgumentException("E1 export cannot instantiate abstract class"); os.put(integer(o,"id"),EcoreUtil.create(k)); }
+    for(JsonNode ob:snap.withArray("observations")) { EObject owner=os.get(integer(ob,"object")); EStructuralFeature sf=features.get(integer(ob,"property")); if(owner==null||sf==null) throw new IllegalArgumentException("E1 export dangling observation"); List<Object> values=new ArrayList<>(); for(JsonNode v:ob.withArray("occurrences")) { String tag=text(v,"tag"); if("reference".equals(tag)) { EObject target=os.get(integer(v,"object")); if(target==null) throw new IllegalArgumentException("E1 export dangling reference occurrence"); values.add(target); } else if("boolean".equals(tag)) values.add(v.path("value").asBoolean()); else if("integer".equals(tag)) values.add(v.path("value").intValue()); else if("string".equals(tag)) values.add(v.path("value").asText()); else if("enumeration".equals(tag)) { EEnumLiteral l=lits.get(integer(v,"literal")); if(l==null || l.getEEnum()!=ens.get(integer(v,"enumeration"))) throw new IllegalArgumentException("E1 export dangling enumeration occurrence"); values.add(l); } else throw new IllegalArgumentException("E1 export unsupported occurrence "+tag); }
+      if(sf.isMany()) ((EList<Object>)owner.eGet(sf)).addAll(values); else if(values.size()>1) throw new IllegalArgumentException("E1 export multiple values for single-valued feature"); else if(values.size()==1) owner.eSet(sf,values.getFirst()); }
+    Resource xr=set.createResource(fileUri(xmiOut.toString())); for(EObject o:os.values()) if(o.eContainer()==null) xr.getContents().add(o); xr.save(Map.of());
+  }
   public static void main(String[] args) throws Exception {
+    if (args.length == 4 && "export".equals(args[0])) { exportDocument(Path.of(args[1]), Path.of(args[2]), Path.of(args[3])); return; }
     int divider = -1; for (int i=0;i<args.length;i++) if ("--".equals(args[i])) { divider=i; break; }
-    if (args.length == 0 || divider <= 0 || divider == args.length-1) throw new IllegalArgumentException("usage: EmfInterchange import package.ecore [...] -- instance.xmi [...]");
+    if (args.length == 0 || divider <= 0 || divider == args.length-1) throw new IllegalArgumentException("usage: EmfInterchange import|roundtrip package.ecore [...] -- instance.xmi [...] | export interchange.json out.ecore out.xmi");
     boolean roundTrip = "roundtrip".equals(args[0]);
     if (!"import".equals(args[0]) && !roundTrip) throw new IllegalArgumentException("usage command must be `import` or `roundtrip`");
     List<String> ep = List.of(java.util.Arrays.copyOfRange(args, 1, divider)); List<String> xp = List.of(java.util.Arrays.copyOfRange(args, divider+1, args.length));

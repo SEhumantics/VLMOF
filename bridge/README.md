@@ -35,6 +35,24 @@ mvn -q test-compile exec:java \
   -Dexec.args='roundtrip src/main/resources/samples/tiny.ecore -- src/main/resources/samples/tiny.xmi'
 ```
 
+`export` takes an E1 JSON document and creates a **new** dynamic Ecore package and
+new XMI objects; it does not retain or re-save the input resource. Object IDs choose
+the temporary construction objects, and Ecore assigns its own XMI identities.
+
+```sh
+mvn -q exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
+  -Dexec.args='export /tmp/e1-input.json /tmp/e1-export.ecore /tmp/e1-export.xmi'
+mvn -q exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
+  -Dexec.args='import /tmp/e1-export.ecore -- /tmp/e1-export.xmi' > /tmp/e1-reloaded.json
+```
+
+It reconstructs packages, enums/literals, classes/supertypes, attributes and
+class-owned references, then allocates all objects before assigning every occurrence.
+Association membership is restored by pairing two class-owned reference ends. An
+association-owned end, non-reference association endpoint, dangling identifier,
+multiple root package, or a value incompatible with the constructed Ecore feature is
+rejected with an `E1 export` or `REJECT` diagnostic.
+
 Only direct Boolean, Integer and String Ecore datatypes and enumerations are mapped.
 The importer rejects operations, type parameters or applied generic feature types,
 derived/transient/volatile/read-only/unsettable features, default literals and custom
