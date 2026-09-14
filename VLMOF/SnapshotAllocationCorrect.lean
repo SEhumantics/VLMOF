@@ -12,7 +12,9 @@ namespace VLMOF.Source
 
 variable {α β ε : Type}
 
-private theorem mapM_ok_cons {f : α → Except ε β} {x : α} {xs : List α} {ys : List β}
+/-- A successful `mapM` on a nonempty input exposes its head computation and
+successful tail computation. -/
+theorem mapM_ok_cons {f : α → Except ε β} {x : α} {xs : List α} {ys : List β}
     (h : (x :: xs).mapM f = .ok ys) :
     ∃ y rest, ys = y :: rest ∧ f x = .ok y ∧ xs.mapM f = .ok rest := by
   cases hx : f x with
@@ -131,7 +133,9 @@ private theorem bindObjectAllocation_ok_iff (model : Model) (entry : Object × N
   cases hc : classId model entry.1.classifier <;> cases target <;>
     simp [bindObjectAllocation, hc, Bind.bind, Except.bind, pure, Except.pure, eq_comm]
 
-private theorem bindObservationAllocation_ok_iff (model : Model) (snapshot : Instance)
+/-- A single observation allocation succeeds exactly when its object and property
+aliases resolve and all of its occurrences bind to the produced row. -/
+theorem bindObservationAllocation_ok_iff (model : Model) (snapshot : Instance)
     (source : Source.Observation) (target : VLMOF.Observation) :
     bindObservationAllocation model snapshot source = .ok target ↔
       objectId snapshot source.object = .ok target.object ∧
