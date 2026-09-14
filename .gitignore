@@ -1,0 +1,5 @@
+/.lake/
+/sources/raw/
+/sources/text/
+__pycache__/
+*.pyc

@@ -1,0 +1,9 @@
+name = "vlmof"
+version = "0.1.0"
+defaultTargets = ["VLMOF"]
+
+[leanOptions]
+autoImplicit = false
+
+[[lean_lib]]
+name = "VLMOF"
