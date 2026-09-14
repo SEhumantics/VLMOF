@@ -2,10 +2,14 @@
 # Reproduce the explicit Train E1 adaptation; originals are never modified.
 set -euo pipefail
 if [ "$#" -ne 2 ]; then echo "usage: $0 PINNED_TRAIN_CHECKOUT OUTPUT_DIR" >&2; exit 64; fi
-train=$1; out=$2; rm -rf "$out"; mkdir -p "$out"
+train=$(realpath "$1"); out=$(realpath -m "$2")
+test "$(git -C "$train" rev-parse HEAD)" = 6490047d7449f9a4b66cec032b9377bfc06a54d2 || { echo "unexpected Train revision" >&2; exit 65; }
+mkdir "$out" # Require a new result directory; never erase prior evidence.
 bridge=${BRIDGE:-$(cd "$(dirname "$0")/.." && pwd)}
-repo=$(cd "$bridge/../../.." && pwd)
-checker=${CHECKER:-$repo/VL-MOF/.lake/build/bin/vlmof}
+repo=$(cd "$bridge/.." && pwd)
+checker=${CHECKER:-$repo/.lake/build/bin/vlmof}
+test -x "$checker"
+mvn -q -f "$bridge/pom.xml" test-compile
 xcore="$train/trainbenchmark-format-emf-model/src/railway.xcore"
 mvn -q -f "$bridge/pom.xml" exec:java -Dexec.mainClass=org.vlmof.bridge.XcoreToEcore -Dexec.args="$xcore $out/railway.generated.ecore"
 mvn -q -f "$bridge/pom.xml" exec:java -Dexec.mainClass=org.vlmof.bridge.StripEcoreAnnotations -Dexec.args="$out/railway.generated.ecore $out/railway.profile.ecore $xcore $out/railway.profile.manifest.json"
