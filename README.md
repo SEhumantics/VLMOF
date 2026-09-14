@@ -19,8 +19,7 @@ make check
 
 The first command downloads six OMG files into `sources/raw/` and checks their
 SHA-256 hashes. The second verifies those files offline, tests the download tool
-and builds the Lean library. The library entry point compiles the core, semantics, interaction proofs, partial
-closure lemmas, checker correctness and semantic examples.
+and builds the Lean library. The library entry point compiles the core, semantics, interaction proofs, closure proofs, checker correctness and semantic examples.
 See [VLMOF/REPRESENTATION.md](VLMOF/REPRESENTATION.md) for the data model;
 constructing these records does not establish conformance.
 
@@ -28,8 +27,9 @@ The main interaction theorem shows that reciprocal occurrence counts and an uppe
 opposite force each forward reference count to be at most one, even without a forward
 uniqueness declaration. Examples include a conforming witness and cases separating
 the two premises. Inheritance uses a finite identity-deduplicated closure; persistence
-and direct-superclass inclusion are proved, while its full reachability characterization
-remains pending.
+and direct-superclass inclusion are proved. For well-formed schemas and resolved
+starting classes, saturation proves that the class-count bound computes full
+reflexive-transitive superclass reachability.
 
 The Java/EMF resource-loading probe is documented in [bridge/README.md](bridge/README.md).
 It checks inherited features, repeated values and reciprocal containment; it does not
@@ -93,6 +93,7 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
+
 
 
 

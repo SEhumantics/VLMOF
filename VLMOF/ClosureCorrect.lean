@@ -163,16 +163,6 @@ theorem Schema.isSubtype_implies_superReachable (s : Schema)
   rcases (s.isSubtype_iff_boundedSuperReachable start target).mp h with ⟨n, _, path⟩
   exact ⟨n, path⟩
 
-/-- This theorem isolates the sole missing graph lemma needed for the converse: cycle
-elimination must shorten every finite path to one bounded by the vertex store. -/
-theorem Schema.superReachable_implies_isSubtype_of_path_shortening (s : Schema)
-    (shorten : ∀ {start target : ClassId} {n : Nat}, SuperPath s start target n →
-      ∃ k, k ≤ s.classes.length ∧ SuperPath s start target k)
-    {start target : ClassId} (h : SuperReachable s start target) :
-    s.isSubtype start target := by
-  rcases h with ⟨n, path⟩
-  exact BoundedSuperReachable.isSubtype (shorten path)
-
 /-- The reflexive part of the subtype relation is not an assumption: the starting
 classifier is retained by the computed closure. -/
 theorem Schema.isSubtype_refl (s : Schema) (c : ClassId) : s.isSubtype c c := by
@@ -228,3 +218,4 @@ example : VLMOF.Example.schema.ancestors VLMOF.Example.diamond =
 
 end ClosureExample
 end VLMOF
+

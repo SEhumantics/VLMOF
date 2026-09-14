@@ -6,3 +6,4 @@ import VLMOF.SemanticExamples
 import VLMOF.CheckAcceptance
 import VLMOF.CheckExamples
 import VLMOF.MetadataPilot
+import VLMOF.ClosureSaturation
