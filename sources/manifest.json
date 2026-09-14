@@ -28,5 +28,11 @@
     "url": "https://www.omg.org/spec/MOF/20131001/EMOFConstraints.ocl",
     "sha256": "b1e83843d920e72213b33aff8e9b906910d06229a824d13a1e9a5bfade88eb9d",
     "purpose": "Supplied constraint document to compare with the specification prose"
+  },
+  {
+    "file": "UML-2.5.pdf",
+    "url": "https://www.omg.org/spec/UML/2.5/PDF",
+    "sha256": "830dc6c057c14834bd2409da5c520db8a6c4e7483bb217cb1af07f66755c642c",
+    "purpose": "Normative UML 2.5 prose adopted by MOF 2.5.1, especially classifier inheritance and generalization"
   }
 ]

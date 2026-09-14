@@ -14,7 +14,7 @@ make sources
 make check
 ```
 
-The first command downloads five OMG files into `sources/raw/` and checks their
+The first command downloads six OMG files into `sources/raw/` and checks their
 SHA-256 hashes. The second verifies those files offline, tests the download tool
 and builds the Lean library. The library entry point is currently empty.
 
@@ -53,4 +53,5 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
+
 
