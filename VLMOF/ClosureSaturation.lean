@@ -188,4 +188,67 @@ theorem iterateClosure_length_ge_of_unseen_each {α : Type} [DecidableEq α]
     unfold iterateClosure
     exact Nat.succ_le_of_lt (Nat.lt_of_le_of_lt hlen hgrow)
 
+/-- Once a frontier is closed, every later approximation is that same frontier. -/
+theorem iterateClosure_eq_earlier_closed {α : Type} [DecidableEq α]
+    (step : List α → List α) (seen : List α) {k n : Nat} (hkn : k ≤ n)
+    (hclosed : ∀ x, x ∈ step (iterateClosure step k seen) →
+      x ∈ iterateClosure step k seen) :
+    iterateClosure step n seen = iterateClosure step k seen := by
+  have heq : k + (n - k) = n := Nat.add_sub_of_le hkn
+  rw [← heq, iterateClosure_add]
+  exact iterateClosure_of_closureAdvance_eq step _
+    (closureAdvance_eq_of_step_subset step _ hclosed) _
+
+/-- Finite resolved class declarations force saturation within the class count. -/
+theorem classClosure_closed (s : Schema) (wf : SchemaWellFormed s)
+    {start : ClassId} (hstart : start ∈ classUniverse s) :
+    ∀ x, x ∈ classSupers s (iterateClosure (classSupers s) s.classes.length [start]) →
+      x ∈ iterateClosure (classSupers s) s.classes.length [start] := by
+  classical
+  apply Classical.byContradiction
+  intro hnotclosed
+  have hunseen : ∀ k, k < s.classes.length →
+      ∃ x, x ∈ classSupers s (iterateClosure (classSupers s) k [start]) ∧
+        x ∉ iterateClosure (classSupers s) k [start] := by
+    intro k hk
+    apply Classical.byContradiction
+    intro hnone
+    have hclosed : ∀ x, x ∈ classSupers s (iterateClosure (classSupers s) k [start]) →
+        x ∈ iterateClosure (classSupers s) k [start] := by
+      intro x hx
+      apply Classical.byContradiction
+      intro hn
+      exact hnone ⟨x, hx, hn⟩
+    have heq := iterateClosure_eq_earlier_closed (classSupers s) [start] (Nat.le_of_lt hk) hclosed
+    exact hnotclosed (by simpa only [heq] using hclosed)
+  have hlarge := iterateClosure_length_ge_of_unseen_each (classSupers s) start s.classes.length hunseen
+  have hsmall := iterateClosure_length_le_class_count s wf hstart s.classes.length
+  omega
+theorem SuperPath.mem_saturated {s : Schema} (wf : SchemaWellFormed s)
+    {start target : ClassId} {n : Nat} (path : SuperPath s start target n)
+    (hstart : start ∈ classUniverse s) :
+    target ∈ iterateClosure (classSupers s) s.classes.length [start] := by
+  induction path with
+  | refl => exact mem_iterateClosure_of_mem (classSupers s) (by simp) _
+  | step path edge ih =>
+    apply classClosure_closed s wf hstart
+    obtain ⟨d, hd, heq, hs⟩ := edge
+    apply List.mem_flatMap.mpr
+    refine ⟨d, ?_, hs⟩
+    rw [List.mem_filter]
+    exact ⟨hd, by simpa [heq] using ih⟩
+
+/-- The class-count cutoff computes full reflexive-transitive reachability for
+resolved starting classes in a well-formed schema. No path-length premise remains. -/
+theorem Schema.isSubtype_iff_superReachable (s : Schema) (wf : SchemaWellFormed s)
+    {start target : ClassId} (hstart : start ∈ classUniverse s) :
+    s.isSubtype start target ↔ SuperReachable s start target := by
+  constructor
+  · exact s.isSubtype_implies_superReachable
+  · rintro ⟨n, path⟩
+    unfold Schema.isSubtype Schema.ancestors
+    exact List.mem_eraseDups.mpr (path.mem_saturated wf hstart)
 end VLMOF
+
+
+
