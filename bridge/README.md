@@ -44,6 +44,8 @@ mvn -q exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
   -Dexec.args='export /tmp/e1-input.json /tmp/e1-export.ecore /tmp/e1-export.xmi'
 mvn -q exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
   -Dexec.args='import /tmp/e1-export.ecore -- /tmp/e1-export.xmi' > /tmp/e1-reloaded.json
+mvn -q exec:java -Dexec.mainClass=org.vlmof.bridge.EmfInterchange \
+  -Dexec.args='compare /tmp/e1-input.json /tmp/e1-reloaded.json'
 ```
 
 It reconstructs packages, enums/literals, classes/supertypes, attributes and
@@ -52,6 +54,13 @@ Association membership is restored by pairing two class-owned reference ends. An
 association-owned end, non-reference association endpoint, dangling identifier,
 multiple root package, or a value incompatible with the constructed Ecore feature is
 rejected with an `E1 export` or `REJECT` diagnostic.
+
+`compare` checks packages/classes/properties/associations/enums/literals, object
+classifiers, observation domains and occurrence values. It uses sequence equality
+for ordered features and sorted occurrence multisets for unordered ones. The current
+exporter records a deterministic identity allocation (therefore an identity map) and
+the comparator rejects a mismatch instead of guessing correspondence from names.
+Arbitrary source-to-target renaming is not yet supported.
 
 Only direct Boolean, Integer and String Ecore datatypes and enumerations are mapped.
 The importer rejects operations, type parameters or applied generic feature types,

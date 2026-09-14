@@ -12,6 +12,7 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.common.util.URI;
@@ -215,7 +216,25 @@ public final class EmfInterchange {
       if(sf.isMany()) ((EList<Object>)owner.eGet(sf)).addAll(values); else if(values.size()>1) throw new IllegalArgumentException("E1 export multiple values for single-valued feature"); else if(values.size()==1) owner.eSet(sf,values.getFirst()); }
     Resource xr=set.createResource(fileUri(xmiOut.toString())); for(EObject o:os.values()) if(o.eContainer()==null) xr.getContents().add(o); xr.save(Map.of());
   }
+  private static String canon(JsonNode n) { return n.toString(); }
+  /** Compare two E1 documents after applying a recorded target-id→source-id map.
+   * Names are deliberately not used as identities.  The generated exporter currently
+   * preserves numeric allocation, so its recorded map is identity; keeping it explicit
+   * makes this comparison valid when an exporter changes allocation. */
+  private static void compareDocuments(Path leftPath, Path rightPath) throws Exception {
+    JsonNode left=JSON.readTree(leftPath.toFile()), right=JSON.readTree(rightPath.toFile());
+    if(!"vlmof-e1-1".equals(text(left,"version")) || !"vlmof-e1-1".equals(text(right,"version"))) throw new IllegalArgumentException("compare needs vlmof-e1-1 documents");
+    // Structural declarations are expected under the explicit allocation map supplied by
+    // the E1 exporter. Current map is identity; reject rather than guessing by spelling.
+    for(String kind:List.of("packages","classes","properties","associations","enumerations","literals")) if(!canon(left.path("schema").path(kind)).equals(canon(right.path("schema").path(kind)))) throw new IllegalStateException("ROUNDTRIP MISMATCH declaration " + kind);
+    Map<Integer,Boolean> ordered=new LinkedHashMap<>(); for(JsonNode p:left.path("schema").withArray("properties")) ordered.put(integer(p,"id"),p.path("multiplicity").path("ordered").asBoolean());
+    Map<String,JsonNode> lo=new LinkedHashMap<>(), ro=new LinkedHashMap<>(); for(JsonNode o:left.path("snapshot").withArray("objects")) lo.put(o.path("id").asText(),o); for(JsonNode o:right.path("snapshot").withArray("objects")) ro.put(o.path("id").asText(),o); if(!lo.keySet().equals(ro.keySet())) throw new IllegalStateException("ROUNDTRIP MISMATCH object identity map"); for(String id:lo.keySet()) if(integer(lo.get(id),"classifier")!=integer(ro.get(id),"classifier")) throw new IllegalStateException("ROUNDTRIP MISMATCH classifier object "+id);
+    Map<String,JsonNode> la=new LinkedHashMap<>(), ra=new LinkedHashMap<>(); for(JsonNode o:left.path("snapshot").withArray("observations")) la.put(o.path("object").asText()+":"+o.path("property").asText(),o); for(JsonNode o:right.path("snapshot").withArray("observations")) ra.put(o.path("object").asText()+":"+o.path("property").asText(),o); if(!la.keySet().equals(ra.keySet())) throw new IllegalStateException("ROUNDTRIP MISMATCH observation domain");
+    for(String key:la.keySet()) { JsonNode a=la.get(key), b=ra.get(key); List<String> av=new ArrayList<>(),bv=new ArrayList<>(); for(JsonNode v:a.withArray("occurrences"))av.add(canon(v)); for(JsonNode v:b.withArray("occurrences"))bv.add(canon(v)); int property=integer(a,"property"); if(!ordered.getOrDefault(property,true)){Collections.sort(av);Collections.sort(bv);} if(!av.equals(bv)) throw new IllegalStateException("ROUNDTRIP MISMATCH occurrences "+key); }
+    System.out.println("ROUNDTRIP OK declarations/objects/occurrences compared (identity allocation map)");
+  }
   public static void main(String[] args) throws Exception {
+    if (args.length == 3 && "compare".equals(args[0])) { compareDocuments(Path.of(args[1]), Path.of(args[2])); return; }
     if (args.length == 4 && "export".equals(args[0])) { exportDocument(Path.of(args[1]), Path.of(args[2]), Path.of(args[3])); return; }
     int divider = -1; for (int i=0;i<args.length;i++) if ("--".equals(args[i])) { divider=i; break; }
     if (args.length == 0 || divider <= 0 || divider == args.length-1) throw new IllegalArgumentException("usage: EmfInterchange import|roundtrip package.ecore [...] -- instance.xmi [...] | export interchange.json out.ecore out.xmi");
