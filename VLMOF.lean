@@ -16,3 +16,5 @@ import VLMOF.SourceSemanticExamples
 import VLMOF.DSLExamples
 import VLMOF.OccurrenceBindingCorrect
 import VLMOF.SnapshotAllocationCorrect
+import VLMOF.SnapshotObservationCorrect
+import VLMOF.SchemaElaborationCorrect
