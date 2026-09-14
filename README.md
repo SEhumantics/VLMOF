@@ -44,9 +44,13 @@ field checks. The command-line interface reads the versioned JSON interchange:
 
 ```sh
 lake exe vlmof check-json examples/simple.json
+lake exe vlmof check-dsl examples/simple.dsl
 ```
 
-The command emits one JSON report. Exit codes are 0 accepted, 1 invalid represented
+The command emits one JSON report. `check-dsl` first uses the tested, trusted DSL
+parser and alias binder, reporting `parse-malformed` and `binding-failure` separately.
+Its `accepted` result means the elaborated Core schema and snapshot pass the same
+checker as JSON; a full source-to-core correspondence theorem remains pending. Exit codes are 0 accepted, 1 invalid represented
 model, 2 malformed input or usage, 3 unsupported wire version, and 4 file error.
 The decoder is a tested boundary, not a proved XML/JSON parser. It ignores unknown
 object fields; the Lean JSON parser normalizes duplicate keys. Provenance is carried
@@ -103,7 +107,6 @@ Run `make test` for the Python tests and `lake build` for Lean. Run `make check`
 before handing off an increment. Add dependencies and documentation when a
 working feature needs them. Explain important modeling choices beside the
 definitions or in a worked example.
-
 
 
 
