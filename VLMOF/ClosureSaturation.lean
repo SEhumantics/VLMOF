@@ -16,6 +16,47 @@ def closureAdvance {α : Type} [DecidableEq α] (step : List α → List α)
     (seen : List α) : List α :=
   seen ++ (step seen).eraseDups.filter (fun x => !seen.contains x)
 
+/-- `eraseDups` is implemented by retaining a head and recursing on the strictly
+smaller tail filtered away from that head.  The library supplies membership
+preservation; this local termination proof supplies the Nodup fact needed by the
+finite-frontier cardinality argument. -/
+theorem eraseDups_nodup {α : Type} [DecidableEq α] (xs : List α) : xs.eraseDups.Nodup := by
+  match xs with
+  | [] => simp
+  | a :: as =>
+    rw [List.eraseDups_cons]
+    apply List.nodup_cons.mpr
+    constructor
+    · intro ha
+      have hmem : a ∈ as.filter (fun b => !b == a) := by
+        simpa using (List.mem_eraseDups.mp ha)
+      rw [List.mem_filter] at hmem
+      simp at hmem
+    · exact eraseDups_nodup (as.filter (fun b => !b == a))
+termination_by xs.length
+decreasing_by
+  exact Nat.lt_succ_of_le (List.length_filter_le _ _)
+
+theorem closureAdvance_nodup {α : Type} [DecidableEq α] (step : List α → List α)
+    {seen : List α} (hseen : seen.Nodup) : (closureAdvance step seen).Nodup := by
+  unfold closureAdvance
+  rw [List.nodup_append]
+  refine ⟨hseen, (eraseDups_nodup _).filter _, ?_⟩
+  intro a ha b hb hab
+  rw [List.mem_filter] at hb
+  have hnot : b ∉ seen := by simpa using hb.2
+  exact hnot (hab ▸ ha)
+
+theorem iterateClosure_nodup {α : Type} [DecidableEq α]
+    (step : List α → List α) {seen : List α} (hseen : seen.Nodup) :
+    ∀ n, (iterateClosure step n seen).Nodup := by
+  intro n
+  induction n generalizing seen with
+  | zero => exact hseen
+  | succ n ih =>
+    unfold iterateClosure
+    exact ih (closureAdvance_nodup step hseen)
+
 theorem closureAdvance_strict_of_unseen_step {α : Type} [DecidableEq α]
     (step : List α → List α) {seen : List α} {x : α}
     (hstep : x ∈ step seen) (hunseen : x ∉ seen) :
