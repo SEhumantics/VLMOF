@@ -133,6 +133,25 @@ object o : D { observe A::value = [""]; }'''
             'observe A::value = [""]; observe A::value = [];'), 1, 'invalid')
         self.assertIn({'phase': 'snapshot', 'field': 'unique observation keys'}, report['diagnostics'])
 
+    def test_repeated_opposite_links_and_enum(self):
+        source = '''package p {
+enum Color { red; blue; }
+class A {
+  links : p::B [0..*] ordered nonunique;
+  color : enum p::Color [0..1] unordered unique;
+}
+class B { backs : p::A [0..*] unordered nonunique; }
+association R { ends p::A::links, p::B::backs; }
+}
+object a : p::A {
+  observe p::A::links = [@b, @b];
+  observe p::A::color = [p::Color::red];
+}
+object b : p::B { observe p::B::backs = [@a, @a]; }'''
+        self.invoke(source, 0, 'accepted')
+        report = self.invoke(source.replace('[@a, @a]', '[@a]'), 1, 'invalid')
+        self.assertIn({'phase': 'snapshot', 'field': 'opposite counts'}, report['diagnostics'])
+
 
 if __name__ == '__main__':
     unittest.main()
