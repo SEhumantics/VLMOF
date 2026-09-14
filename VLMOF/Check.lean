@@ -88,6 +88,17 @@ def valueMatchesB (s : Schema) (m : Snapshot) : ValueType → Value → Bool
       decide (d.id = o) && decide (s.isSubtype d.classifier c))
   | _, _ => false
 
+/-- Cache each object's two occurrence lists once per association, before the
+pairwise comparison. Duplicate rows and repeated values remain in the cached lists. -/
+def oppositeCountsForB (m : Snapshot) (p q : PropertyId) : Bool :=
+  let forward := m.objects.map fun x => (x.id, m.occurrences x.id p)
+  let backward := m.objects.map fun y => (y.id, m.occurrences y.id q)
+  forward.all fun x => backward.all fun y =>
+    decide (x.2.count (.reference y.1) = y.2.count (.reference x.1))
+
+def containmentForB (s : Schema) (m : Snapshot) (source : ObjectId) : Bool :=
+  (outgoingComposite s m [source]).all fun child => !compositeReachableB s m child source
+
 def snapshotFieldChecks (s : Schema) (m : Snapshot) : List (String × Bool) :=
   [("schema well formed", checkSchema s),
    ("unique object identifiers", decide (uniqueBy ObjectDecl.id m.objects)),
@@ -110,12 +121,9 @@ def snapshotFieldChecks (s : Schema) (m : Snapshot) : List (String × Bool) :=
    ("unique occurrences", m.objects.all fun o => s.properties.all fun p =>
       decide (¬ s.applicableProperty o.classifier p.id) || decide (p.multiplicity.isUnique ≠ true) ||
         decide ((m.occurrences o.id p.id).Nodup)),
-   ("opposite counts", s.associations.all fun a => m.objects.all fun x => m.objects.all fun y =>
-      decide ((m.occurrences x.id a.ends.1).count (.reference y.id) =
-        (m.occurrences y.id a.ends.2).count (.reference x.id))),
+   ("opposite counts", s.associations.all fun a => oppositeCountsForB m a.ends.1 a.ends.2),
    ("one incoming composite", m.objects.all fun o => decide (incomingCompositeCount s m o.id ≤ 1)),
-   ("containment acyclic", m.objects.all fun o => (referenceTargets m).all fun child =>
-      !compositeEdgeB s m o.id child || !compositeReachableB s m child o.id)]
+   ("containment acyclic", m.objects.all fun o => containmentForB s m o.id)]
 
 def checkSnapshot (s : Schema) (m : Snapshot) : Bool :=
   (snapshotFieldChecks s m).all (fun x => x.2)

@@ -41,10 +41,10 @@ theorem checkSnapshot_iff_of_schema (s : Schema) (m : Snapshot)
     (hschema : checkSchema s = true ↔ SchemaWellFormed s) :
     checkSnapshot s m = true ↔ SnapshotConforms s m := by
   classical
-  simp only [checkSnapshot, snapshotFieldChecks, List.all_cons, List.all_nil,
+  simp only [checkSnapshot, snapshotFieldChecks, oppositeCountsForB_eq, List.all_cons, List.all_nil,
     Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq,
     List.all_eq_true, bool_eq_decide, List.any_eq_true,
-    valueMatchesB_eq_true, hschema, and_true, guard_iff]
+    valueMatchesB_eq_true, containmentForB_eq_true, hschema, and_true, guard_iff]
 
   constructor
   · rintro ⟨hs, hu, hk, hr, hc, he, hkr, ha, ht, hb, hn, ho, hi, hcy⟩
@@ -54,11 +54,7 @@ theorem checkSnapshot_iff_of_schema (s : Schema) (m : Snapshot)
     · intro a ham p q heq x hx y hy
       have h := ho a ham x hx y hy
       simpa [heq] using h
-    · intro o hom child hedge hreach
-      have h := hcy o hom child (compositeEdge_target_mem hedge)
-      have heb := (compositeEdgeB_eq_true _ _ _ _).mpr hedge
-      have hrb := (compositeReachableB_eq_true _ _ _ _).mpr hreach
-      simp [heb, hrb] at h
+    · exact hcy
   · intro h
     refine ⟨h.schema, h.uniqueObjectIds, h.uniqueObservationKeys, h.classifiersResolved,
       h.concreteClassifiers, h.observationsExact, h.observationKeysResolved,
@@ -70,19 +66,8 @@ theorem checkSnapshot_iff_of_schema (s : Schema) (m : Snapshot)
       · exact Or.inl (fun ha hu => hn (h.uniqueness o ho p hp ha hu))
     · intro a ha x hx y hy
       exact h.oppositeCounts a ha a.ends.1 a.ends.2 rfl x hx y hy
-    · intro o ho child _
-      by_cases he : compositeEdgeB s m o.id child = true
-      · right
-        have hn : ¬ compositeReachableB s m child o.id = true := by
-          intro hr
-          exact h.containmentAcyclic o ho child ((compositeEdgeB_eq_true _ _ _ _).mp he)
-            ((compositeReachableB_eq_true _ _ _ _).mp hr)
-        cases hb : compositeReachableB s m child o.id <;> simp_all
-      · left
-        cases hb : compositeEdgeB s m o.id child <;> simp_all
+    · exact h.containmentAcyclic
 
 end VLMOF
-
-
 
 
