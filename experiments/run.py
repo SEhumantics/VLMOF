@@ -84,6 +84,8 @@ def main():
         'cases': []}
     statuses = {'accepted': 'accepted', 'unsupported': 'unsupported', 'invalid': 'rejected',
                 'malformed': 'rejected', 'parse-malformed': 'rejected', 'binding-failure': 'rejected'}
+    status_codes = {'accepted': 0, 'unsupported': 3, 'invalid': 1,
+                    'malformed': 2, 'parse-malformed': 2, 'binding-failure': 2}
     for name, mode, payload, code, status, reason in cases():
         path = inputs / (name + ('.json' if mode == 'check-json' else '.dsl'))
         path.write_text(payload if isinstance(payload, str) else json.dumps(payload, indent=2), encoding='utf-8')
@@ -97,6 +99,8 @@ def main():
                 parsed = json.loads(run.get('stdout', ''))
                 row['observed'] = parsed
                 row['result'] = statuses.get(parsed.get('status'), 'execution-failure')
+                if run['exit'] != status_codes.get(parsed.get('status')) or run.get('stderr'):
+                    row['result'] = 'execution-failure'
                 row['matches_expectation'] = run['exit'] == code and parsed.get('status') == status and not run.get('stderr')
             except (ValueError, TypeError):
                 row['result'] = 'execution-failure'
