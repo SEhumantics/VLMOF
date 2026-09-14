@@ -31,6 +31,10 @@ public final class EcoreProfileInventory {
     System.out.printf("REJECT %s %s%n", kind, where);
   }
 
+  private static void observe(String kind, String where) {
+    System.out.printf("OBSERVE %s %s%n", kind, where);
+  }
+
   public static void main(String[] args) {
     if (args.length != 1) throw new IllegalArgumentException("usage: EcoreProfileInventory FILE.ecore");
     Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("ecore", new EcoreResourceFactoryImpl());
@@ -52,17 +56,24 @@ public final class EcoreProfileInventory {
         if (feature instanceof EReference reference && reference.getEType() != null
             && reference.getEType().getEPackage() != null
             && reference.getEType().getEPackage() != feature.getEContainingClass().getEPackage()) {
-          reject("external-reference-classifier", feature.getName() + ":" + reference.getEType().getName()); rejected++;
+          observe("external-reference-classifier", feature.getName() + ":" + reference.getEType().getName());
         }
       }
       if (item instanceof EDataType data && !(data instanceof EEnum) && !primitive(data)) {
         reject("custom-or-unsupported-datatype", data.getName()); rejected++;
       }
-      if (item instanceof EGenericType generic && !generic.getETypeArguments().isEmpty()) {
+      if (item instanceof EGenericType generic) {
         String classifier = generic.getEClassifier() == null ? "unresolved" : generic.getEClassifier().getName();
-        reject("generic-type-arguments", classifier + " arity=" + generic.getETypeArguments().size()); rejected++;
+        if (!generic.getETypeArguments().isEmpty()) {
+          reject("generic-type-arguments", classifier + " arity=" + generic.getETypeArguments().size()); rejected++;
+        }
+        if (generic.getETypeParameter() != null) {
+          reject("generic-type-parameter-reference", generic.getETypeParameter().getName()); rejected++;
+        }
+        if (generic.getEUpperBound() != null || generic.getELowerBound() != null) {
+          reject("generic-bound", classifier); rejected++;
+        }
       }
-      if (item instanceof EClass clazz && !clazz.getEGenericSuperTypes().isEmpty()) { reject("generic-supertype", clazz.getName()); rejected++; }
       if (item instanceof EClassifier classifier && classifier.getEPackage() == null) { reject("unowned-classifier", classifier.getName()); rejected++; }
     }
     System.out.printf("INVENTORY file=%s rejected-features=%d%n", args[0], rejected);

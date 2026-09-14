@@ -10,7 +10,11 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="children" upperBound="-1"
       containment="true" eType="#//Child" eOpposite="#//Child/parent"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="Child">
+  <eClassifiers xsi:type="ecore:EClass" name="Base">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="baseCode" lowerBound="1"
+      eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Child" eSuperTypes="#//Base">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1"
       eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="marks" upperBound="-1"

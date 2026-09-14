@@ -4,6 +4,7 @@ import java.net.URL;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
@@ -29,8 +30,15 @@ public final class ResourceLoadDemo {
     set.getPackageRegistry().put(pkg.getNsURI(), pkg);
     Resource xmi = set.getResource(classpathUri("/samples/tiny.xmi"), true);
     EObject root = xmi.getContents().getFirst();
-    int children = ((java.util.List<?>) root.eGet(root.eClass().getEStructuralFeature("children"))).size();
-    System.out.printf("LOADED nsURI=%s root=%s children=%d%n", pkg.getNsURI(),
-        root.eClass().getName(), children);
+    java.util.List<?> children = (java.util.List<?>) root.eGet(root.eClass().getEStructuralFeature("children"));
+    EObject first = (EObject) children.getFirst();
+    java.util.List<?> marks = (java.util.List<?>) first.eGet(first.eClass().getEStructuralFeature("marks"));
+    EStructuralFeature parentFeature = first.eClass().getEStructuralFeature("parent");
+    if (!marks.equals(java.util.List.of(7, 7, 9)) || first.eGet(parentFeature) != root
+        || !children.contains(first) || first.eClass().getEStructuralFeature("baseCode") == null) {
+      throw new IllegalStateException("authored occurrence, opposite, or inherited-feature observation was lost");
+    }
+    System.out.printf("LOADED nsURI=%s root=%s children=%d marks=%s reciprocal=true inherited=baseCode%n",
+        pkg.getNsURI(), root.eClass().getName(), children.size(), marks);
   }
 }
