@@ -87,7 +87,89 @@ theorem OccurrencesBind.length_eq {model : Model} {snapshot : Instance}
     | cons target targets =>
       simp only [OccurrencesBind] at h
       simpa using congrArg Nat.succ (ih h.2)
+/-- Binding does not identify distinct symbolic values. This includes declaration
+and object aliases, whose identity is separate from their display names. -/
+theorem ValueBinds.source_unique {model : Model} {snapshot : Instance}
+    {first second : Source.Value} {target : VLMOF.Value}
+    (hf : ValueBinds model snapshot first target)
+    (hs : ValueBinds model snapshot second target) : first = second := by
+  cases first <;> cases second <;> cases target <;>
+    simp_all [ValueBinds]
+  · exact ⟨Option.some.inj (hf.1.1.symm.trans hs.1.1),
+      Option.some.inj (hf.2.1.symm.trans hs.2.1)⟩
+  · exact Option.some.inj (hf.1.symm.trans hs.1)
+
+/-- A source value cannot bind to two distinct core values. -/
+theorem ValueBinds.target_unique {model : Model} {snapshot : Instance}
+    {source : Source.Value} {first second : VLMOF.Value}
+    (hf : ValueBinds model snapshot source first)
+    (hs : ValueBinds model snapshot source second) : first = second := by
+  exact Except.ok.inj (((bindValue_iff _ _ _ _).mpr hf).symm.trans
+    ((bindValue_iff _ _ _ _).mpr hs))
+/-- Membership is preserved and reflected for any successfully bound value. -/
+theorem OccurrencesBind.mem_iff {model : Model} {snapshot : Instance}
+    {sources : List Source.Value} {targets : List VLMOF.Value}
+    {source : Source.Value} {target : VLMOF.Value}
+    (h : OccurrencesBind model snapshot sources targets)
+    (hv : ValueBinds model snapshot source target) : source ∈ sources ↔ target ∈ targets := by
+  induction sources generalizing targets with
+  | nil => cases targets <;> simp_all [OccurrencesBind]
+  | cons first rest ih =>
+    cases targets with
+    | nil => simp [OccurrencesBind] at h
+    | cons second tail =>
+      have hp := h.1
+      have ht := ih h.2
+      have he : source = first ↔ target = second := by
+        constructor
+        · intro eq
+          subst first
+          exact hv.target_unique hp
+        · intro eq
+          subst second
+          exact hv.source_unique hp
+      simpa only [List.mem_cons, he] using or_congr Iff.rfl ht
+
+/-- `isUnique` observes exactly the same duplicates before and after binding. -/
+theorem OccurrencesBind.nodup_iff {model : Model} {snapshot : Instance}
+    {sources : List Source.Value} {targets : List VLMOF.Value}
+    (h : OccurrencesBind model snapshot sources targets) : sources.Nodup ↔ targets.Nodup := by
+  induction sources generalizing targets with
+  | nil => cases targets <;> simp_all [OccurrencesBind]
+  | cons first rest ih =>
+    cases targets with
+    | nil => simp [OccurrencesBind] at h
+    | cons second tail =>
+      rw [List.nodup_cons, List.nodup_cons, h.2.mem_iff h.1, ih h.2]
+/-- Opposite reciprocity can compare occurrence counts on either side of binding. -/
+theorem OccurrencesBind.count_eq {model : Model} {snapshot : Instance}
+    {sources : List Source.Value} {targets : List VLMOF.Value}
+    {source : Source.Value} {target : VLMOF.Value}
+    (h : OccurrencesBind model snapshot sources targets)
+    (hv : ValueBinds model snapshot source target) : sources.count source = targets.count target := by
+  induction sources generalizing targets with
+  | nil => cases targets <;> simp_all [OccurrencesBind]
+  | cons first rest ih =>
+    cases targets with
+    | nil => simp [OccurrencesBind] at h
+    | cons second tail =>
+      have ht := ih h.2
+      by_cases eq : source = first
+      · subst first
+        have eqt := hv.target_unique h.1
+        subst second
+        simpa using ht
+      · have neqt : second ≠ target := by
+          intro eqt
+          subst second
+          exact eq (hv.source_unique h.1)
+        simpa [List.count_cons_of_ne (Ne.symm eq), List.count_cons_of_ne neqt] using ht
 end VLMOF.Source
+
+
+
+
+
 
 
 
