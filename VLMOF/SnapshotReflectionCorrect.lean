@@ -783,4 +783,151 @@ theorem source_oneIncomingComposite_of_snapshotConforms
   rw [incomingCompositeCount_reflect_eq hwell hmodel hinstance hobjectId]
   exact hconforms.oneIncomingComposite targetObject htargetObject
 
+private theorem sourceCompositeEdge_ids
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    {sourceName targetName : Name}
+    (hedge : sourceCompositeEdge model source sourceName targetName) :
+    ∃ sourceId targetId,
+      objectId source sourceName = .ok sourceId ∧
+      objectId source targetName = .ok targetId ∧
+      compositeEdge schema target sourceId targetId := by
+  have hedgeOriginal := hedge
+  obtain ⟨observation, hobservation, hsourceName, hreference, _, _, _, _⟩ := hedge
+  obtain ⟨targetObservation, _, hobjectId, _, hoccurrences⟩ :=
+    sourceObservation_target hinstance hobservation
+  obtain ⟨targetValue, _, hvalue⟩ :=
+    hoccurrences.source_covered (.reference targetName) hreference
+  cases targetValue with
+  | boolean value => simp [ValueBinds] at hvalue
+  | integer value => simp [ValueBinds] at hvalue
+  | string value => simp [ValueBinds] at hvalue
+  | enumeration enumeration literal => simp [ValueBinds] at hvalue
+  | reference targetId =>
+    have htargetId : objectId source targetName = .ok targetId := by
+      apply (objectId_ok_iff source targetName targetId).mpr
+      exact (resolveIndex_iff_uniqueAliasAt _ _ _ _).mpr hvalue
+    have hsourceId : objectId source sourceName = .ok targetObservation.object := by
+      simpa [hsourceName] using hobjectId
+    exact ⟨targetObservation.object, targetId, hsourceId, htargetId,
+      (sourceCompositeEdge_iff_compositeEdge hwell hmodel hinstance
+        hsourceId htargetId).mp hedgeOriginal⟩
+
+private theorem sourceCompositeReachable_to_storedPath
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    {sourceName targetName : Name}
+    (hreach : SourceCompositeReachable model source sourceName targetName)
+    {sourceId targetId : ObjectId}
+    (hsourceId : objectId source sourceName = .ok sourceId)
+    (htargetId : objectId source targetName = .ok targetId) :
+    StoredPath (compositeEdge schema target) sourceId targetId := by
+  induction hreach generalizing sourceId targetId with
+  | refl =>
+    have hid : sourceId = targetId := Except.ok.inj (hsourceId.symm.trans htargetId)
+    subst targetId
+    exact .refl sourceId
+  | @step middle finish hprefix hedge ih =>
+    obtain ⟨middleId, finishId, hmiddleId, hfinishId, htargetEdge⟩ :=
+      sourceCompositeEdge_ids hwell hmodel hinstance hedge
+    have hprefixTarget := ih hsourceId hmiddleId
+    have hfinish : finishId = targetId :=
+      Except.ok.inj (hfinishId.symm.trans htargetId)
+    subst finishId
+    exact .step hprefixTarget htargetEdge
+
+theorem source_containmentAcyclic_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ object ∈ source.objects, ∀ child,
+      sourceCompositeEdge model source object.alias child →
+      ¬ SourceCompositeReachable model source child object.alias := by
+  intro object hobject child hedge hcycle
+  obtain ⟨targetObject, htargetObject, hobjectId, _⟩ :=
+    sourceObject_target hinstance hobject
+  obtain ⟨sourceId, childId, hsourceId, hchildId, htargetEdge⟩ :=
+    sourceCompositeEdge_ids hwell hmodel hinstance hedge
+  have hsourceEq : sourceId = targetObject.id :=
+    Except.ok.inj (hsourceId.symm.trans hobjectId)
+  subst sourceId
+  have hpath := sourceCompositeReachable_to_storedPath hwell hmodel hinstance
+    hcycle hchildId hobjectId
+  have hreachable : compositeReachable schema target childId targetObject.id :=
+    (hconforms.compositeReachable_iff_path
+      (hconforms.compositeTargetsResolved htargetEdge)).mpr hpath
+  exact hconforms.containmentAcyclic targetObject htargetObject childId
+    htargetEdge hreachable
+
+/-- Full source snapshot satisfaction reflects from target conformance.  The
+source model is explicit because schema adequacy is a separate reverse theorem;
+object XML-name validity is explicit because binding checks only empty parts. -/
+theorem sourceSatisfies_of_snapshotConforms_of_bindings
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model)
+    (hobjectNames : ∀ object ∈ source.objects, NameValid object.alias)
+    (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    SourceSatisfies { model, snapshot := source } := by
+  exact {
+    model := hwell
+    uniqueObjectAliases := objectAliases_nodup_of_bindInstance hinstance
+    objectAliasesValid := hobjectNames
+    classifiersResolved := source_classifiersResolved_of_snapshotConforms
+      (schema := schema) hinstance
+    concreteClassifiers := source_concreteClassifiers_of_snapshotConforms
+      hwell hmodel hinstance hconforms
+    uniqueObservationKeys := sourceObservationKeys_nodup hinstance
+      hconforms.uniqueObservationKeys
+    observationsExact := source_observationsExact_of_snapshotConforms
+      hwell hmodel hinstance hconforms
+    observationKeysResolved := source_observationKeysResolved_of_binding hinstance
+    observationApplicable := source_observationApplicable_of_snapshotConforms
+      hwell hmodel hinstance hconforms
+    valuesTyped := source_valuesTyped_of_snapshotConforms
+      hwell hmodel hinstance hconforms
+    bounds := source_bounds_of_snapshotConforms hwell hmodel hinstance hconforms
+    uniqueness := source_uniqueness_of_snapshotConforms hwell hmodel hinstance hconforms
+    oppositeCounts := source_oppositeCounts_of_snapshotConforms hmodel hinstance hconforms
+    oneIncomingComposite := source_oneIncomingComposite_of_snapshotConforms
+      hwell hmodel hinstance hconforms
+    containmentAcyclic := source_containmentAcyclic_of_snapshotConforms
+      hwell hmodel hinstance hconforms
+  }
+
+private theorem elaborate_ok_bindings {document : Document} {schema : Schema}
+    {target : Snapshot} (h : elaborate document = .ok (schema, target)) :
+    bindModel document.model = .ok schema ∧
+      bindInstance document.model document.snapshot = .ok target := by
+  unfold elaborate at h
+  cases hm : bindModel document.model with
+  | error error => simp [hm, Bind.bind, Except.bind] at h
+  | ok boundSchema =>
+    cases hi : bindInstance document.model document.snapshot with
+    | error error => simp [hm, hi, Bind.bind, Except.bind] at h
+    | ok boundTarget =>
+      have heq : (boundSchema, boundTarget) = (schema, target) := by
+        simpa [hm, hi, Bind.bind, Except.bind, pure, Except.pure] using h
+      have hs := congrArg Prod.fst heq
+      have ht := congrArg Prod.snd heq
+      change boundSchema = schema at hs
+      change boundTarget = target at ht
+      rw [← hs, ← ht]
+      exact ⟨rfl, rfl⟩
+
+theorem sourceSatisfies_of_snapshotConforms_of_elaborate
+    {document : Document} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed document.model)
+    (hobjectNames : ∀ object ∈ document.snapshot.objects, NameValid object.alias)
+    (helaborate : elaborate document = .ok (schema, target))
+    (hconforms : SnapshotConforms schema target) :
+    SourceSatisfies document := by
+  obtain ⟨hmodel, hinstance⟩ := elaborate_ok_bindings helaborate
+  exact sourceSatisfies_of_snapshotConforms_of_bindings hwell hobjectNames
+    hmodel hinstance hconforms
+
 end VLMOF.Source
