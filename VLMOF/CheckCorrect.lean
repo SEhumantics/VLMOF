@@ -18,6 +18,6 @@ theorem compositeEdgeB_eq_true (s : Schema) (m : Snapshot) (src dst : ObjectId) 
 
 theorem compositeReachableB_eq_true (s : Schema) (m : Snapshot) (src dst : ObjectId) :
     compositeReachableB s m src dst = true ↔ compositeReachable s m src dst := by
-  simp [compositeReachableB, compositeReachable]
+  simp [compositeReachableB, compositeReachable, iterateClosureFast_eq]
 
 end VLMOF

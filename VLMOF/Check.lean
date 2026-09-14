@@ -1,4 +1,5 @@
 import VLMOF.Semantics
+import VLMOF.FastClosure
 
 namespace VLMOF
 
@@ -75,7 +76,7 @@ def compositeEdgeB (s : Schema) (m : Snapshot) (src dst : ObjectId) : Bool :=
       a.occurrences.contains (.reference dst)
 
 def compositeReachableB (s : Schema) (m : Snapshot) (src dst : ObjectId) : Bool :=
-  (iterateClosure (outgoingComposite s m) m.objects.length [src]).contains dst
+  (iterateClosureFast (outgoingComposite s m) m.objects.length [src]).contains dst
 
 def valueMatchesB (s : Schema) (m : Snapshot) : ValueType → Value → Bool
   | .boolean, .boolean _ => true
