@@ -380,4 +380,191 @@ theorem source_uniqueness_of_snapshotConforms
   exact hconforms.uniqueness targetObject htargetObject targetProperty htargetProperty
     htargetApplies htargetUnique
 
+private theorem enumerationId_of_uniqueAliasAt {model : Model} {name : Name}
+    {id : EnumerationId}
+    (h : UniqueAliasAt (model.enumerations.map Enumeration.alias) name id.val) :
+    enumerationId model name = .ok id := by
+  have hr : resolveIndex "enumeration" (model.enumerations.map Enumeration.alias)
+      name = .ok id.val := (resolveIndex_iff_uniqueAliasAt _ _ _ _).mpr h
+  cases id
+  simp [enumerationId, hr, Except.map]
+
+private theorem literalId_of_uniqueAliasAt {model : Model} {name : Name}
+    {id : LiteralId}
+    (h : UniqueAliasAt (model.literals.map Literal.alias) name id.val) :
+    literalId model name = .ok id := by
+  have hr : resolveIndex "literal" (model.literals.map Literal.alias)
+      name = .ok id.val := (resolveIndex_iff_uniqueAliasAt _ _ _ _).mpr h
+  cases id
+  simp [literalId, hr, Except.map]
+
+private theorem classAliasAt_of_classId {model : Model} {name : Name} {id : ClassId}
+    (h : classId model name = .ok id) : ClassAliasAt model id name :=
+  resolveIndex_getElem ((classId_ok_iff model name id).mp h)
+
+private theorem bindLiteralEntry_enumeration {model : Model} {source : Literal}
+    {index : Nat} {target : LiteralDecl}
+    (h : bindLiteralEntry model (source, index) = .ok target) :
+    enumerationId model source.enumeration = .ok target.enumeration := by
+  unfold bindLiteralEntry at h
+  cases hq : checkQualification source.alias (some source.enumeration) <;>
+    cases he : enumerationId model source.enumeration <;>
+    simp [hq, he, Bind.bind, Except.bind, pure, Except.pure] at h
+  subst target
+  exact rfl
+
+private theorem sourceObject_of_uniqueAliasAt {snapshot : Instance} {name : Name}
+    {id : ObjectId}
+    (h : UniqueAliasAt (snapshot.objects.map Object.alias) name id.val) :
+    ∃ object ∈ snapshot.objects, object.alias = name := by
+  have hget := h.1
+  rw [List.getElem?_map] at hget
+  cases he : snapshot.objects[id.val]? with
+  | none => simp [he] at hget
+  | some object =>
+    simp [he] at hget
+    exact ⟨object, List.mem_iff_getElem?.mpr ⟨id.val, he⟩, hget⟩
+
+private theorem enumerationId_ok_iff (model : Model) (name : Name) (id : EnumerationId) :
+    enumerationId model name = .ok id ↔
+      resolveIndex "enumeration" (model.enumerations.map Enumeration.alias) name = .ok id.val := by
+  cases id with
+  | mk index =>
+    cases h : resolveIndex "enumeration" (model.enumerations.map Enumeration.alias) name <;>
+      simp [enumerationId, h, Except.map]
+
+/-- Target value typing reflects to source value typing under the same successful
+type and value bindings.  Reference subtyping is reflected through the allocated
+class graph; enumeration literals are recovered through unique target IDs. -/
+theorem valueMatches_to_sourceValueMatches
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target)
+    {sourceType : Source.ValueType} {targetType : VLMOF.ValueType}
+    {sourceValue : Source.Value} {targetValue : VLMOF.Value}
+    (htype : bindType model sourceType = .ok targetType)
+    (hvalue : ValueBinds model source sourceValue targetValue)
+    (htarget : valueMatches schema target targetType targetValue) :
+    sourceValueMatches model source sourceType sourceValue := by
+  cases sourceType with
+  | boolean =>
+    cases sourceValue <;> cases targetType <;> cases targetValue <;>
+      simp_all [bindType, ValueBinds, valueMatches, sourceValueMatches,
+        pure, Except.pure]
+  | integer =>
+    cases sourceValue <;> cases targetType <;> cases targetValue <;>
+      simp_all [bindType, ValueBinds, valueMatches, sourceValueMatches,
+        pure, Except.pure]
+  | string =>
+    cases sourceValue <;> cases targetType <;> cases targetValue <;>
+      simp_all [bindType, ValueBinds, valueMatches, sourceValueMatches,
+        pure, Except.pure]
+  | enumeration expected =>
+    cases he : enumerationId model expected with
+    | error error => simp [bindType, he, Functor.map, Except.map] at htype
+    | ok expectedId =>
+      have htt : targetType = .enumeration expectedId := by
+        apply Except.ok.inj
+        exact htype.symm.trans (by simp [bindType, he, Functor.map, Except.map])
+      subst targetType
+      cases sourceValue with
+      | boolean value => cases targetValue <;> simp [ValueBinds, valueMatches] at hvalue htarget
+      | integer value => cases targetValue <;> simp [ValueBinds, valueMatches] at hvalue htarget
+      | string value => cases targetValue <;> simp [ValueBinds, valueMatches] at hvalue htarget
+      | reference value => cases targetValue <;> simp [ValueBinds, valueMatches] at hvalue htarget
+      | enumeration actual literal =>
+        cases targetValue with
+        | boolean _ => simp [ValueBinds] at hvalue
+        | integer _ => simp [ValueBinds] at hvalue
+        | string _ => simp [ValueBinds] at hvalue
+        | reference _ => simp [ValueBinds] at hvalue
+        | enumeration actualId literalId' =>
+          rcases htarget with ⟨henumIds, targetLiteral, htargetLiteral,
+            htargetLiteralId, htargetEnumeration⟩
+          have hactual := enumerationId_of_uniqueAliasAt hvalue.1
+          have hname : expected = actual := by
+            exact resolveIndex_injective
+              ((enumerationId_ok_iff model expected expectedId).mp he)
+              ((enumerationId_ok_iff model actual expectedId).mp
+                (by simpa [henumIds] using hactual))
+          have hliteral := literalId_of_uniqueAliasAt hvalue.2
+          obtain ⟨sourceLiteral, allocatedLiteral, hsourceLiteral, hsourceAlias,
+            hallocatedLiteral, hallocatedLiteralId, hliteralBind⟩ :=
+              (modelAllocation_of_bindModel hmodel).literalForId hliteral
+          have hsameLiteral : targetLiteral = allocatedLiteral := by
+            apply uniqueBy_eq_of_mem LiteralDecl.id
+              (modelAllocation_of_bindModel hmodel).uniqueIds.2.2.2.2.2
+              htargetLiteral hallocatedLiteral
+            exact htargetLiteralId.trans hallocatedLiteralId.symm
+          subst targetLiteral
+          have hsourceEnumeration := bindLiteralEntry_enumeration hliteralBind
+          have hsourceEnumName : sourceLiteral.enumeration = expected := by
+            apply resolveIndex_injective
+            · apply (enumerationId_ok_iff model sourceLiteral.enumeration expectedId).mp
+              simpa [htargetEnumeration] using hsourceEnumeration
+            · exact (enumerationId_ok_iff model expected expectedId).mp he
+          exact ⟨hname, sourceLiteral, hsourceLiteral, hsourceAlias,
+            hsourceEnumName⟩
+  | reference expected =>
+    cases hc : classId model expected with
+    | error error => simp [bindType, hc, Functor.map, Except.map] at htype
+    | ok expectedId =>
+      have htt : targetType = .reference expectedId := by
+        apply Except.ok.inj
+        exact htype.symm.trans (by simp [bindType, hc, Functor.map, Except.map])
+      subst targetType
+      cases sourceValue with
+      | boolean value => cases targetValue <;> simp [ValueBinds, valueMatches] at hvalue htarget
+      | integer value => cases targetValue <;> simp [ValueBinds, valueMatches] at hvalue htarget
+      | string value => cases targetValue <;> simp [ValueBinds, valueMatches] at hvalue htarget
+      | enumeration enum lit => cases targetValue <;> simp [ValueBinds, valueMatches] at hvalue htarget
+      | reference objectName =>
+        cases targetValue with
+        | boolean _ => simp [ValueBinds] at hvalue
+        | integer _ => simp [ValueBinds] at hvalue
+        | string _ => simp [ValueBinds] at hvalue
+        | enumeration _ _ => simp [ValueBinds] at hvalue
+        | reference objectId' =>
+          rcases htarget with ⟨targetObject, htargetObject, htargetId, hsubtype⟩
+          obtain ⟨sourceObject, hsourceObject, hsourceAlias⟩ :=
+            sourceObject_of_uniqueAliasAt hvalue
+          obtain ⟨allocatedObject, hallocatedObject, hobjectId, hclassifier⟩ :=
+            sourceObject_target hinstance hsourceObject
+          have hsameObject : targetObject = allocatedObject := by
+            apply uniqueBy_eq_of_mem ObjectDecl.id hconforms.uniqueObjectIds
+              htargetObject hallocatedObject
+            have hboundObjectId : objectId source objectName = .ok objectId' := by
+              apply (objectId_ok_iff source objectName objectId').mpr
+              exact (resolveIndex_iff_uniqueAliasAt _ _ _ _).mpr hvalue
+            exact htargetId.trans (Except.ok.inj
+              (hboundObjectId.symm.trans (hsourceAlias ▸ hobjectId)))
+          subst targetObject
+          exact ⟨sourceObject, hsourceObject, hsourceAlias,
+            isSubtype_to_classAncestor hwell (modelAllocation_of_bindModel hmodel)
+              hsubtype (classAliasAt_of_classId hclassifier)
+              (classAliasAt_of_classId hc)⟩
+
+theorem source_valuesTyped_of_snapshotConforms
+    {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
+    (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
+    (hinstance : bindInstance model source = .ok target)
+    (hconforms : SnapshotConforms schema target) :
+    ∀ observation ∈ source.observations, ∀ property ∈ model.properties,
+      property.alias = observation.property → ∀ value ∈ observation.occurrences,
+        sourceValueMatches model source property.type value := by
+  intro observation hobservation property hproperty halias value hvalue
+  obtain ⟨targetObservation, htargetObservation, _, hobservationProperty,
+    hoccurrences⟩ := sourceObservation_target hinstance hobservation
+  obtain ⟨targetProperty, htargetProperty, hpropertyId, htype, _, _⟩ :=
+    sourceProperty_target hwell hmodel hproperty
+  have htargetPropertyId : targetProperty.id = targetObservation.property := by
+    apply Except.ok.inj
+    exact hpropertyId.symm.trans (halias ▸ hobservationProperty)
+  obtain ⟨targetValue, htargetValue, hvalueBind⟩ :=
+    hoccurrences.source_covered value hvalue
+  exact valueMatches_to_sourceValueMatches hwell hmodel hinstance hconforms htype
+    hvalueBind (hconforms.valuesTyped targetObservation htargetObservation targetProperty
+      htargetProperty htargetPropertyId targetValue htargetValue)
+
 end VLMOF.Source
