@@ -6,9 +6,21 @@ commit and dirty status, toolchain and Python versions, executable and input
 hashes, exact commands, exit codes, standard output/error and per-case expectations.
 It classifies accepted, rejected, unsupported, not-run and execution failure
 separately. An unexpected outcome fails the run rather than becoming a successful
-negative example. The authored run uses commit \texttt{f0edde1}; the public runner uses
-\texttt{6985361} with checker provenance \texttt{b5e86cc}. Its 67 command
-records retain the resolved Maven dependencies and unchanged input hashes.
+negative example.
+
+The companion supplement \texttt{VL-MOF-review4-supplement.zip} provides
+\texttt{README.md}, \texttt{INDEX.json}, the source Git bundle and this PDF.
+Its \texttt{evidence/authored/} and \texttt{evidence/public/} directories contain
+\texttt{results.json}, input hashes and retained command logs; \texttt{reviews/}
+contains the independent assessments and fresh reproduction. The index records
+full commits and file hashes. The reviewed source candidate is \texttt{4aa3bed};
+the shipped revision, including review fixes, is identified in the index.
+The authored measurements use \texttt{f0edde1}. The public runner and Java bridge
+use \texttt{6985361}, while its checker was built at \texttt{b5e86cc}; the public
+manifest identifies that executable and every bridge source by SHA-256. Its 67
+commands retain resolved Maven dependencies and unchanged input hashes. Fresh
+review reproduces the qualitative outcomes and structural counts at the candidate;
+Table~\ref{tab:train} retains the earlier single-run timings.
 
 The ten recorded authored cases all match their expected outcomes: three accepted,
 six rejected and one unsupported wire version. They exercise JSON and DSL input,
