@@ -11,6 +11,11 @@ Source-language name resolution belongs in an elaboration layer which produces t
 identities.  In particular, inherited properties are referenced by `PropertyId`, so
 the two paths through a diamond still reach one declaration, while two declarations
 with the same name remain different.
+
+Each Schema denotes an implicit outer package scope. A missing explicit package
+reference on a class, enumeration or association denotes ownership by that scope,
+not an ownerless EMOF declaration. Explicit packages with no parent also sit in
+that scope. See REPRESENTATION.md for the interpretation and its omitted root API.
 -/
 
 namespace VLMOF

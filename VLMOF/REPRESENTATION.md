@@ -45,3 +45,28 @@ the pinned `UML.xmi` definitions of Package, Class, Property, Association, Enume
 EnumerationLiteral, and MultiplicityElement. The occurrence-sensitive raw-state choice
 is the accepted profile interpretation recorded in `sources/PROFILE.md`; it does not
 claim that every raw state is reachable through reflective mutation operations.
+
+## Implicit outer package scope
+
+A `Schema` (and a source `Model`) denotes one implicit outer package scope.
+`ClassDecl.package = none`, the corresponding enumeration/association fields,
+and a root explicit package's `parent = none` mean ownership by that outer scope.
+They do not denote ownerless Classes, Enumerations or Associations. This convention
+reconciles root-level authoring with the adopted UML `Element::has_owner` rule and
+EMOF's prohibition on nested classifiers: a top-level Class is package-owned,
+never class-owned. For example, `class C {}` has the outer scope as its owner.
+
+The outer scope is interpreted as a Package with a fresh identity distinct from
+all explicit `PackageId`s and fixed nonempty display name `Model`. It has no source
+binding alias and no stored `PackageDecl`. Display-name collisions are harmless
+because names are not identities. A missing explicit package reference is the
+compact encoding of that one scope. Package reachability theorems concern the
+stored explicit package IDs; the implicit scope cannot be used as a query endpoint.
+No reflective owner/package API or theorem about materializing this scope into a
+complete EMOF object graph is claimed.
+
+This is a representation convention, not an exemption from ownership in the
+standard. The native Ecore exporter currently requires explicit package records;
+it does not synthesize this outer scope. That narrower native domain is documented
+separately. A future bridge that materializes the scope must give its own fresh
+identity/name mapping and preservation argument.

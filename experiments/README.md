@@ -21,6 +21,7 @@ inputs, with their precise phase retained in the report. A missing executable is
 `not-run`; timeouts, process failures and uninterpretable reports are execution failures.
 An unexpected result remains visible and makes the runner fail.
 
-This is the authored-case portion of evaluation. Public Train/EMF Compare bridge
-results and performance experiments remain pending. Recorded durations are single
-execution measurements, not a comparative performance claim.
+This is the authored-case portion of evaluation. The [public runner](README-public.md)
+records all six adapted Train round trips, raw-input controls, and EMF Compare
+rejection with pinned inputs, exact commands, hashes and dependency versions.
+Recorded durations are single operational measurements, not comparative benchmarks.

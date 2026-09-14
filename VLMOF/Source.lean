@@ -8,6 +8,10 @@ binding keys, not EMOF names and not core numeric identities (MOF 12.5.1/12.5.4)
 For example, `leftCode` and `rightCode` can both display the name `code` while
 remaining separately addressable. Runtime object aliases have a separate domain.
 
+A Model has an implicit outer package scope. Top-level declarations are owned by
+that scope; `package := none` is its compact encoding, not absent ownership.
+The scope has no source binding alias (see REPRESENTATION.md).
+
 This AST is before binding and therefore retains unknown references and ambiguous
 aliases for diagnostics. Multiplicity and aggregation reuse value constructors,
 not target conformance. No definition below calls core conformance or elaborates
@@ -166,5 +170,4 @@ example : ¬ Equivalent false [.integer 7, .integer 7] [.integer 7] := by
 
 end Examples
 end VLMOF.Source
-
 

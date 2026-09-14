@@ -125,3 +125,22 @@ equal repeated occurrences. Ordering is an observation of the retained list; uno
 observation equivalence is permutation. Optional MOF clause 15.3.3 opposite-end
 isUnique compatibility is not selected, so opposite ends may have different uniqueness
 flags; reciprocity and each end's own bounds and uniqueness still constrain snapshots.
+
+## Root ownership convention
+
+A whole Schema/Model supplies an implicit outer Package scope. An omitted explicit
+package on a Class, Enumeration or Association denotes ownership by that scope,
+not an ownerless declaration. Root explicit packages are also inside that scope.
+The scope has a fresh identity, fixed nonempty display name `Model`, and no source
+alias or stored package ID. This reconciles top-level DSL declarations with adopted
+UML `Element::has_owner`; it does not permit nested classifiers. The exact encoding
+and the excluded reflective/root-materialization claims are in
+[REPRESENTATION.md](../VLMOF/REPRESENTATION.md).
+
+The occurrence-based incoming-composite bound is also deliberately stronger than
+counting distinct `(parent, property)` containers. For an unpaired nonunique
+composite feature, one parent and one slot containing the same child twice is
+rejected by this profile even though a distinct-container reading admits it.
+We do not claim that the standard requires this stronger restriction; it selects
+the occurrence-sensitive snapshot domain formalized here. If an opposite upper-one
+container end exists, pair-count reciprocity already rules out that repetition.
