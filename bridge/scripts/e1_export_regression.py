@@ -139,3 +139,11 @@ badmap=d/'bad-map.json'; badmap.write_text(json.dumps(mapdata))
 failed=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',f'-Dexec.args=compare {rf} {rr} {badmap}'],cwd=ROOT,capture_output=True,text=True)
 assert failed.returncode != 0 and 'duplicate source native identity' in failed.stdout+failed.stderr
 print('E1 IDENTITY REGRESSION OK arbitrary IDs containment order duplicate-map rejection')
+
+# A malformed foreign ID must not be truncated while applying the correspondence.
+fractional=json.loads(rr.read_text())
+fractional['snapshot']['objects'][0]['classifier']=0.5
+fractionalfile=d/'fractional-foreign-id.json'; fractionalfile.write_text(json.dumps(fractional))
+failed=subprocess.run(['mvn','-q','exec:java',f'-Dexec.mainClass={MAIN}',f'-Dexec.args=compare {rf} {fractionalfile} {rx}.ids.json'],cwd=ROOT,capture_output=True,text=True)
+assert failed.returncode != 0 and 'requires nonnegative integer classifier' in failed.stdout+failed.stderr
+print('E1 IDENTITY MALFORMED REGRESSION OK fractional foreign ID rejected')
