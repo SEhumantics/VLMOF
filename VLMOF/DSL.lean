@@ -78,7 +78,12 @@ private def isPunct (s : String) : Tok → Bool
   | .punct q _ => q = s
   | _ => false
 
-private def fail {α} (msg : String) : M α := throw msg
+private def tokPos : Tok → Nat
+  | .word _ p | .text _ p | .number _ p | .punct _ p | .eof p => p
+
+private def fail {α} (msg : String) : M α := do
+  let t ← peek
+  throw s!"at {tokPos t}: {msg}"
 
 private def expectP (p : String) : M Unit := do
   match (← advance) with
@@ -295,7 +300,10 @@ partial def parseObject (snapshot : Instance) : M Instance := do
           else
             let v ← parseValue
             let next ← peek
-            if isPunct "," next then skip; vals (v :: vs)
+            if isPunct "," next then
+              skip
+              let after ← peek
+              if isPunct "]" after then fail "trailing comma is not allowed" else vals (v :: vs)
             else if isPunct "]" next then skip; pure (v :: vs).reverse
             else fail "expected ',' or ']' after value"
         let vs ← vals []; expectP ";"; obs ({ object := [a], property := p, occurrences := vs } :: xs)
