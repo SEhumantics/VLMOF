@@ -59,3 +59,14 @@ successful elaboration result.
 This theorem starts at the AST, not the source bytes. Parsing and the claim that a
 particular parsed document meets the lexical condition remain separate obligations.
 Alias spelling is distinct from display metadata and from allocated Core identity.
+
+## Why the notation is explicit
+
+The language keeps declaration aliases qualified (`railway::Route::active`) and
+asks an object to `observe` each applicable property because source elaboration
+must allocate stable Core identities and make absence an occurrence list `[]`.
+It intentionally does not infer inverse observations, fill default values, merge
+same-spelled declarations, or deduplicate values. These choices make an authored
+document suitable both for ordinary valid models and for diagnosis of malformed
+states; see the fifth-review notation assessment for a comparison with concise
+surface syntax and the native Ecore route.
