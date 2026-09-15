@@ -33,7 +33,8 @@ claims about every possible reading of EMOF.
 A schema $S$ is a finite collection of package, class, property, association,
 enumeration, and literal declarations. Each kind has its own identity type;
 names are metadata. An implicit outer package owns declarations written at the
-source root. A snapshot $M$ contains identified objects. Its finite observation
+source root. This is an unstored scope convention, not a materialized reflective
+package graph or a proved embedding into one. A snapshot $M$ contains identified objects. Its finite observation
 rows have the form $(o,p,L)$, where $L$ is a list of primitive, enumeration, or object
 reference values. Raw records are intentionally permissive: duplicate
 identities, dangling references, and duplicate observation keys can be
@@ -77,7 +78,9 @@ The definitions above quantify only over finite stores, but they use transitive
 reachability for inheritance, package nesting, and containment. Reachability is
 computed by expanding adjacent identities, discarding identities already seen,
 and stopping after the size of the relevant carrier. Every computed identity
-has a stored path. Conversely, before stabilization each further expansion must
+has a stored path. Completeness uses the well-formedness and resolution premises
+that keep the relevant paths inside the finite carrier. Under these premises,
+before stabilization each further expansion must
 add a fresh carrier identity, so no path endpoint can remain undiscovered after
 that many iterations. An early fixed-point optimization is proved to return the
 same closure.
@@ -113,9 +116,9 @@ counts, and containment paths. For the catalog, this is why
 \texttt{Book::authors} and each \texttt{Author::books} row still describe the
 same two endpoint pairs after names have disappeared from semantic lookup.
 
-The raw binder requires nonempty alias components, while source satisfaction
-also requires XML-valid characters. Let $A(d)$ state this lexical condition
-for declaration and object aliases. It contains no conformance assumption. The
+Let $A(d)$ require every declaration and object alias to be nonempty, with
+nonempty components containing XML-valid characters. The binder enforces the
+nonemptiness conditions; source satisfaction also imposes character validity. It contains no conformance assumption. The
 main connection is
 \begin{equation}
  A(d)\Longrightarrow\left(
@@ -144,18 +147,18 @@ exhibited elaboration succeeds.
 \node[claim] (ss) at (-4,-1) {source meaning\\$\mathcal S(d)$};
 \node[claim] (cc) at (0,-1) {conformance\\$C(S,M)$};
 \node[claim] (acc) at (4,-1) {acceptance\\decision $=\mathsf{true}$};
-\node[box,minimum width=31mm] (std) at (0,-2.6) {audited EMOF profile\\prose interpretation};
-\draw[arr] (src) -- node[midway,above=2mm]{actual elaboration $E$} (core);
-\draw[arr] (core) -- node[midway,above=2mm]{checker} (dec);
+\node[box,minimum width=31mm] (std) at (0,-3.15) {audited EMOF profile\\prose interpretation};
+\draw[arr] (src) -- node[midway,above=7mm,font=\scriptsize,align=center]{actual elaboration\\$E$} (core);
+\draw[arr] (core) -- node[midway,above=7mm,font=\scriptsize]{checker} (dec);
 \draw[arr] (src) -- node[midway,left,font=\scriptsize]{defined} (ss);
 \draw[arr] (core) -- node[midway,right,font=\scriptsize]{defined} (cc);
 \draw[arr] (dec) -- node[midway,right,font=\scriptsize]{interpret} (acc);
 \draw[eq] (ss) -- (cc);
 \draw[eq] (cc) -- (acc);
-\node[font=\scriptsize,align=center] at (-2,-1.62) {adequacy under $A(d)$};
-\node[font=\scriptsize,align=center] at (2,-1.62) {checker correctness};
+\node[font=\scriptsize,align=center] at (-2,-1.94) {adequacy under $A(d)$\\and $E(d)=\mathsf{ok}(S,M)$};
+\node[font=\scriptsize,align=center] at (2,-1.94) {checker correctness};
 \draw[dashed,-{Stealth[length=1.5mm]}] (std) -- (cc);
-\node[font=\scriptsize,anchor=west] at (.16,-2.05) {source audit};
+\node[font=\scriptsize,anchor=west] at (.16,-2.6) {source audit};
 \end{tikzpicture}
 \caption{The reusable semantic account and its connections. Solid double arrows
 are machine-checked equivalences between formal domains. The dashed arrow is the
@@ -167,5 +170,7 @@ The source language allocates consecutive identities and always supplies display
 names, whereas raw Core records can use arbitrary identities and unnamed
 declarations. Equation~\ref{eq:adequacy} therefore characterizes the actual
 source route; it does not say that every conforming raw Core record is literally
-an elaboration result. The theorem begins at the AST, leaving parser correctness
+an elaboration result. A conditional reifier is available when a suitable alias
+assignment, source satisfaction, and structural round-trip equalities are
+supplied; existence of such assignments for all conforming Core records is not proved. The theorem begins at the AST, leaving parser correctness
 to the tool boundary considered next.

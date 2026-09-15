@@ -32,9 +32,9 @@ policies rather than consequences of Equation~\ref{eq:checker}.
 \node[route] (adapter) at (-1.3,-3) {EMF adapter};
 \node[route,minimum width=27mm] (reload) at (3.6,-3) {fresh resources\\+ identity sidecar};
 \node[route] (compare) at (1,-3) {reload +\\compare};
-\draw[arr] (text) -- node[above]{parser} (ast);
-\draw[arr,double,double distance=.6pt] (ast) -- node[above]{proved $E$} (core);
-\draw[arr,double,double distance=.6pt] (core) -- node[above]{proved} (decision);
+\draw[arr] (text) -- node[above=3mm]{parse} (ast);
+\draw[arr,double,double distance=.6pt] (ast) -- node[above]{$E$} (core);
+\draw[arr,double,double distance=.6pt] (core) -- node[above]{check} (decision);
 \draw[arr] (json) -- node[above,sloped]{decoder} (core.south west);
 \draw[arr] (native) -- node[above]{load} (adapter);
 \draw[arr] (adapter) -- node[above,sloped]{import} (core.south west);

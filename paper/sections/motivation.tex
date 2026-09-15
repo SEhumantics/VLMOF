@@ -3,15 +3,15 @@
 \centering
 \begin{tikzpicture}[
   font=\scriptsize,
-  cls/.style={draw,rounded corners=1pt,align=left,inner sep=3pt,text width=25mm},
+  cls/.style={draw,rounded corners=1pt,align=left,inner sep=3pt,text width=34mm},
   obj/.style={draw,rounded corners=1pt,align=left,inner sep=3pt,fill=black!3},
   rel/.style={-{Stealth[length=1.5mm]},line width=.45pt},
   note/.style={align=left,text width=30mm}
 ]
-\node[cls] (entry) {\textbf{Entry} \emph{abstract}\\\rule{24mm}{.2pt}\\key : String [1] \{id\}\\catalog : Catalog [1]};
-\node[cls,below=7mm of entry] (book) {\textbf{Book} $<$ Entry\\\rule{24mm}{.2pt}\\inPrint : Boolean [0..1]\\authors : Author [1..*] ordered};
-\node[cls,right=29mm of book] (author) {\textbf{Author}\\\rule{24mm}{.2pt}\\name : String [1]\\books : Book [0..*]};
-\node[cls,right=29mm of entry] (catalog) {\textbf{Catalog}\\\rule{24mm}{.2pt}\\entries : Entry [0..*]\\\hspace*{7mm}\emph{composite}};
+\node[cls] (entry) {\textbf{Entry} \emph{abstract}\\\rule{33mm}{.2pt}\\key : String [1] \{id\}\\catalog : Catalog [1]};
+\node[cls,below=7mm of entry] (book) {\textbf{Book}\\\rule{33mm}{.2pt}\\inPrint : Boolean [0..1]\\authors : Author [1..*]\\\emph{ordered}};
+\node[cls,right=20mm of book] (author) {\textbf{Author}\\\rule{33mm}{.2pt}\\name : String [1]\\books : Book [0..*]};
+\node[cls,right=20mm of entry] (catalog) {\textbf{Catalog}\\\rule{33mm}{.2pt}\\entries : Entry [0..*]\\\emph{ordered, composite}};
 \draw[-{Triangle[open,length=2.1mm]},line width=.5pt] (book) -- (entry);
 \draw[rel] ([yshift=2pt]catalog.west) -- node[above,sloped]{entries} ([yshift=2pt]entry.east);
 \draw[rel] ([yshift=-2pt]entry.east) -- node[below,sloped]{catalog} ([yshift=-2pt]catalog.west);
@@ -30,12 +30,19 @@
 \caption{Running catalog example. The lower panel exposes the actual observation
 lists: paired rows record both association ends. The composite \emph{entries}
 reference gives \emph{book} one incoming containment occurrence, and
-\emph{key} applies to \emph{book} by inheritance.}
+\emph{key} applies to \emph{book} by inheritance. All properties are unique.}
 \label{fig:catalog}
 \end{figure}
 
-The catalog is small, but its single snapshot already requires several facts to
-agree. The alias \texttt{Entry::key} denotes one declaration inherited by the
+Consider a catalog editor that adds a second author to a book. Updating only
+\texttt{Book::authors} leaves both ends within their declared multiplicities:
+the book has two authors and the new author's optional \texttt{books} list may
+still be empty. Every value can also have the right type. Yet the resulting
+snapshot is inconsistent: the two ends disagree about whether the authorship
+exists. Checking each field in isolation cannot establish conformance.
+Figure~\ref{fig:catalog} shows the completed update, with both ends recorded.
+
+Several facts must agree even in this small example. The alias \texttt{Entry::key} denotes one declaration inherited by the
 \emph{book} object. The list \texttt{Book::authors} records two ordered object
 identities. Each occurrence must be matched at the opposite end by a
 \texttt{Author::books} occurrence. The book is contained once through
@@ -49,15 +56,9 @@ absence rather than the Boolean value false. This distinction matters when the
 same model is realized in a format with default-value behavior.
 
 The central source fragment is readable without exposing allocated identifiers:
+
+\noindent\begin{minipage}{\linewidth}
 \begin{verbatim}
-abstract class Entry {
-  key : String [1..1] unordered unique (id);
-  catalog : Catalog [1..1] unordered unique;
-}
-class Book extends Entry {
-  inPrint : Boolean [0..1] unordered unique;
-  authors : Author [1..*] ordered unique;
-}
 object book : Book {
   observe Entry::key = ["semantics"];
   observe Entry::catalog = [@catalog];
@@ -65,6 +66,8 @@ object book : Book {
   observe Book::authors = [@authorOne, @authorTwo];
 }
 \end{verbatim}
+\end{minipage}
+
 The complete listing in the artifact includes the catalog, authors, both
 associations, and every required observation; the current command-line checker
 accepts it. The modeling question is whether this acceptance has the same
