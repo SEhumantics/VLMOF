@@ -1,5 +1,6 @@
 \section{Methodology}
 \subsection{A bounded interpretation of EMOF}
+Figure~\ref{fig:semantics} summarizes the workflow and its proof boundary.
 The account starts from a source audit, because a mechanized predicate cannot by
 itself establish that it is the right reading of a standard. The audit covers
 all 32 restrictions in MOF 2.5.1 Clause 12.4 and records, for each one, whether
@@ -21,14 +22,30 @@ generic reflection are deferred.
 
 Two interpretation choices determine the snapshot domain. Structural upper bounds
 are no smaller than their lower bounds; the interval $0..0$ admits only an empty
-collection, as allowed by adopted UML. Positive upper bounds are separately
-required by the class-creation premises in MOF 9.3.3. The account also retains repeated occurrences on a
+collection, as allowed by adopted UML. A separate class-creation query records only the bound
+prerequisite that the upper bound admits one (MOF 9.3.3); it is outside structural
+acceptance and does not implement creation. The account also retains repeated occurrences on a
 nonunique reference. This is a static observation model: it does not assert that
 every admitted list is reachable through each reflective insertion operation.
-For containment, the profile adopts the stronger occurrence-sensitive reading:
-two composite occurrences that name the same child count twice, even if they
-come from one slot. These choices are part of the stated profile rather than
-claims about every possible reading of EMOF.
+For containment, MOF 12.5.5 includes two ownership obligations: one container object and
+one non-null container property. We compare parent identities in composite
+observations and separately compare identities of nonempty opposite container
+roles. Repetition within one unpaired slot does not create another container.
+Two active paired roles from one parent nevertheless violate the second obligation.
+This separates mandatory static constraints from stronger runtime policies.
+
+\paragraph{Source findings and their relevance.}
+The primitive-default rules in the supplied \texttt{EMOFConstraints.ocl}
+(lines 231--238) test Enumeration, although the corresponding MOF 12.4[26]
+prose concerns PrimitiveType. The auxiliary operation rule also adds
+\texttt{isQuery=true}, absent from numbered restriction 12.4[10]. Defaults
+and operations are deferred here, so these are encoding discrepancies, not
+implemented semantic repairs. In the dated UML XMI dependency, seven package-import
+identifiers occur on 47 elements: 40 occurrences repeat an earlier identifier.
+A naive identifier map can therefore conflate different source nodes. We preserve
+the original bytes and diagnose this input-integrity problem; it is unrelated
+to permission for duplicate runtime object identities. None of these findings
+is presented as an official OMG erratum.
 
 \subsection{Identity-based schemas and snapshots}
 A schema $S$ is a finite collection of package, class, property, association,
@@ -46,9 +63,11 @@ identities, valid names, acyclic package and inheritance graphs, valid ownership
 and types, normalized multiplicities, binary end consistency, and at most one
 inherited identifier property. A property applies to a class when its owning
 class is an ancestor or when it is the applicable association-owned end.
-Ancestor closure is deduplicated by declaration identity. In the catalog,
-\emph{Book} therefore receives the one declaration \emph{Entry.key}, rather
-than a new declaration constructed from its name.
+Ancestor closure is deduplicated by declaration identity. In Train,
+\emph{Switch} therefore receives the one declaration \emph{RailwayElement.id}
+through TrackElement, rather than a new declaration constructed from its name.
+The library separately exercises a diamond, where two paths still expose one
+property identity.
 
 Snapshot conformance, $C(S,M)$, includes $W(S)$, unique object and
 observation identities, concrete resolved classifiers, and exactly one row for
@@ -67,12 +86,12 @@ $x,y$, conformance requires
  = \#_{\operatorname{ref}(x)}L_M(y,q).
 \label{eq:opposite}
 \end{equation}
-Thus each of the two authors in Figure~\ref{fig:catalog} occurs once at the
-book's \emph{authors} end and the book occurs once at the corresponding
-author's \emph{books} end. Containment additionally gives each object at most
-one incoming composite occurrence and forbids a nonempty composite path back to
-its source. These constraints use the same occurrence lists as multiplicity and
-opposites; no separate graph interpretation is introduced.
+In Figure~\ref{fig:train}, a position occurs at the route's \emph{follows}
+end exactly as often as that route occurs at the position's \emph{route} end.
+Containment additionally permits at most one parent identity and one nonempty
+container-role identity, and forbids a nonempty composite path back to its source.
+These obligations use the same observation store, but ownership counts identities
+while multiplicity counts occurrences.
 
 \subsection{A complete finite decision}
 The definitions above quantify only over finite stores, but they use transitive
@@ -113,9 +132,9 @@ every symbolic reference, allocates a per-kind identity at each list position,
 and translates observation values. The proof relates each source declaration
 to its allocated identity, then transports superclass reachability,
 applicability, list length, equality, duplicate freedom, permutation, pair
-counts, and containment paths. For the catalog, this is why
-\texttt{Book::authors} and each \texttt{Author::books} row still describe the
-same two endpoint pairs after names have disappeared from semantic lookup.
+counts, and containment paths. For Train, this is why the \texttt{Route::follows} and
+\texttt{SwitchPosition::route} rows still describe the same endpoint pair after
+names have disappeared from semantic lookup.
 
 Let $A(d)$ require every declaration and object alias to be nonempty, with
 nonempty components containing XML-valid characters. The binder enforces the
@@ -135,35 +154,30 @@ exhibited elaboration succeeds.
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[x=1cm,y=1cm,
-  font=\small,
-  box/.style={draw,rounded corners=1pt,align=center,minimum width=28mm,minimum height=9mm},
-  claim/.style={draw,rounded corners=1pt,align=center,minimum width=30mm,minimum height=9mm,fill=black!4},
-  arr/.style={-{Stealth[length=1.8mm]},line width=.55pt},
-  eq/.style={<->,>=Stealth,double,double distance=.7pt,line width=.35pt}
-]
-\node[box] (src) at (-4,1) {symbolic AST $d$};
-\node[box] (core) at (0,1) {Core $S,M$};
-\node[box] (dec) at (4,1) {Boolean decision};
-\node[claim] (ss) at (-4,-1) {source meaning\\$\mathcal S(d)$};
-\node[claim] (cc) at (0,-1) {conformance\\$C(S,M)$};
-\node[claim] (acc) at (4,-1) {acceptance\\decision $=\mathsf{true}$};
-\node[box,minimum width=31mm] (std) at (0,-3.15) {audited EMOF profile\\prose interpretation};
-\draw[arr] (src) -- node[midway,above=7mm,font=\scriptsize,align=center]{actual elaboration\\$E$} (core);
-\draw[arr] (core) -- node[midway,above=7mm,font=\scriptsize]{checker} (dec);
-\draw[arr] (src) -- node[midway,left,font=\scriptsize]{defined} (ss);
-\draw[arr] (core) -- node[midway,right,font=\scriptsize]{defined} (cc);
-\draw[arr] (dec) -- node[midway,right,font=\scriptsize]{interpret} (acc);
-\draw[eq] (ss) -- (cc);
-\draw[eq] (cc) -- (acc);
-\node[font=\scriptsize,align=center] at (-2,-1.94) {adequacy under $A(d)$\\and $E(d)=\mathsf{ok}(S,M)$};
-\node[font=\scriptsize,align=center] at (2,-1.94) {checker correctness};
-\draw[dashed,-{Stealth[length=1.5mm]}] (std) -- (cc);
-\node[font=\scriptsize,anchor=west] at (.16,-2.6) {source audit};
+\begin{tikzpicture}[font=\scriptsize,
+ box/.style={draw,align=center,text width=23mm,minimum height=12mm},
+ arr/.style={-{Stealth[length=1.5mm]}}]
+\node[box] (sources) at (0,0) {Pinned sources\\and dependencies};
+\node[box] (choices) at (2.9,0) {Interpretations\\and separating models};
+\node[box] (math) at (5.8,0) {Predicates\\and mechanized proofs};
+\node[box] (eval) at (8.7,0) {Realization\\and evaluation};
+\draw[arr] (sources) -- (choices);
+\draw[arr] (choices) -- (math);
+\draw[arr] (math) -- (eval);
 \end{tikzpicture}
-\caption{The reusable semantic account and its connections. Solid double arrows
-are machine-checked equivalences between formal domains. The dashed arrow is the
-separately audited interpretation of the standard.}
+\par\medskip
+\parbox{\linewidth}{\small
+Source interpretation is an audited argument. Within the formal domains,
+under $A(d)$ and actual $E(d)=\mathsf{ok}(S,M)$:
+\[
+\mathcal S(d)\ \Longleftrightarrow\ C(S,M)
+\ \Longleftrightarrow\ \operatorname{check}(S,M)=\mathsf{true}.
+\]
+The second equivalence also holds for arbitrary raw represented $S,M$.
+Failure of elaboration supplies no $S,M$ to which the first equivalence applies.}
+\caption{Formalization workflow and its conditional mathematical results.
+Workflow arrows are research steps, not proofs that prose denotes our predicates.
+Parser and native-adapter correctness are outside the displayed equivalences.}
 \label{fig:semantics}
 \end{figure}
 

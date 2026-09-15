@@ -5,7 +5,8 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,backgrounds,fit,positioning}
 \usepackage[hidelinks]{hyperref}
-\title{From Authored Models to Decidable EMOF Conformance}
+\emergencystretch=2em
+\title{A Mechanized Structural Foundation for EMOF-Based Modeling}
 % Author information must be supplied by the author before submission.
 \author{}
 \institute{}
@@ -14,20 +15,22 @@
 \pagestyle{empty}
 \thispagestyle{empty}
 \begin{abstract}
-Model conformance combines constraints on individual fields with relations
-across objects, inherited declarations, and opposite association ends. We give a finite semantics for a
-static structural profile of EMOF 2.5.1 and connect three views of a model:
-symbolic source, a core with explicit identities, and an executable decision. Source
-satisfaction is defined independently of elaboration. Under an explicit lexical
-condition, it is equivalent to successful elaboration followed by checker
-acceptance; checker acceptance is in turn equivalent to declarative conformance
-for every represented finite input. The account retains inherited declaration
-identity, multiplicity, order, duplicate occurrences, opposite ends, and static
-containment. A small catalog model illustrates the connection throughout. A
-restricted EMF experiment then tests a textual/native realization with explicit
-identity evidence on six adapted Train snapshots. The formal result covers the
-stated static profile and begins at the source abstract syntax; parsing, EMF
-adaptation, reflective behavior, and full EMOF self-description remain outside it.
+A reusable foundation for model-driven software engineering requires an explicit
+meaning for metamodel declarations and their instances. We formalize a finite
+structural fragment of EMOF 2.5.1 in Lean, with source interpretations that remain
+separate from implementation proofs. The account distinguishes structural
+multiplicity from class-creation prerequisites, occurrence counts from container
+objects, and parent uniqueness from active container-role uniqueness. It retains
+inherited declaration identity, opposite incidence, ordering and duplicate values.
+Mechanized consequences and a complete checker expose this semantics for arbitrary
+supported metamodels and finite snapshots. A conditional adequacy theorem connects
+independently defined symbolic satisfaction to actual elaboration. An attributed
+Train metamodel projection demonstrates structural consequences without claiming
+to verify its domain queries. Actual EMF validation cases distinguish agreement
+on common obligations from schema restrictions and validator differences. The
+foundation supports later work on reflective preservation and richer metadata;
+operations, defaults/unset history and full EMOF self-description remain outside
+the established fragment.
 \keywords{EMOF \and Metamodeling \and Lean \and Model conformance}
 \end{abstract}
 \input{sections/introduction}

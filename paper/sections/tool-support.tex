@@ -1,82 +1,66 @@
 \section{Tool Support}
 \subsection{One checker, three input routes}
-The Lean library has no external mathematics dependency. Its command-line tool
-accepts the symbolic language and a versioned JSON representation; both routes
-end at the same Core checker. Reports distinguish accepted models, rejected
-represented models, binding or decoding errors, unsupported interchange
-versions, and file errors. The catalog listing supplied with the paper is
-accepted through the symbolic route.
-
-Figure~\ref{fig:boundary} locates the proved and tested connections. Parsing is
-outside Equation~\ref{eq:adequacy}, which begins at the source AST. The JSON
-decoder can represent malformed Core records so that the complete checker, not
-the decoder, decides conformance. Unknown object fields are ignored and duplicate
-JSON keys follow the parser's normalization policy; these are documented wire
-policies rather than consequences of Equation~\ref{eq:checker}.
+The command-line tool accepts symbolic text and versioned Core JSON. Both reach
+the same checker; reports distinguish conformance failures, binding/decoding
+errors and unsupported inputs. Figure~\ref{fig:boundary} locates the proved
+connections. Equation~\ref{eq:adequacy} begins at the AST, outside the parser.
+The JSON decoder admits malformed represented records for the checker to reject;
+its key-normalization policy is documented separately.
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[x=1cm,y=1cm,
-  font=\scriptsize,
-  route/.style={draw,rounded corners=1pt,minimum width=21mm,minimum height=8mm,align=center},
-  core/.style={draw,line width=.8pt,rounded corners=1pt,minimum width=23mm,minimum height=10mm,align=center,fill=black!5},
-  arr/.style={-{Stealth[length=1.6mm]},line width=.5pt},
-  lab/.style={font=\scriptsize,align=center}
-]
-\node[route] (text) at (-4.7,0) {source text};
-\node[route] (ast) at (-2,0) {source AST};
-\node[core] (core) at (1,0) {Core schema\\and snapshot};
-\node[route] (decision) at (4,0) {decision};
-\node[route] (json) at (-2,-1.5) {Core JSON};
-\node[route] (native) at (-4.3,-3) {Ecore/XMI};
-\node[route] (adapter) at (-1.3,-3) {EMF adapter};
-\node[route,minimum width=27mm] (reload) at (3.6,-3) {fresh resources\\+ identity sidecar};
-\node[route] (compare) at (1,-3) {reload +\\compare};
-\draw[arr] (text) -- node[above=3mm]{parse} (ast);
-\draw[arr,double,double distance=.6pt] (ast) -- node[above]{$E$} (core);
-\draw[arr,double,double distance=.6pt] (core) -- node[above]{check} (decision);
-\draw[arr] (json) -- node[above,sloped]{decoder} (core.south west);
-\draw[arr] (native) -- node[above]{load} (adapter);
-\draw[arr] (adapter) -- node[above,sloped]{import} (core.south west);
-\draw[arr] (core.south east) -- node[above,sloped]{export} (reload.north west);
+\begin{tikzpicture}[font=\scriptsize,
+ box/.style={draw,align=center,minimum width=20mm,minimum height=8mm},
+ arr/.style={-{Stealth[length=1.5mm]}}]
+\node[box] (text) at (-4,1) {source text};
+\node[box] (ast) at (-1.3,1) {source AST};
+\node[box] (json) at (-4,0) {Core JSON};
+\node[box] (decode) at (-1.3,0) {decoder};
+\node[box] (native) at (-4,-1) {Ecore/XMI};
+\node[box] (map) at (-1.3,-1) {load and map};
+\node[box,minimum height=29mm,fill=black!4] (core) at (1.5,0) {Core schema\\and snapshot};
+\node[box] (check) at (4.2,0) {decision};
+\draw[arr] (text) -- node[above]{parse} (ast);
+\draw[arr,double,double distance=.5pt] (ast) -- node[above]{elaborate} ([yshift=10mm]core.west);
+\draw[arr] (json) -- (decode);
+\draw[arr] (decode) -- (core);
+\draw[arr] (native) -- (map);
+\draw[arr] (map) -- ([yshift=-10mm]core.west);
+\draw[arr,double,double distance=.5pt] (core) -- node[above]{check} (check);
+\node[box] (export) at (-4,-2.7) {Core export};
+\node[box] (fresh) at (-1.3,-2.7) {fresh Ecore/XMI};
+\node[box] (reload) at (1.5,-2.7) {EMF reload};
+\node[box] (compare) at (4.2,-2.7) {mapped comparison};
+\draw[arr] (export) -- (fresh);
+\draw[arr] (fresh) -- (reload);
 \draw[arr] (reload) -- (compare);
-\draw[arr] (compare) -- node[above,sloped]{mapped Core} (core.south);
-\begin{scope}[on background layer]
-\node[draw=black!35,dashed,rounded corners=2pt,fit=(ast)(core)(decision),inner sep=4pt,
- label={[lab]above:machine-checked relations start at represented inputs}] {};
-\node[draw=black!35,dotted,rounded corners=2pt,fit=(native)(adapter)(compare)(reload),inner sep=4pt,
- label={[lab]below:tested native boundary}] {};
-\end{scope}
+\node[align=center] at (.1,-3.4) {Native experiment: compare original and reloaded observations\\under the retained identity bijection.};
 \end{tikzpicture}
-\caption{Implementation and evidence boundary. The two top double arrows are
-covered by formal results. The native loop is executable evidence and compares
-the reloaded Core result under a recorded identity bijection.}
+\caption{Input routes and the separate native round-trip experiment. Double
+arrows identify computations covered by formal correspondence results under
+their stated premises. Parsing, codecs, loading and native comparison are tested
+boundaries. An actual EMF validator is a separate experimental oracle.}
 \label{fig:boundary}
 \end{figure}
 
 \subsection{Restricted EMF realization}
-The Java bridge loads real Ecore and XMI resources with EMF dynamic objects. It
-accepts only the native subset it can translate without discarding meaning.
-Unsupported annotations, operations, generics, defaults, derived or unsettable
-features, custom datatypes, and unresolved references are rejected. Ecore export
-also requires class-owned association ends, representable package structure and
-names, and signed 32-bit integers, a smaller domain than Core's integers.
+The Java bridge loads Ecore/XMI through dynamic EMF objects. Its restricted
+profile rejects unsupported annotations, operations, generics, declared defaults,
+derived/unsettable features, custom datatypes and unresolved references. Export
+also requires class-owned association ends, representable packages/names and
+signed 32-bit integers.
 
-Import allocates declaration identities from metamodel containment and object
-identities from instance containment. A structural XML pass records whether a
-scalar was written, so an omitted optional value remains different from an
-explicit default value. It validates the correspondence between XML elements and
-loaded objects before producing one observation row for each applicable
-property.
+Import allocates identities from containment. An XML pass tracks written scalar
+values separately from omitted ones. This lexical policy can differ from native
+\texttt{eIsSet}, especially for enumeration defaults; Section~5 reports an actual
+mismatch. Lossless alignment is therefore checked per input, not assumed from
+successful import.
 
-Export constructs fresh metamodel and instance resources. It sets both opposite
-pointers, allocates all objects before references, and compares the resulting
-observations with the requested Core snapshot before serialization. A sidecar
-relates Core identities to native URIs. On reload, the comparator requires this
-map to be a bijection over declarations and objects, remaps references, and
-compares each sequence or multiset according to the property's ordering flag.
-This experiment tests a concrete realization of the formal observations; the
-adapter and EMF runtime remain outside the Lean proof.
+Export constructs fresh resources, establishes both opposite pointers and compares
+observations before serialization. A sidecar maps Core identities to native URIs.
+Reload comparison requires a bijection, remaps references, and compares sequences
+or multisets according to ordering. These are executable checks outside the Lean
+proof, not universal codec correctness results.
 
 \subsection{Reuse for bounded metadata}
 A fixed metadata vocabulary represents class and scalar-attribute descriptions
@@ -86,20 +70,3 @@ Boolean property and then checks an instance of the resulting class. A dangling
 owner is rejected as metadata; reversed bounds can be well-typed metadata yet
 produce an invalid interpreted schema. This separates validity of the
 description graph from validity of what it denotes.
-
-\begin{table}[t]
-\caption{Scope of the connected implementation.}
-\label{tab:coverage}\centering\small
-\begin{tabular}{>{\raggedright\arraybackslash}p{.28\textwidth}>{\raggedright\arraybackslash}p{.61\textwidth}}
-\hline
-Area & Established relation and boundary \\
-\hline
-Finite conformance & Identity-based structural predicate; complete Boolean decision and finite reachability. \\
-Symbolic source & Independent satisfaction is equivalent to actual elaboration and acceptance under lexical admissibility. \\
-Observations & Multiplicity, types, order/permutation, duplicate counts, opposites and occurrence-sensitive containment are transported. \\
-Native interchange & Fresh EMF export and reload are compared under a URI identity bijection in a smaller accepted domain. \\
-Metadata & A fixed scalar-description vocabulary uses the ordinary conformance path; full EMOF self-description is not represented. \\
-Deferred EMOF & Operations and parameters, richer datatypes, defaults and unset history, general derived behavior, comments and reflection. \\
-\hline
-\end{tabular}
-\end{table}

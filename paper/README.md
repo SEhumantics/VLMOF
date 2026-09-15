@@ -52,11 +52,11 @@ map the paper's mathematical concepts to the public layout. The principal map is
 The reproduction guide also identifies the command-line front ends, restricted
 EMF bridge, public evaluation manifests, and all trusted runtime boundaries.
 
-The full running example is `paper/catalog-example.dsl`. From the repository
+The published Train structural projection is `examples/train/route-switch.dsl`. From the repository
 root, check it with:
 
 ```
-lake exe vlmof check-dsl paper/catalog-example.dsl
+lake exe vlmof check-dsl examples/train/route-switch.dsl
 ```
 
 Author fields remain empty because no author information was supplied. They and

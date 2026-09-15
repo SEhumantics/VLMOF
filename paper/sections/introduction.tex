@@ -1,49 +1,55 @@
 \section{Introduction}
-When a modeler writes a model and a tool accepts it as conforming, which model
-has actually been checked? The authored document refers to declarations by
-symbolic names. A conformance algorithm works more naturally with resolved
-identities and finite tables. An interchange tool may allocate those identities
-again. For structural EMOF, the question reaches beyond name lookup: inherited
-properties are declarations rather than copied strings, opposite ends constrain
-the same relationship from two directions, and multiplicity counts occurrences.
+Model-driven software engineering uses metamodels to define the structures of
+modeling languages. Essential MOF (EMOF) supplies a shared vocabulary of classes,
+properties, inheritance and associations. A reusable formal foundation should
+explain which declarations are legal, which finite object structures they admit,
+and which consequences follow for every supported metamodel. Such an account can
+support later reasoning about model transformations, reflective operations and
+interchange without rebuilding structural conformance for each language.
 
-This paper develops VL-MOF, a Lean 4 account of a stated static structural
-profile of EMOF 2.5.1. The profile is drawn from a clause-by-clause reading of
-the standard and adopted UML material. It covers packages, classes, multiple
-inheritance, properties, binary associations, primitive and enumeration values,
-multiplicity, order, uniqueness, opposites, and static containment. Operations,
-general structured datatypes, reflective services, defaults, and behavioral
-features are outside the profile.
+The difficulty is partly interpretive. EMOF combines its own restrictions with
+adopted UML definitions and reflective-service clauses. A class-creation
+prerequisite need not be a global metamodel restriction. Repeated references need
+not denote distinct containers. Inherited properties must retain declaration
+identity across different paths. A mechanized checker can be correct for a
+predicate that resolves these questions incorrectly; source justification and
+proof of implementation correctness therefore require separate evidence.
 
-The main contribution is a connected account of authored meaning and decidable
-conformance. First, a finite identity-based semantics states what well-formed
-schemas and conforming snapshots are. Second, a Boolean checker is proved to
-decide those predicates on every represented input, including malformed raw
-records. Third, the symbolic source language has its own satisfaction relation,
-defined without the checker, and the actual elaborator is proved to preserve and
-reflect that relation under a small lexical premise. Thus acceptance can be read
-back as a statement about the authored abstract syntax, rather than only about
-the elaborator's output.
+Formal MOF accounts already provide reusable results.
+Boronat and Meseguer give an executable algebraic account of model types and
+conformance \cite{boronat_meseguer_2010}. Coq4MDE proves model-composition
+preservation under explicit hypotheses \cite{kezadri_etal_2014}; mechanized
+UML/OCL and textual metamodeling also provide substantial precedents
+\cite{brucker_tuong_wolff_2020,jouault_bezivin_2006}.
+Our contribution is a version-specific, inspectable structural EMOF account
+connecting source interpretations, occurrence-sensitive consequences and a
+mechanized realization. We do not claim the first formal MOF semantics, and
+choice of proof assistant or concrete notation alone is not the contribution.
 
-Figure~\ref{fig:catalog} introduces one catalog model used throughout the paper.
-It makes the central connection tangible: the author writes aliases such as
-\texttt{Book::authors}; elaboration assigns declaration and object identities;
-conformance then checks the resulting occurrence lists, including their
-opposites and containment. The same semantic account is reusable for any model
-inside the profile. A bounded metadata interpreter demonstrates this reuse
-inside Lean. A restricted EMF bridge supplies empirical evidence that a native
-Ecore/XMI route can preserve the selected observations when accompanied by an
-explicit identity map.
+We investigate three research questions:
+\begin{description}
+\item[RQ1.] Which structural interpretation is justified by the EMOF source set,
+and which contextual distinctions change admitted schemas or snapshots?
+\item[RQ2.] What reusable consequences and executable/authoring correspondence
+can be established for that interpretation?
+\item[RQ3.] What modeling consequences arise in a published language fragment,
+and how do outcomes and execution costs compare with aligned EMF validation?
+\end{description}
 
-Executable MOF semantics, mechanized preservation results, and textual
-metamodeling languages precede this work
-\cite{boronat_meseguer_2010,kezadri_etal_2014,jouault_bezivin_2006}.
-The result here is the proved connection between an independently specified
-symbolic meaning, actual elaboration, and a complete decision procedure for the
-selected profile.
+VL-MOF contributes (i) an explicit structural interpretation of EMOF 2.5.1,
+with source-derived separating examples; (ii) a Lean library of conformance
+predicates and consequences, with checker correctness and conditional
+source-elaboration adequacy; and (iii) a realization evaluated through a
+published Train metamodel projection and a declared EMF comparison protocol.
+The semantic domain includes finite nested packages, classes and inheritance,
+properties and binary associations, selected primitive/enumeration values,
+occurrence multiplicity, uniqueness, ordering, opposites and static containment.
+Defaults and unset history, reflective execution, richer values and full
+self-description are deferred. Structural acceptance does not establish a
+language's domain invariants or the correctness of its generated software.
 
-We ask three questions. RQ1 asks whether semantics sensitive to identities and
-occurrences has a complete finite decision procedure. RQ2
-asks whether actual symbolic elaboration preserves and reflects that semantics.
-RQ3 asks how much of this account survives a real, deliberately narrower EMF
-realization.
+Section~2 motivates these distinctions with the published case. Section~3
+explains source interpretation, definitions and proofs; Section~4 describes
+the realization. Section~5 answers the research questions from the evidence.
+Section~6 discusses related work and threats to validity, and Section~7 identifies
+the results and concrete extensions of this foundation.

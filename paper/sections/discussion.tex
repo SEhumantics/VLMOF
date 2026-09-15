@@ -1,72 +1,75 @@
 \section{Discussion}
-\subsection{What the connection adds}
-The finite conformance semantics is useful beyond the current parser and
-checker because it gives both implementations a common target. A new surface
-language can be related to $\mathcal S$ and $E$; a new decision procedure can
-be related to $C$. The catalog example shows why the split matters. Its
-meaning is stated once in terms of inherited declarations and occurrence lists.
-The source proof explains why alias resolution preserves that meaning, while
-the checker proof explains why the final Boolean decides it.
+\subsection{Related Work}
+Executable MOF semantics is an established foundation. Boronat and Meseguer
+interpret a metamodel as a membership-equational theory, with model conformance,
+reflective execution and EMF integration \cite{boronat_meseguer_2010}. Their
+collection types include bags and sequences, so duplicate-sensitive collection
+semantics is not itself new. Our contribution concerns the particular EMOF
+source interpretation, its finite identity/occurrence predicates, and the checked
+relationships among those predicates and their realization. The static domain
+here is narrower than a full reflective account.
 
-The native study has a different role. It demonstrates how textual presence,
-object identity, opposite maintenance, and ordering must be accounted for when
-the formal observations meet a modeling framework. Its explicit sidecar makes
-identity reallocation observable, and its rejection policy keeps unsupported
-constructs visible. This is evidence about one bridge design, not a serializer
-theorem.
+Coq4MDE establishes conformance preservation for model composition under
+operation-specific hypotheses \cite{kezadri_etal_2014}. Its set-based opposite
+relation compares edge membership, and its composite-ownership predicate counts
+distinct source vertices. We likewise distinguish parent identity from occurrence
+multiplicity, while explicitly retaining repeated values and separately bounding
+active container-role identities. This is a comparison of semantic domains, not
+a claim that the earlier framework cannot be extended. Its composition theorems
+and our elaboration/checker theorems address different operations; neither implies
+the other's full guarantee.
 
-\subsection{Related work}
-Table~\ref{tab:prior} compares semantic domains and guarantees rather than
-surface feature counts. Algebraic MOF supplies executable membership-equational
-theories and reflective execution \cite{boronat_meseguer_2010}. Coq4MDE proves
-that typed finite-multigraph composition preserves selected conformance
-properties \cite{kezadri_etal_2014}. Isabelle UML/OCL work distinguishes
-conservative theory generation from semantic preservation between source and
-target interpretations \cite{brucker_tuong_wolff_2020}. Our operation is actual
-alias-to-identity elaboration, and our target is a finite static EMOF profile.
+Mechanized UML/OCL provides further precedent for rigorous source interpretation.
+Featherweight OCL treats null, invalid and collection operations
+\cite{brucker_wolff_2012}; our resolved structural predicates do not implement
+that expression language. Conservative theory generation in Isabelle UML/OCL
+is also distinct from translation-semantic preservation
+\cite{brucker_tuong_wolff_2020}. Equation~\ref{eq:adequacy} is a conditional
+preservation/reflection statement between two specified meanings, not merely
+logical consistency of generated declarations. Its standards-fidelity boundary
+nevertheless remains the source audit.
 
-\begin{table}[t]
-\caption{Nearest formal guarantees and their semantic domains.}
-\label{tab:prior}\centering\small
-\begin{tabular}{>{\raggedright\arraybackslash}p{.23\textwidth}>{\raggedright\arraybackslash}p{.66\textwidth}}
-\hline
-Work & Guarantee compared here \\
-\hline
-Algebraic MOF~\cite{boronat_meseguer_2010} & Structural conformance in membership-equational theories, connected to Maude and EMF execution. \\
-Coq4MDE~\cite{kezadri_etal_2014} & Preservation of multiplicity, opposites, and composite references by typed graph composition, under the premises of each theorem. \\
-Isabelle UML/OCL~\cite{brucker_tuong_wolff_2020} & Conservative generated theory extensions, with semantic preservation identified as a separate translation concern. \\
-VL-MOF & Independent symbolic satisfaction iff actual elaboration to a finite conforming and accepted Core result, under lexical admissibility. \\
-\hline
-\end{tabular}
-\end{table}
+NEREUS, KM3, Emfatic and Xcore show that formal or convenient textual
+metamodeling is already well served
+\cite{favre_duarte_2016,jouault_bezivin_2006,emfatic_docs,xcore_docs}.
+CoqTL supplies reusable model-transformation proof infrastructure
+\cite{cohen_tisi_douence_2024}. Our notation is an access route to the structural
+foundation; a new syntax or proof assistant is not the novelty argument.
+The comparison is targeted to these close precedents and does not establish a
+literature-wide absence of equivalent results.
 
-In Coq4MDE, the composite predicate counts distinct source vertices in an
-edge-set construction. Our selected containment rule counts reference
-occurrences. Featherweight OCL formalizes an
-OCL core with null and invalid \cite{brucker_wolff_2012}; our resolved finite
-predicates do not adopt that expression semantics. NEREUS provides formal
-metamodeling with a translation to CASL \cite{favre_duarte_2016}; KM3,
-Emfatic, and Xcore address concise textual authoring and tool integration
-\cite{jouault_bezivin_2006,emfatic_docs,xcore_docs}. CoqTL addresses proof
-automation for model transformations \cite{cohen_tisi_douence_2024}. These
-works establish that executable semantics, textual notation, and mechanized
-preservation are established concerns; the contribution here is the particular
-source-to-decision connection in Figure~\ref{fig:semantics}.
+\subsection{Threats to Validity}
+\paragraph{Construct validity.}
+The principal risk is formalizing a defensible but unintended reading of EMOF.
+Clause-level locators, explicit alternative readings and separating models expose
+that risk. In particular, complete structural snapshots differ from states
+reachable through reflective insertion; unpaired composites differ from explicit
+opposite container roles. The implicit root-package convention is an abstraction,
+not a stored reflective ownership graph. Source audits support these boundaries;
+Lean cannot prove fidelity to English prose merely by accepting definitions.
 
-\subsection{Limits and next steps}
-The standards connection rests on the documented source audit. Mechanization
-establishes consequences of the selected predicates, while alternate readings
-remain possible for static repeated references, nonnavigable incidence, and the
-stronger occurrence-based containment choice. Extending the profile with
-defaults, derived features, or richer datatypes will require revisiting absence,
-observability, and value equality.
+\paragraph{Internal validity.}
+The parser, JSON codec, Java bridge and measurement harness lie outside the
+correspondence proofs. Native defaults, inverse maintenance and containment
+reparenting can change the state before validation. A comparison therefore needs
+retained inputs, loaded observations, declared normalization and diagnostics;
+agreement of two booleans alone is insufficient. Separate schema and instance
+phases prevent load success or schema rejection from being mistaken for instance
+conformance. The runner records execution failure and not-run outcomes explicitly.
 
-Equation~\ref{eq:adequacy} starts at a source AST. The parser, JSON decoder, EMF
-runtime, datatype adaptation, and URI map production are executable trust
-boundaries. The six public files all use one metamodel and adapted inputs, so
-they show feasibility for that route rather than broad EMF compatibility.
+\paragraph{External validity.}
+The selected Train case is one deliberately small projection, and the public
+Train models are generated artifacts of the same metamodel. These do not establish
+coverage of independent languages, industrial inputs or the full native ecosystem.
+Domain queries and generated-code behavior are outside the structural claim.
+The bridge additionally restricts datatypes, defaults and association-end forms.
 
-A useful next step is to formalize one native decoding relation and prove it
-preserves the same Core observations used here. A broader metadata account would
-also need packages, associations, inheritance, and reflection before it could
-support an EMOF self-description claim.
+\paragraph{Conclusion validity.}
+Repeated positive validation measurements characterize the declared preloaded
+workload and environment. They do not establish a general performance ranking,
+and warmed repetitions in one process are not independent machine-level trials.
+Startup, parsing, conversion and serialization are separate costs. Native validators
+also enforce Ecore-specific rules beyond the common structural obligations;
+semantic differences must be resolved or reported before interpreting timings.
+Tests, rendering and kernel checking supply evidence for different properties;
+none establishes standards fidelity on its own.

@@ -1,76 +1,79 @@
 \section{Motivation}
+The Train Benchmark provides a published railway metamodel, model generators
+and domain queries \cite{szarnyas_etal_2018}. We select its route--switch-position
+structure as a small modeling-language case. The original artifact describes the
+metamodel in Xcore; our executable notation is a separately attributed
+translation. Neither that translation nor the small authored snapshot below is
+an original Train input or evidence of a production railway system.
+
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[
-  font=\scriptsize,
-  cls/.style={draw,rounded corners=1pt,align=left,inner sep=3pt,text width=34mm},
-  obj/.style={draw,rounded corners=1pt,align=left,inner sep=3pt,fill=black!3},
-  rel/.style={-{Stealth[length=1.5mm]},line width=.45pt},
-  note/.style={align=left,text width=30mm}
-]
-\node[cls] (entry) {\textbf{Entry} \emph{abstract}\\\rule{33mm}{.2pt}\\key : String [1] \{id\}\\catalog : Catalog [1]};
-\node[cls,below=7mm of entry] (book) {\textbf{Book}\\\rule{33mm}{.2pt}\\inPrint : Boolean [0..1]\\authors : Author [1..*]\\\emph{ordered}};
-\node[cls,right=20mm of book] (author) {\textbf{Author}\\\rule{33mm}{.2pt}\\name : String [1]\\books : Book [0..*]};
-\node[cls,right=20mm of entry] (catalog) {\textbf{Catalog}\\\rule{33mm}{.2pt}\\entries : Entry [0..*]\\\emph{ordered, composite}};
-\draw[-{Triangle[open,length=2.1mm]},line width=.5pt] (book) -- (entry);
-\draw[rel] ([yshift=2pt]catalog.west) -- node[above,sloped]{entries} ([yshift=2pt]entry.east);
-\draw[rel] ([yshift=-2pt]entry.east) -- node[below,sloped]{catalog} ([yshift=-2pt]catalog.west);
-\draw[rel] ([yshift=2pt]book.east) -- node[above,sloped]{authors} ([yshift=2pt]author.west);
-\draw[rel] ([yshift=-2pt]author.west) -- node[below,sloped]{books} ([yshift=-2pt]book.east);
-
-\node[obj,below=19mm of book,xshift=-13mm,text width=27mm] (co)
-  {\textbf{catalog : Catalog}\\entries = [book]};
-\node[obj,right=5mm of co,text width=35mm] (bo)
-  {\textbf{book : Book}\\key = [``semantics'']\\catalog = [catalog]\\inPrint = [false]\\authors = [authorOne,\\\hspace*{9mm}authorTwo]};
-\node[obj,right=5mm of bo,text width=32mm] (au)
-  {\textbf{authorOne : Author}\\name = [``A. Writer'']\\books = [book]\\[2pt]
-   \textbf{authorTwo : Author}\\name = [``B. Writer'']\\books = [book]};
-\node[draw=black!45,fit=(co)(bo)(au),inner sep=3pt,label={[font=\scriptsize]below:one conforming snapshot as observation lists}] {};
+\begin{tikzpicture}[font=\small,
+ box/.style={draw,align=center,text width=27mm,minimum height=12mm},
+ pair/.style={line width=.55pt},every node/.style={inner sep=3pt}]
+\node[box] (route) at (0,0) {\textbf{Route}\\active : Boolean};
+\node[box] (position) at (4.5,0) {\textbf{SwitchPosition}\\position : Position};
+\node[box] (switch) at (9,0) {\textbf{Switch}\\currentPosition\\: Position};
+\node[box] (sensor) at (0,-2.0) {\textbf{Sensor}};
+\draw[pair,{Diamond[length=2.5mm]}-] (route) --
+ node[above,font=\scriptsize,align=center]{follows\\$0..*$}
+ node[below,font=\scriptsize,align=center]{route\\$0..1$} (position);
+\draw[pair] (position) --
+ node[above,font=\scriptsize,align=center]{target\\$0..1$}
+ node[below,font=\scriptsize,align=center]{positions\\$0..*$} (switch);
+\draw[-{Stealth[length=1.6mm]}] (route) --
+ node[right,font=\scriptsize]{requires $2..*$} (sensor);
 \end{tikzpicture}
-\caption{Running catalog example. The lower panel exposes the actual observation
-lists: paired rows record both association ends. The composite \emph{entries}
-reference gives \emph{book} one incoming containment occurrence, and
-\emph{key} applies to \emph{book} by inheritance. All properties are unique.}
-\label{fig:catalog}
+\caption{Selected Train structure, redrawn from the published metamodel and
+Xcore artifact. A horizontal line denotes one opposite pair, with its two role
+names and bounds; the diamond marks the composite end at Route. Inherited
+ordinary integer \emph{id} attributes, intermediate abstract classes and the
+three Position literals are retained in the executable example but omitted here.
+This is a structural projection of the full language.}
+\label{fig:train}
 \end{figure}
 
-Consider a catalog editor that adds a second author to a book. Updating only
-\texttt{Book::authors} leaves both ends within their declared multiplicities:
-the book has two authors and the new author's optional \texttt{books} list may
-still be empty. Every value can also have the right type. Yet the resulting
-snapshot is inconsistent: the two ends disagree about whether the authorship
-exists. Checking each field in isolation cannot establish conformance.
-Figure~\ref{fig:catalog} shows the completed update, with both ends recorded.
-
-Several facts must agree even in this small example. The alias \texttt{Entry::key} denotes one declaration inherited by the
-\emph{book} object. The list \texttt{Book::authors} records two ordered object
-identities. Each occurrence must be matched at the opposite end by a
-\texttt{Author::books} occurrence. The book is contained once through
-\texttt{Catalog::entries}, while the upper-one \texttt{Entry::catalog} end
-records the inverse. These are related parts of one conformance judgment, not
-independent validation options.
-
-The source also records \texttt{Book::inPrint = [false]}. Because the property is
-optional, \texttt{[]} would also satisfy its multiplicity, but it would describe
-absence rather than the Boolean value false. This distinction matters when the
-same model is realized in a format with default-value behavior.
-
-The central source fragment is readable without exposing allocated identifiers:
-
-\noindent\begin{minipage}{\linewidth}
+Figure~\ref{fig:train} retains two opposite pairs and a required sensor
+multiplicity. Its source Xcore includes:
 \begin{verbatim}
-object book : Book {
-  observe Entry::key = ["semantics"];
-  observe Entry::catalog = [@catalog];
-  observe Book::inPrint = [false];
-  observe Book::authors = [@authorOne, @authorTwo];
+contains SwitchPosition[] follows opposite route
+refers Sensor[2..*] requires
+\end{verbatim}
+These Route declarations use Xcore syntax. The inverse route has upper bound
+one. The projection retains RailwayElement and TrackElement inheritance,
+Boolean and Integer attributes, and Position's three literals. Containers,
+regions, segments and semaphores are omitted and documented in the artifact.
+
+Consider one route, one switch, one switch position and two sensors. Removing
+one required sensor violates the lower bound. Removing only the position's
+reverse route value breaks opposite consistency while preserving local upper
+bounds. This represented inconsistency need not be reachable through an
+inverse-maintaining editor.
+
+Reciprocity and an upper-one reverse bound also prohibit repeated forward
+references to one target, even without forward uniqueness. Train explicitly
+requires uniqueness; a separate nonunique example isolates the theorem's
+premises. Unpaired composite occurrences can repeat with one parent identity,
+whereas two paired composite features can activate two forbidden container
+roles. These distinctions motivate a foundation before a tool comparison.
+
+The implemented VL-MOF translation includes the following route object:
+\begin{minipage}{\linewidth}
+\begin{verbatim}
+object route : railway::Route {
+  observe railway::RailwayElement::id = [101];
+  observe railway::Route::active = [true];
+  observe railway::Route::follows = [@switchPosition];
+  observe railway::Route::requires = [@sensorA, @sensorB];
 }
 \end{verbatim}
 \end{minipage}
+Qualified names identify declarations, \texttt{@} denotes references, and lists
+retain occurrences. Scalars are singleton lists; absence is empty. The complete
+example supplies the other objects and inverse rows, without implicit completion.
+Default-sensitive scalar values are explicit.
 
-The complete listing in the artifact includes the catalog, authors, both
-associations, and every required observation; the current command-line checker
-accepts it. The modeling question is whether this acceptance has the same
-meaning as the symbolic document. Answering it requires both a precise account
-of finite EMOF conformance and a proof about the elaboration that replaces
-aliases with identities.
+The inherited \emph{id} is ordinary Integer data: equal values on distinct
+objects are structurally admissible. Train's SwitchSet query additionally uses
+route activity, entry-semaphore state and switch-position agreement. The
+projection omits semaphores and does not evaluate that domain query.
