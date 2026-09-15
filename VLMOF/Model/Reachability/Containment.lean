@@ -1,9 +1,20 @@
 import VLMOF.Finite.Closure
 
+/-!
+# Composite-containment reachability
+
+The declarative `compositeEdge` relation and executable `outgoingComposite` step are
+connected here through generic finite closure. For conforming snapshots, value typing
+resolves every composite target into the finite object carrier.
+-/
+
 namespace VLMOF
 
+/-- Finite carrier of object identities stored in a snapshot. -/
 def objectUniverse (m : Snapshot) : List ObjectId := m.objects.map ObjectDecl.id
 
+/-- The executable containment expansion returns exactly targets of composite edges
+whose sources are in `seen`. The proof follows the observation and value filters. -/
 theorem outgoingComposite_spec (s : Schema) (m : Snapshot) (seen : List ObjectId)
     (target : ObjectId) :
     target ∈ outgoingComposite s m seen ↔ ∃ source ∈ seen, compositeEdge s m source target := by
@@ -31,6 +42,8 @@ theorem outgoingComposite_spec (s : Schema) (m : Snapshot) (seen : List ObjectId
     simp [hany]
     exact ⟨.reference target, hv, rfl⟩
 
+/-- If all semantic composite targets resolve into the object carrier, then one
+executable expansion remains in that carrier. -/
 theorem outgoingComposite_closed (s : Schema) (m : Snapshot)
     (targetsResolved : ∀ src dst, compositeEdge s m src dst → dst ∈ objectUniverse m)
     (seen : List ObjectId) (target : ObjectId) (h : target ∈ outgoingComposite s m seen) :
@@ -38,11 +51,15 @@ theorem outgoingComposite_closed (s : Schema) (m : Snapshot)
   rcases (outgoingComposite_spec s m seen target).mp h with ⟨src, _, hedge⟩
   exact targetsResolved src target hedge
 
+/-- Bounded executable containment reachability always yields a stored composite
+path; this soundness direction does not assume conformance. -/
 theorem containmentClosure_sound (s : Schema) (m : Snapshot) {start target : ObjectId} :
     target ∈ iterateClosure (outgoingComposite s m) m.objects.length [start] →
       StoredPath (compositeEdge s m) start target :=
   iterateClosure_has_path (outgoingComposite s m) (compositeEdge s m) (outgoingComposite_spec s m) _
 
+/-- With resolved targets and a stored start object, the object-count cutoff is
+equivalent to reflexive-transitive composite paths. -/
 theorem containmentClosure_iff (s : Schema) (m : Snapshot)
     (targetsResolved : ∀ src dst, compositeEdge s m src dst → dst ∈ objectUniverse m)
     {start target : ObjectId} (hstart : start ∈ objectUniverse m) :
@@ -64,6 +81,8 @@ theorem SnapshotConforms.compositeTargetsResolved {s : Schema} {m : Snapshot}
   obtain ⟨o, ho, heq, _⟩ := typed
   exact List.mem_map.mpr ⟨o, ho, heq⟩
 
+/-- In a conforming snapshot, computed containment reachability coincides with stored
+composite paths. Conformance supplies target resolution through typed occurrences. -/
 theorem SnapshotConforms.compositeReachable_iff_path {s : Schema} {m : Snapshot}
     (h : SnapshotConforms s m) {start target : ObjectId}
     (hstart : start ∈ objectUniverse m) :

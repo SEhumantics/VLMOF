@@ -10,8 +10,12 @@ argument does not need to delete cycles from a source path.
 
 namespace VLMOF
 
+/-- Finite carrier of class identities stored by a schema. Under well-formedness it
+has no duplicates and contains every resolved superclass. -/
 def classUniverse (s : Schema) : List ClassId := s.classes.map ClassDecl.id
 
+/-- One closure round: retain the discovered prefix and append each newly exposed
+identity once. This named form supports the saturation and size arguments below. -/
 def closureAdvance {α : Type} [DecidableEq α] (step : List α → List α)
     (seen : List α) : List α :=
   seen ++ (step seen).eraseDups.filter (fun x => !seen.contains x)
@@ -37,6 +41,8 @@ termination_by xs.length
 decreasing_by
   exact Nat.lt_succ_of_le (List.length_filter_le _ _)
 
+/-- One closure advance preserves duplicate-freedom: new values are deduplicated
+internally and filtered away from the previously seen prefix. -/
 theorem closureAdvance_nodup {α : Type} [DecidableEq α] (step : List α → List α)
     {seen : List α} (hseen : seen.Nodup) : (closureAdvance step seen).Nodup := by
   unfold closureAdvance
@@ -47,6 +53,7 @@ theorem closureAdvance_nodup {α : Type} [DecidableEq α] (step : List α → Li
   have hnot : b ∉ seen := by simpa using hb.2
   exact hnot (hab ▸ ha)
 
+/-- Every bounded approximation remains duplicate-free when the initial frontier is. -/
 theorem iterateClosure_nodup {α : Type} [DecidableEq α]
     (step : List α → List α) {seen : List α} (hseen : seen.Nodup) :
     ∀ n, (iterateClosure step n seen).Nodup := by
@@ -57,6 +64,8 @@ theorem iterateClosure_nodup {α : Type} [DecidableEq α]
     unfold iterateClosure
     exact ih (closureAdvance_nodup step hseen)
 
+/-- Exposing an unseen successor strictly increases the next frontier's length. This
+is the growth fact used to force saturation in a finite carrier. -/
 theorem closureAdvance_strict_of_unseen_step {α : Type} [DecidableEq α]
     (step : List α → List α) {seen : List α} {x : α}
     (hstep : x ∈ step seen) (hunseen : x ∉ seen) :
@@ -69,6 +78,7 @@ theorem closureAdvance_strict_of_unseen_step {α : Type} [DecidableEq α]
   refine ⟨?_, by simpa using hunseen⟩
   exact List.mem_eraseDups.mpr hstep
 
+/-- If every exposed successor is already seen, a closure round is a fixed point. -/
 theorem closureAdvance_eq_of_step_subset {α : Type} [DecidableEq α]
     (step : List α → List α) (seen : List α)
     (hclosed : ∀ x, x ∈ step seen → x ∈ seen) : closureAdvance step seen = seen := by
@@ -82,12 +92,15 @@ theorem closureAdvance_eq_of_step_subset {α : Type} [DecidableEq α]
   rw [hempty]
   simp
 
+/-- Unfold one successor iteration through the named `closureAdvance` operation. -/
 theorem iterateClosure_succ_eq_advance {α : Type} [DecidableEq α]
     (step : List α → List α) (n : Nat) (seen : List α) :
     iterateClosure step (n + 1) seen =
       iterateClosure step n (closureAdvance step seen) := by
   rfl
 
+/-- Once `closureAdvance` reaches a fixed point, every remaining fuel amount returns
+the same frontier; the proof is induction over the unused fuel. -/
 theorem iterateClosure_of_closureAdvance_eq {α : Type} [DecidableEq α]
     (step : List α → List α) (seen : List α)
     (hstable : closureAdvance step seen = seen) :
@@ -100,6 +113,8 @@ theorem iterateClosure_of_closureAdvance_eq {α : Type} [DecidableEq α]
     rw [hstable]
     exact ih
 
+/-- A successful raw class lookup places the requested identity in the finite class
+carrier, even before uniqueness is assumed. -/
 theorem mem_classUniverse_of_classDecls_ne_nil {s : Schema} {id : ClassId}
     (h : s.classDecls id ≠ []) : id ∈ classUniverse s := by
   unfold Schema.classDecls at h
@@ -115,6 +130,8 @@ theorem mem_classUniverse_of_classDecls_ne_nil {s : Schema} {id : ClassId}
   apply hno
   exact ⟨d, hd.1, by simpa using hd.2⟩
 
+/-- Every superclass exposed by one expansion is in the class carrier. The material
+assumption is `supersResolved` from schema well-formedness. -/
 theorem classSupers_mem_classUniverse (s : Schema) (wf : SchemaWellFormed s)
     {seen : List ClassId} {super : ClassId}
     (h : super ∈ classSupers s seen) : super ∈ classUniverse s := by
@@ -123,6 +140,8 @@ theorem classSupers_mem_classUniverse (s : Schema) (wf : SchemaWellFormed s)
   rw [List.mem_filter] at hd
   exact mem_classUniverse_of_classDecls_ne_nil (wf.supersResolved d hd.1 super hs)
 
+/-- Starting inside the class carrier, every bounded superclass approximation stays
+inside it. The proof inducts over expansions and applies superclass resolution. -/
 theorem iterateClosure_mem_classUniverse (s : Schema) (wf : SchemaWellFormed s)
     {start target : ClassId} (hstart : start ∈ classUniverse s) :
     ∀ n, target ∈ iterateClosure (classSupers s) n [start] → target ∈ classUniverse s := by
@@ -151,10 +170,13 @@ theorem classSupers_closed_in_universe (s : Schema) (wf : SchemaWellFormed s)
   intro super hs
   exact classSupers_mem_classUniverse s wf hs
 
+/-- Schema identifier uniqueness makes the finite class carrier duplicate-free. -/
 theorem classUniverse_nodup (s : Schema) (wf : SchemaWellFormed s) :
     (classUniverse s).Nodup := by
   simpa [classUniverse, uniqueBy] using wf.uniqueClassIds
 
+/-- Every superclass approximation has length at most the class store. The proof
+combines duplicate-freedom with containment in `classUniverse`. -/
 theorem iterateClosure_length_le_class_count (s : Schema) (wf : SchemaWellFormed s)
     {start : ClassId} (hstart : start ∈ classUniverse s) (n : Nat) :
     (iterateClosure (classSupers s) n [start]).length ≤ s.classes.length := by
@@ -224,6 +246,8 @@ theorem classClosure_closed (s : Schema) (wf : SchemaWellFormed s)
   have hlarge := iterateClosure_length_ge_of_unseen_each (classSupers s) start s.classes.length hunseen
   have hsmall := iterateClosure_length_le_class_count s wf hstart s.classes.length
   omega
+/-- Every finite stored superclass path is present at the saturated class-count
+frontier. Each path step uses closure of that frontier under resolved direct edges. -/
 theorem SuperPath.mem_saturated {s : Schema} (wf : SchemaWellFormed s)
     {start target : ClassId} {n : Nat} (path : SuperPath s start target n)
     (hstart : start ∈ classUniverse s) :
@@ -249,6 +273,5 @@ theorem Schema.isSubtype_iff_superReachable (s : Schema) (wf : SchemaWellFormed 
     unfold Schema.isSubtype Schema.ancestors
     exact List.mem_eraseDups.mpr (path.mem_saturated wf hstart)
 end VLMOF
-
 
 

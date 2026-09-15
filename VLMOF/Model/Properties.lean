@@ -9,6 +9,8 @@ opposite.  It does not assume uniqueness of the forward property.
 
 namespace VLMOF
 
+/-- Two members of a key-unique list are equal when their keys are equal. The proof
+peels the list and uses head-key exclusion to rule out the two mixed cases. -/
 theorem uniqueBy_eq_of_mem {κ α : Type} [DecidableEq κ] (key : α → κ)
     {xs : List α} (h : uniqueBy key xs) {a b : α}
     (ha : a ∈ xs) (hb : b ∈ xs) (hk : key a = key b) : a = b := by
@@ -41,6 +43,8 @@ theorem observation_key_injective {s : Schema} {m : Snapshot}
     (hk : a.key = b.key) : a = b :=
   uniqueBy_eq_of_mem Observation.key h.uniqueObservationKeys ha hb hk
 
+/-- The occurrences of one value cannot exceed the total occurrence-list length.
+This small bound connects opposite counts to a property's multiplicity bound. -/
 theorem occurrence_count_le_length (v : Value) (xs : List Value) : xs.count v ≤ xs.length := by
   exact List.count_le_length
 
@@ -61,6 +65,6 @@ theorem opposite_upper_one_forces_reference_count_le_one
     _ ≤ 1 := by
       have hb := h.bounds y hy qd hqd hqApplicable
       rw [hqId] at hb
-      simpa [withinMultiplicity, hqUpper] using hb.2
+      simpa [withinMultiplicity, Upper.allows, hqUpper] using hb.2
 
 end VLMOF

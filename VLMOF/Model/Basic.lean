@@ -1,3 +1,5 @@
+import VLMOF.Model.Multiplicity
+
 /-!
 # Finite raw representation for the selected structural MOF fragment
 
@@ -15,33 +17,42 @@ with the same name remain different.
 Each Schema denotes an implicit outer package scope. A missing explicit package
 reference on a class, enumeration or association denotes ownership by that scope,
 not an ownerless EMOF declaration. Explicit packages with no parent also sit in
-that scope. See docs/model.md for the interpretation and its omitted root API.
+that scope. See `docs/model.md` for the interpretation and its omitted root API.
+
+Reading order: `VLMOF.Model.Multiplicity` defines cardinality intervals; this module
+defines raw records; `VLMOF.Model.Semantics` adds well-formedness and conformance;
+the `VLMOF.Model.Reachability` modules justify the bounded closure computations.
 -/
 
 namespace VLMOF
 
+/-! ## Declaration and object identities -/
+
+/-- Package identity used by declaration ownership and parent links. It remains
+stable when optional presentation names change. -/
 structure PackageId where val : Nat deriving DecidableEq, Repr
+/-- Class identity shared by superclass links, reference types, and object
+classifiers, so semantic equality does not depend on names. -/
 structure ClassId where val : Nat deriving DecidableEq, Repr
+/-- Property identity shared by schema declarations, association membership, and
+snapshot observations; association ends use the same common property store. -/
 structure PropertyId where val : Nat deriving DecidableEq, Repr
+/-- Association identity used both by the association store and by ownership of a
+nonnavigable end. -/
 structure AssociationId where val : Nat deriving DecidableEq, Repr
+/-- Enumeration identity referenced by property types and by each literal's owner. -/
 structure EnumerationId where val : Nat deriving DecidableEq, Repr
+/-- Literal identity carried in enumeration occurrence values and resolved together
+with its enumeration identity. -/
 structure LiteralId where val : Nat deriving DecidableEq, Repr
+/-- Object identity shared by references and observation sources, independently of
+an object's asserted classifier. -/
 structure ObjectId where val : Nat deriving DecidableEq, Repr
 
-/-- A normalized upper multiplicity.  Positivity is checked later, so zero remains
-representable for diagnostics. -/
-inductive Upper where
-  | finite (value : Nat)
-  | unlimited
-  deriving DecidableEq, Repr
+/-! ## Raw schema declarations -/
 
-structure Multiplicity where
-  lower : Nat
-  upper : Upper
-  isOrdered : Bool
-  isUnique : Bool
-  deriving DecidableEq, Repr
-
+/-- The property types supported by the selected structural profile. Enumeration and
+reference types retain declaration identities for later resolution checks. -/
 inductive ValueType where
   | boolean
   | integer
@@ -50,22 +61,30 @@ inductive ValueType where
   | reference (id : ClassId)
   deriving DecidableEq, Repr
 
+/-- The declaration that owns a property. Association ownership represents a
+nonnavigable end while keeping it in the common property store. -/
 inductive PropertyOwner where
   | class (id : ClassId)
   | association (id : AssociationId)
   deriving DecidableEq, Repr
 
+/-- The supported aggregation modes. `composite` contributes containment edges;
+shared aggregation is outside the selected profile. -/
 inductive Aggregation where
   | none
   | composite
   deriving DecidableEq, Repr
 
+/-- A raw package declaration. `none` denotes the schema's implicit outer package
+scope; explicit parent references are resolved during schema validation. -/
 structure PackageDecl where
   id : PackageId
   name : Option String
   parent : Option PackageId
   deriving DecidableEq, Repr
 
+/-- A raw class declaration with direct superclass identities. Cycles and dangling
+superclasses remain representable so validation can diagnose them. -/
 structure ClassDecl where
   id : ClassId
   name : Option String
@@ -74,6 +93,8 @@ structure ClassDecl where
   directSupers : List ClassId
   deriving DecidableEq, Repr
 
+/-- A raw structural feature or association end, including its normalized type,
+multiplicity, containment mode, and identity-property marker. -/
 structure PropertyDecl where
   id : PropertyId
   name : Option String
@@ -94,12 +115,14 @@ structure AssociationDecl where
   ends : PropertyId × PropertyId
   deriving DecidableEq, Repr
 
+/-- A raw enumeration declaration; its literals are stored separately by identity. -/
 structure EnumerationDecl where
   id : EnumerationId
   name : Option String
   package : Option PackageId
   deriving DecidableEq, Repr
 
+/-- A raw enumeration literal linked to its owning enumeration by identity. -/
 structure LiteralDecl where
   id : LiteralId
   name : Option String
@@ -117,6 +140,10 @@ structure Schema where
   literals : List LiteralDecl
   deriving DecidableEq, Repr
 
+/-! ## Raw snapshot data -/
+
+/-- A runtime occurrence value in the selected primitive, enumeration, and reference
+domains. References use object identity and enumeration values retain both IDs. -/
 inductive Value where
   | boolean (value : Bool)
   | integer (value : Int)
@@ -125,6 +152,7 @@ inductive Value where
   | reference (object : ObjectId)
   deriving DecidableEq, Repr
 
+/-- An object identity and its asserted classifier in a raw snapshot. -/
 structure ObjectDecl where
   id : ObjectId
   classifier : ClassId
@@ -139,10 +167,14 @@ structure Observation where
   occurrences : List Value
   deriving DecidableEq, Repr
 
+/-- A raw finite object graph. Lists preserve duplicate identities and observation
+keys until the conformance predicate or checker reports them. -/
 structure Snapshot where
   objects : List ObjectDecl
   observations : List Observation
   deriving DecidableEq, Repr
+
+/-! ## Representation-level observations -/
 
 /-- The candidates for an end's opposite, derived only from binary end membership.
 Several candidates expose malformed duplicate membership rather than choosing a pointer. -/
@@ -157,149 +189,4 @@ uniqueness is a later validity condition and never erases duplicate occurrences 
 def Occurrences.equivalent (isOrdered : Bool) (left right : List Value) : Prop :=
   if isOrdered then left = right else left.Perm right
 
-namespace Example
-
-private def many (ordered unique : Bool) : Multiplicity :=
-  { lower := 0, upper := .unlimited, isOrdered := ordered, isUnique := unique }
-
-def root : ClassId := ⟨0⟩
-def left : ClassId := ⟨1⟩
-def right : ClassId := ⟨2⟩
-def diamond : ClassId := ⟨3⟩
-def person : ClassId := ⟨4⟩
-def pet : ClassId := ⟨5⟩
-
-def rootCode : PropertyId := ⟨0⟩
-def leftX : PropertyId := ⟨1⟩
-def rightX : PropertyId := ⟨2⟩
-def pets : PropertyId := ⟨3⟩
-def owner : PropertyId := ⟨4⟩
-def active : PropertyId := ⟨5⟩
-def scores : PropertyId := ⟨6⟩
-def moods : PropertyId := ⟨7⟩
-
-/-- A diamond shares `rootCode` by identity.  `leftX` and `rightX` deliberately have
-the same spelling but remain distinct declarations.  `owner` is association-owned and
-therefore nonnavigable, while its observations still record incidence. -/
-def schema : Schema :=
-  { packages := [{ id := ⟨0⟩, name := some "example", parent := none }]
-    classes :=
-      [{ id := root, name := some "Root", package := some ⟨0⟩, isAbstract := true,
-         directSupers := [] },
-       { id := left, name := some "Left", package := some ⟨0⟩, isAbstract := false,
-         directSupers := [root] },
-       { id := right, name := some "Right", package := some ⟨0⟩, isAbstract := false,
-         directSupers := [root] },
-       { id := diamond, name := some "Diamond", package := some ⟨0⟩, isAbstract := false,
-         directSupers := [left, right] },
-       { id := person, name := some "Person", package := some ⟨0⟩, isAbstract := false,
-         directSupers := [] },
-       { id := pet, name := some "Pet", package := some ⟨0⟩, isAbstract := false,
-         directSupers := [] }]
-    properties :=
-      [{ id := rootCode, name := some "code", owner := .class root, type := .string,
-         multiplicity := many false true, aggregation := .none, isId := true },
-       { id := leftX, name := some "x", owner := .class left, type := .integer,
-         multiplicity := many false true, aggregation := .none, isId := false },
-       { id := rightX, name := some "x", owner := .class right, type := .integer,
-         multiplicity := many false true, aggregation := .none, isId := false },
-       { id := pets, name := some "pets", owner := .class person, type := .reference pet,
-         multiplicity := many true false, aggregation := .none, isId := false },
-       { id := owner, name := some "owner", owner := .association ⟨0⟩, type := .reference person,
-         multiplicity := many false false, aggregation := .none, isId := false },
-       { id := active, name := some "active", owner := .class person, type := .boolean,
-         multiplicity := { lower := 0, upper := .finite 1, isOrdered := false,
-                           isUnique := true },
-         aggregation := .none, isId := false },
-       { id := scores, name := some "scores", owner := .class person, type := .integer,
-         multiplicity := many false false, aggregation := .none, isId := false },
-       { id := moods, name := some "moods", owner := .class person,
-         type := .enumeration ⟨0⟩, multiplicity := many false false,
-         aggregation := .none, isId := false }]
-    associations := [{ id := ⟨0⟩, name := some "PersonPet", package := some ⟨0⟩,
-                       ends := (pets, owner) }]
-    enumerations := [{ id := ⟨0⟩, name := some "Mood", package := some ⟨0⟩ }]
-    literals := [{ id := ⟨0⟩, name := some "happy", enumeration := ⟨0⟩ }] }
-
-def p : ObjectId := ⟨0⟩
-def fido : ObjectId := ⟨1⟩
-def diamondObject : ObjectId := ⟨2⟩
-
-/-- Repeated links are retained at both ends.  Empty observations express optional
-absence and are distinct from `[.boolean false]`, `[.integer 0]`, or `[.string ""]`. -/
-def snapshot : Snapshot :=
-  { objects :=
-      [{ id := p, classifier := person }, { id := fido, classifier := pet },
-       { id := diamondObject, classifier := diamond }]
-    observations :=
-      [{ object := p, property := pets,
-         occurrences := [.reference fido, .reference fido] },
-       { object := fido, property := owner,
-         occurrences := [.reference p, .reference p] },
-       { object := diamondObject, property := rootCode, occurrences := [] },
-       { object := diamondObject, property := leftX, occurrences := [.integer 1] },
-       { object := diamondObject, property := rightX, occurrences := [.integer 2] },
-       { object := p, property := active, occurrences := [.boolean false] },
-       { object := p, property := scores, occurrences := [.integer 0, .integer 0] },
-       { object := p, property := moods,
-         occurrences := [.enumeration ⟨0⟩ ⟨0⟩, .enumeration ⟨0⟩ ⟨0⟩] }] }
-
-/-- Raw malformed schemas compile: this one has a cycle, a dangling superclass, a
-zero upper bound below its lower bound, and association-end ownership disagreement. -/
-def malformed : Schema :=
-  { packages := []
-    classes :=
-      [{ id := ⟨90⟩, name := none, package := some ⟨99⟩, isAbstract := false,
-         directSupers := [⟨90⟩, ⟨99⟩] }]
-    properties :=
-      [{ id := ⟨90⟩, name := some "bad", owner := .class ⟨98⟩, type := .reference ⟨97⟩,
-         multiplicity := { lower := 2, upper := .finite 0, isOrdered := false,
-                           isUnique := false },
-         aggregation := .composite, isId := false }]
-    associations := [{ id := ⟨90⟩, name := none, package := none, ends := (⟨90⟩, ⟨91⟩) }]
-    enumerations := []
-    literals := [{ id := ⟨90⟩, name := none, enumeration := ⟨99⟩ }] }
-
-/-- Raw snapshots likewise retain dangling objects/properties, duplicate observation
-keys, and ill-typed values for later diagnostics. -/
-def malformedSnapshot : Snapshot :=
-  { objects := [{ id := ⟨90⟩, classifier := ⟨99⟩ }]
-    observations :=
-      [{ object := ⟨90⟩, property := ⟨99⟩, occurrences := [.string "wrong type"] },
-       { object := ⟨90⟩, property := ⟨99⟩, occurrences := [.reference ⟨98⟩] }] }
-
-/-- A bounded metadata pilot uses exactly the same class, property, object, and value
-constructors as user models.  Here an ordinary object represents the `Person` class and
-an ordinary String observation represents its name; no privileged metadata value or
-observation path is introduced.  This is only an architecture witness, not an M1
-conformance or self-description theorem. -/
-def metadataSchema : Schema :=
-  { packages := [{ id := ⟨100⟩, name := some "metadata", parent := none }]
-    classes := [{ id := ⟨100⟩, name := some "Class", package := some ⟨100⟩,
-                  isAbstract := false, directSupers := [] }]
-    properties :=
-      [{ id := ⟨100⟩, name := some "name", owner := .class ⟨100⟩, type := .string,
-         multiplicity := { lower := 1, upper := .finite 1, isOrdered := false,
-                           isUnique := true },
-         aggregation := .none, isId := false }]
-    associations := []
-    enumerations := []
-    literals := [] }
-
-def metadataSnapshot : Snapshot :=
-  { objects := [{ id := ⟨100⟩, classifier := ⟨100⟩ }]
-    observations :=
-      [{ object := ⟨100⟩, property := ⟨100⟩, occurrences := [.string "Person"] }] }
-
-example : schema.oppositeCandidates pets = [owner] := rfl
-example : Occurrences.equivalent false [.integer 1, .integer 2] [.integer 2, .integer 1] := by
-  simp only [Occurrences.equivalent, Bool.false_eq_true, ↓reduceIte]
-  exact .swap (Value.integer 2) (Value.integer 1) []
-example : ¬ Occurrences.equivalent true [.integer 1, .integer 2] [.integer 2, .integer 1] := by
-  simp [Occurrences.equivalent]
-example : ([] : List Value) ≠ [.boolean false] := by simp
-example : ¬ Occurrences.equivalent false [.string "x", .string "x"] [.string "x"] := by
-  simp [Occurrences.equivalent]
-
-end Example
 end VLMOF

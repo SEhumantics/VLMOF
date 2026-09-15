@@ -1,22 +1,36 @@
 import VLMOF.Checker.Correctness.Local
 
+/-!
+# Schema-checker reflection
+
+The small list and option reflection lemmas support the main theorem, which maps each
+named Boolean schema check to the corresponding `SchemaWellFormed` field.
+-/
+
 namespace VLMOF
 
+/-- A list of decided propositions passes `List.all` exactly when every member
+satisfies the proposition. -/
 theorem all_decide_eq_true {α : Type} (xs : List α) (p : α → Prop)
     [∀ x, Decidable (p x)] :
     xs.all (fun x => decide (p x)) = true ↔ ∀ x ∈ xs, p x := by
   simp
 
+/-- An optional-value check is vacuous for `none` and requires `p` for the stored
+value of `some`; cases on the option prove the reflection. -/
 theorem optionalCheck_eq_true {α : Type} (x : Option α) (p : α → Prop)
     [∀ a, Decidable (p a)] :
     (match x with | none => true | some a => decide (p a)) = true ↔
       ∀ a, x = some a → p a := by
   cases x <;> simp
 
+/-- `refType` recognizes exactly the `ValueType.reference` constructor. -/
 theorem refType_eq_true (t : ValueType) :
     refType t = true ↔ ∃ c, t = .reference c := by
   cases t <;> simp [refType]
 
+/-- Reflection of every conjunct checked for one candidate association-end pair.
+The only structural case split is reference-type recognition for both ends. -/
 theorem associationPairOK_eq_true (a : AssociationDecl) (p q : PropertyDecl) :
     associationPairOK a p q = true ↔
       a.ends = (p.id, q.id) ∧ p.id ≠ q.id ∧
@@ -28,6 +42,8 @@ theorem associationPairOK_eq_true (a : AssociationDecl) (p q : PropertyDecl) :
   rw [refType_eq_true, refType_eq_true]
   simp only [and_assoc]
 
+/-- The nested executable searches accept exactly when every stored association has
+two property witnesses satisfying the declarative end constraints. -/
 theorem associationEndsCheck_eq_true (s : Schema) :
     (s.associations.all fun a =>
       s.properties.any fun p => s.properties.any fun q => associationPairOK a p q) = true ↔

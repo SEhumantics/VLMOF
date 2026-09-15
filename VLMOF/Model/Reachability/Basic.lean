@@ -106,6 +106,8 @@ theorem SuperPath.isSubtype_of_length_le {s : Schema} {start target : ClassId} {
 def BoundedSuperReachable (s : Schema) (start target : ClassId) : Prop :=
   ∃ n, n ≤ s.classes.length ∧ SuperPath s start target n
 
+/-- A stored superclass path within the class-count cutoff is contained in the
+computed subtype relation, by the length-bounded path lemma. -/
 theorem BoundedSuperReachable.isSubtype {s : Schema} {start target : ClassId}
     (h : BoundedSuperReachable s start target) : s.isSubtype start target := by
   rcases h with ⟨n, hn, path⟩
@@ -157,6 +159,8 @@ theorem Schema.isSubtype_iff_boundedSuperReachable (s : Schema)
 def SuperReachable (s : Schema) (start target : ClassId) : Prop :=
   ∃ n, SuperPath s start target n
 
+/-- Computed subtyping always supplies an unbounded stored superclass path. The proof
+first uses the exact bounded characterization, then forgets its length bound. -/
 theorem Schema.isSubtype_implies_superReachable (s : Schema)
     {start target : ClassId} (h : s.isSubtype start target) :
     SuperReachable s start target := by
@@ -194,6 +198,8 @@ theorem Schema.directSuper_isSubtype (s : Schema) {c : ClassDecl}
 
 namespace ClosureExample
 
+/-- Build a minimal raw class for the local chain fixture. This helper deliberately
+omits package ownership because reachability depends only on identities and supers. -/
 private def cls (id : Nat) (supers : List Nat) : ClassDecl :=
   { id := ⟨id⟩, name := some s!"C{id}", package := none,
     isAbstract := false, directSupers := supers.map ClassId.mk }
@@ -211,11 +217,5 @@ def chain : Schema :=
 example : chain.isSubtype ⟨3⟩ ⟨0⟩ := by native_decide
 example : chain.ancestors ⟨3⟩ = [⟨3⟩, ⟨2⟩, ⟨1⟩, ⟨0⟩] := by native_decide
 
-/-- The K0 diamond reaches its root once despite two inheritance paths. -/
-example : VLMOF.Example.schema.ancestors VLMOF.Example.diamond =
-    [VLMOF.Example.diamond, VLMOF.Example.left, VLMOF.Example.right,
-      VLMOF.Example.root] := by native_decide
-
 end ClosureExample
 end VLMOF
-

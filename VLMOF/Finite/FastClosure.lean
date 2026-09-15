@@ -1,5 +1,12 @@
 import VLMOF.Model.Reachability.Inheritance
 
+/-!
+# Early-stopping finite closure
+
+The checker can stop once a closure frontier is stable. The equivalence theorem
+below proves that this optimization returns exactly the original bounded closure.
+-/
+
 namespace VLMOF
 
 /-- Stop expanding a frontier once it is unchanged. The finite cutoff is retained

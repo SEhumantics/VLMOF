@@ -1,5 +1,13 @@
 import VLMOF.Model.Reachability.Inheritance
 
+/-!
+# Generic finite closure theorem
+
+This module packages the saturation argument independently of class, package, or
+containment data. A caller supplies an executable expansion, its relational edge
+specification, and proof that expansion remains in a finite carrier.
+-/
+
 namespace VLMOF
 
 /-- Closure remains in a finite carrier whenever every expansion does. -/
@@ -22,6 +30,9 @@ theorem iterateClosure_mem_universe {α : Type} [DecidableEq α]
     · exact ih old
     · exact closed _ _ (List.mem_eraseDups.mp (List.mem_filter.mp fresh).1)
 
+/-- After `carrier.length` rounds the frontier is closed under `step`, provided the
+start and every exposed successor lie in the carrier. Otherwise every earlier round
+would add a fresh value, contradicting the carrier-size bound. -/
 theorem finiteClosure_closed {α : Type} [DecidableEq α]
     (step : List α → List α) (carrier : List α)
     (closed : ∀ seen x, x ∈ step seen → x ∈ carrier)
@@ -95,4 +106,3 @@ theorem finiteClosure_iff_path {α : Type} [DecidableEq α]
       exact finiteClosure_closed step carrier closed hstart _ ((spec _ _).mpr ⟨_, ih, hedge⟩)
 
 end VLMOF
-

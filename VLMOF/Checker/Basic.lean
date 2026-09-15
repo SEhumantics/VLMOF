@@ -1,24 +1,54 @@
 import VLMOF.Model.Semantics
 import VLMOF.Finite.FastClosure
 
+/-!
+# Executable schema and snapshot checks
+
+The functions in this module mirror fields of `SchemaWellFormed` and
+`SnapshotConforms` with finite Boolean computations. Field labels are stable diagnostic
+categories, while the correctness modules prove the Boolean checks equivalent to the
+declarative predicates. The modeled constraints come from the selected EMOF profile
+listed in `sources/PROFILE.md`; this checker does not extend that profile.
+-/
+
 namespace VLMOF
 
+/-! ## Decidable semantic predicates -/
+
+/-- Decidability bridge for XML character validity used by `decide` in the checker. -/
 instance (c : Char) : Decidable (xmlChar c) := by unfold xmlChar; infer_instance
+/-- Decidability bridge for finite string validity. -/
 instance (x : String) : Decidable (validString x) := by unfold validString; infer_instance
+/-- Decidability bridge for optional declaration-name validity. -/
 instance (x : Option String) : Decidable (validName x) := by unfold validName; split <;> infer_instance
+/-- Decidability bridge for the selected-profile multiplicity restriction. -/
 instance (x : Multiplicity) : Decidable (multiplicityValid x) := by unfold multiplicityValid; split <;> infer_instance
-instance (x : Multiplicity) (n : Nat) : Decidable (withinMultiplicity x n) := by unfold withinMultiplicity; split <;> infer_instance
+/-- Decidability bridge for interval membership of an occurrence count. -/
+instance (x : Multiplicity) (n : Nat) : Decidable (withinMultiplicity x n) := by
+  unfold withinMultiplicity Upper.allows
+  split <;> infer_instance
+/-- Decidability bridge for association-end ownership agreement. -/
 instance (a : AssociationDecl) (p : PropertyDecl) : Decidable (ownerMatchesEnd a p) := by unfold ownerMatchesEnd; split <;> infer_instance
+/-- Decidability bridge for a navigable end's source-class agreement. -/
 instance (p q : PropertyDecl) : Decidable (classOwnerIsSource p q) := by unfold classOwnerIsSource; split <;> infer_instance
+/-- Decidability bridge for the one-nonnavigable-end profile restriction. -/
 instance (p q : PropertyDecl) : Decidable (atMostOneAssociationOwned p q) := by unfold atMostOneAssociationOwned; split <;> infer_instance
 
+/-- A failed named checker field, classified by whether it belongs to schema
+well-formedness or snapshot conformance. -/
 inductive Diagnostic where
   | schema (field : String)
   | snapshot (field : String)
   deriving DecidableEq, Repr
 
+/-! ## Schema checks -/
+
+/-- Boolean recognition of class-reference property types for association and
+composite constraints. -/
 def refType : ValueType → Bool | .reference _ => true | _ => false
 
+/-- Check one candidate pair against all structural obligations for the two ends of
+association `a`, including distinctness, reference typing, ownership, and aggregation. -/
 def associationPairOK (a : AssociationDecl) (p q : PropertyDecl) : Bool :=
   decide (a.ends = (p.id, q.id)) && decide (p.id ≠ q.id) && refType p.type && refType q.type &&
   decide (ownerMatchesEnd a p) && decide (ownerMatchesEnd a q) &&
@@ -26,6 +56,8 @@ def associationPairOK (a : AssociationDecl) (p q : PropertyDecl) : Bool :=
   decide (atMostOneAssociationOwned p q) &&
   decide (¬ (p.aggregation = .composite ∧ q.aggregation = .composite))
 
+/-- Named Boolean checks corresponding one-for-one to the fields of
+`SchemaWellFormed`. Keeping the list centralizes both acceptance and diagnostics. -/
 def schemaFieldChecks (s : Schema) : List (String × Bool) :=
   [("unique package identifiers", decide (uniqueBy PackageDecl.id s.packages)),
    ("unique class identifiers", decide (uniqueBy ClassDecl.id s.classes)),
@@ -62,22 +94,33 @@ def schemaFieldChecks (s : Schema) : List (String × Bool) :=
       ((s.properties.filter (fun p => p.isId && match p.owner with
         | .class owner => (s.ancestors c.id).contains owner | .association _ => false)).length ≤ 1))]
 
+/-- Accept a schema exactly when every named schema field check succeeds. -/
 def checkSchema (s : Schema) : Bool := (schemaFieldChecks s).all (fun x => x.2)
+/-- Report one schema diagnostic for each failed named field check, in check order. -/
 def schemaDiagnostics (s : Schema) : List Diagnostic :=
   (schemaFieldChecks s).filterMap fun x => if x.2 then none else some (.schema x.1)
 
+/-! ## Snapshot-local executable relations -/
+
+/-- All object identities mentioned by reference occurrences, retaining repetition.
+This exposes the raw reference workload for finite checker reasoning. -/
 def referenceTargets (m : Snapshot) : List ObjectId :=
   m.observations.flatMap fun a => a.occurrences.filterMap fun
     | .reference o => some o | _ => none
 
+/-- Executable recognition of a raw `compositeEdge` between two object identities. -/
 def compositeEdgeB (s : Schema) (m : Snapshot) (src dst : ObjectId) : Bool :=
   m.observations.any fun a => decide (a.object = src) && s.properties.any fun p =>
     decide (p.id = a.property) && decide (p.aggregation = .composite) &&
       a.occurrences.contains (.reference dst)
 
+/-- Executable bounded containment reachability, using early stopping without changing
+the semantic `iterateClosure` result. -/
 def compositeReachableB (s : Schema) (m : Snapshot) (src dst : ObjectId) : Bool :=
   (iterateClosureFast (outgoingComposite s m) m.objects.length [src]).contains dst
 
+/-- Boolean counterpart of `valueMatches`, including literal resolution and subtype
+checking for the two identity-bearing value forms. -/
 def valueMatchesB (s : Schema) (m : Snapshot) : ValueType → Value → Bool
   | .boolean, .boolean _ => true
   | .integer, .integer _ => true
@@ -96,9 +139,15 @@ def oppositeCountsForB (m : Snapshot) (p q : PropertyId) : Bool :=
   forward.all fun x => backward.all fun y =>
     decide (x.2.count (.reference y.1) = y.2.count (.reference x.1))
 
+/-- Check that no direct composite child of `source` can reach `source`, the local
+Boolean form used for global containment acyclicity. -/
 def containmentForB (s : Schema) (m : Snapshot) (source : ObjectId) : Bool :=
   (outgoingComposite s m [source]).all fun child => !compositeReachableB s m child source
 
+/-! ## Snapshot checks -/
+
+/-- Named Boolean checks corresponding one-for-one to the fields of
+`SnapshotConforms`, including schema validity as the first field. -/
 def snapshotFieldChecks (s : Schema) (m : Snapshot) : List (String × Bool) :=
   [("schema well formed", checkSchema s),
    ("unique object identifiers", decide (uniqueBy ObjectDecl.id m.objects)),
@@ -125,9 +174,12 @@ def snapshotFieldChecks (s : Schema) (m : Snapshot) : List (String × Bool) :=
    ("one incoming composite", m.objects.all fun o => decide (incomingCompositeCount s m o.id ≤ 1)),
    ("containment acyclic", m.objects.all fun o => containmentForB s m o.id)]
 
+/-- Accept a snapshot exactly when every named conformance field check succeeds. -/
 def checkSnapshot (s : Schema) (m : Snapshot) : Bool :=
   (snapshotFieldChecks s m).all (fun x => x.2)
 
+/-- Report one snapshot diagnostic for each failed named conformance check, in check
+order. -/
 def snapshotDiagnostics (s : Schema) (m : Snapshot) : List Diagnostic :=
   (snapshotFieldChecks s m).filterMap fun x => if x.2 then none else some (.snapshot x.1)
 

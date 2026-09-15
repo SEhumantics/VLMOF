@@ -1,7 +1,16 @@
 import VLMOF.Checker.Correctness.Local
 
+/-!
+# Snapshot-checker reflection
+
+This module assembles the reflected local checks into `SnapshotConforms`. The schema
+checker equivalence is a parameter so schema and snapshot correctness remain separate
+proof responsibilities.
+-/
+
 namespace VLMOF
 
+/-- Rewrites a disjunctive Boolean guard into implication form for declarative fields. -/
 private theorem guard_iff (p q : Prop) : (¬p ∨ q) ↔ (p → q) := by
   classical
   constructor
@@ -10,13 +19,18 @@ private theorem guard_iff (p q : Prop) : (¬p ∨ q) ↔ (p → q) := by
     · exact Or.inr (h hp)
     · exact Or.inl hp
 
+/-- Reflection of Boolean negation at `true`, used by guarded checker fields. -/
 private theorem notB_eq_true (b : Bool) : (!b = true) ↔ ¬ (b = true) := by
   cases b <;> decide
 
+/-- Equality with `decide p` is equivalent to agreement between `b` and proposition
+`p`; cases on both truth values discharge the helper. -/
 private theorem bool_eq_decide (b : Bool) (p : Prop) [Decidable p] :
     b = decide p ↔ (b = true ↔ p) := by
   cases b <;> by_cases p <;> simp_all
 
+/-- Every composite-edge target appears among raw reference targets, because its
+witnessing observation contains `.reference dst`. -/
 theorem compositeEdge_target_mem {s : Schema} {m : Snapshot} {src dst : ObjectId}
     (h : compositeEdge s m src dst) : dst ∈ referenceTargets m := by
   obtain ⟨a, ha, _, p, _, _, _, hv⟩ := h
@@ -24,6 +38,8 @@ theorem compositeEdge_target_mem {s : Schema} {m : Snapshot} {src dst : ObjectId
   refine ⟨a, ha, ?_⟩
   exact List.mem_filterMap.mpr ⟨.reference dst, hv, rfl⟩
 
+/-- Restricting containment targets to the finite reference-target list loses no
+composite edge, by `compositeEdge_target_mem`. -/
 private theorem finite_containment_iff (s : Schema) (m : Snapshot) :
     (∀ o ∈ m.objects, ∀ child ∈ referenceTargets m,
       compositeEdge s m o.id child → ¬ compositeReachable s m child o.id) ↔
@@ -69,5 +85,4 @@ theorem checkSnapshot_iff_of_schema (s : Schema) (m : Snapshot)
     · exact h.containmentAcyclic
 
 end VLMOF
-
 

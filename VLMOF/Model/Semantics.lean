@@ -15,38 +15,65 @@ The profile and source locators are recorded in `sources/PROFILE.md`: MOF 2.5.1
 
 namespace VLMOF
 
+/-! ## Lexical domains and finite-key discipline -/
+
+/-- XML 1.0 character admissibility used by the profile's string and name checks.
+The numeric ranges follow XML 1.0 Fifth Edition, production [2] `Char`. -/
 def xmlChar (c : Char) : Prop :=
   let n := c.toNat
   n = 0x9 ∨ n = 0xA ∨ n = 0xD ∨
     (0x20 ≤ n ∧ n ≤ 0xD7FF) ∨ (0xE000 ≤ n ∧ n ≤ 0xFFFD) ∨
     (0x10000 ≤ n ∧ n ≤ 0x10FFFF)
 
+/-- A runtime string is valid when every character belongs to the XML character
+domain required by XMI-facing EMOF data. -/
 def validString (s : String) : Prop := ∀ c ∈ s.toList, xmlChar c
+/-- Declaration names must be present, nonempty, and composed of valid XML
+characters. Lexical identifier grammar is handled by the source layer. -/
 def validName : Option String → Prop
   | some s => s ≠ "" ∧ validString s
   | none => False
 
+/-- Key uniqueness for a raw list. This leaves duplicate records representable in
+`Schema` and `Snapshot`, then rejects them in the relevant validity predicate. -/
 def uniqueBy {κ α : Type} [DecidableEq κ] (key : α → κ) (xs : List α) : Prop :=
   (xs.map key).Nodup
 
+/-- Key uniqueness is decidable whenever key equality is decidable. -/
 instance {κ α : Type} [DecidableEq κ] (key : α → κ) (xs : List α) :
     Decidable (uniqueBy key xs) := by
   unfold uniqueBy
   infer_instance
 
+/-! ## Duplicate-preserving lookup -/
+
+/-- Resolve a package identity for parent and ownership checks. A list result keeps
+zero, one, and duplicate declarations distinguishable to the validator. -/
 def Schema.packageDecls (s : Schema) (id : PackageId) : List PackageDecl :=
   s.packages.filter (fun d => d.id = id)
+/-- Resolve a class identity used by classifiers, superclass links, and reference
+types while retaining duplicate declarations for diagnostics. -/
 def Schema.classDecls (s : Schema) (id : ClassId) : List ClassDecl :=
   s.classes.filter (fun d => d.id = id)
+/-- Resolve the common identity of a structural feature or association end; the list
+result avoids silently choosing among malformed duplicates. -/
 def Schema.propertyDecls (s : Schema) (id : PropertyId) : List PropertyDecl :=
   s.properties.filter (fun d => d.id = id)
+/-- Resolve association ownership and membership without collapsing duplicate raw
+association declarations. -/
 def Schema.associationDecls (s : Schema) (id : AssociationId) : List AssociationDecl :=
   s.associations.filter (fun d => d.id = id)
+/-- Resolve an enumeration referenced by a property type or literal owner while
+preserving malformed duplicate declarations. -/
 def Schema.enumerationDecls (s : Schema) (id : EnumerationId) : List EnumerationDecl :=
   s.enumerations.filter (fun d => d.id = id)
+/-- Resolve a literal identity carried by an enumeration occurrence; its owning
+enumeration is checked separately by `valueMatches`. -/
 def Schema.literalDecls (s : Schema) (id : LiteralId) : List LiteralDecl :=
   s.literals.filter (fun d => d.id = id)
 
+/-- Resolve reference targets and observation sources without trusting raw object
+identity uniqueness before snapshot conformance is established. -/
 def Snapshot.objectDecls (m : Snapshot) (id : ObjectId) : List ObjectDecl :=
   m.objects.filter (fun d => d.id = id)
 
@@ -56,12 +83,20 @@ def Snapshot.occurrences (m : Snapshot) (o : ObjectId) (p : PropertyId) : List V
   (m.observations.filter (fun a => a.object = o ∧ a.property = p)).flatMap
     Observation.occurrences
 
+/-! ## Bounded declaration reachability -/
+
+/-- One superclass expansion from every stored class whose identity is in `ids`.
+The result retains repeated edges for the closure layer to deduplicate. -/
 def classSupers (s : Schema) (ids : List ClassId) : List ClassId :=
   (s.classes.filter (fun c => ids.contains c.id)).flatMap ClassDecl.directSupers
 
+/-- One parent-package expansion from the declarations selected by `ids`. Root
+packages contribute no successor. -/
 def packageParents (s : Schema) (ids : List PackageId) : List PackageId :=
   (s.packages.filter (fun p => ids.contains p.id)).filterMap PackageDecl.parent
 
+/-- Bounded monotone closure from an initial `seen` list. Each round appends newly
+exposed identities once; callers choose a store-size fuel bound. -/
 def iterateClosure {α : Type} [DecidableEq α]
     (step : List α → List α) : Nat → List α → List α
   | 0, seen => seen
@@ -72,19 +107,28 @@ def iterateClosure {α : Type} [DecidableEq α]
 def Schema.ancestors (s : Schema) (c : ClassId) : List ClassId :=
   (iterateClosure (classSupers s) s.classes.length [c]).eraseDups
 
+/-- Reflexive package-ancestor closure, bounded by the number of package records. -/
 def Schema.packageAncestors (s : Schema) (p : PackageId) : List PackageId :=
   (iterateClosure (packageParents s) s.packages.length [p]).eraseDups
 
+/-- Computational subtyping: `super` occurs in the reflexive ancestor closure of
+`sub`. Reachability modules relate this bounded computation to stored paths. -/
 def Schema.isSubtype (s : Schema) (sub super : ClassId) : Prop :=
   super ∈ s.ancestors sub
 
+/-- Subtyping is decidable because the computed ancestor list is finite. -/
 instance (s : Schema) (sub super : ClassId) : Decidable (s.isSubtype sub super) := by
   unfold Schema.isSubtype
   infer_instance
 
+/-- Identities of properties directly owned by class `c`, without inheritance. -/
 def Schema.directProperties (s : Schema) (c : ClassId) : List PropertyId :=
   (s.properties.filter (fun p => p.owner = .class c)).map PropertyDecl.id
 
+/-! ## Property applicability and local semantic checks -/
+
+/-- Whether an association-owned end applies to class `c`. Applicability is inferred
+from the opposite end's reference source because the end itself is nonnavigable. -/
 def Schema.associationEndApplies (s : Schema) (c : ClassId)
     (aid : AssociationId) (pid : PropertyId) : Bool :=
   s.associations.any fun a =>
@@ -105,22 +149,19 @@ def Schema.applicablePropertyIds (s : Schema) (c : ClassId) : List PropertyId :=
     | .class owner => (s.ancestors c).contains owner
     | .association aid => s.associationEndApplies c aid p.id).map PropertyDecl.id |>.eraseDups
 
+/-- Proposition-level membership in the identity-deduplicated applicable-property
+list for class `c`. -/
 def Schema.applicableProperty (s : Schema) (c : ClassId) (pid : PropertyId) : Prop :=
   pid ∈ s.applicablePropertyIds c
 
+/-- Property applicability is decidable by list membership. -/
 instance (s : Schema) (c : ClassId) (pid : PropertyId) :
     Decidable (s.applicableProperty c pid) := by
   unfold Schema.applicableProperty
   infer_instance
 
-def multiplicityValid (m : Multiplicity) : Prop :=
-  match m.upper with
-  | .finite u => 0 < u ∧ m.lower ≤ u
-  | .unlimited => True
-
-def withinMultiplicity (m : Multiplicity) (n : Nat) : Prop :=
-  m.lower ≤ n ∧ match m.upper with | .finite u => n ≤ u | .unlimited => True
-
+/-- Semantic typing of one occurrence. Reference values must resolve to objects whose
+classifier is a subtype; enumeration values must resolve to a literal of that enum. -/
 def valueMatches (s : Schema) (m : Snapshot) : ValueType → Value → Prop
   | .boolean, .boolean _ => True
   | .integer, .integer _ => True
@@ -131,19 +172,27 @@ def valueMatches (s : Schema) (m : Snapshot) : ValueType → Value → Prop
       ∃ od ∈ m.objects, od.id = o ∧ s.isSubtype od.classifier c
   | _, _ => False
 
+/-- An association end may be class-owned, or association-owned by this association.
+The latter condition prevents a nonnavigable end from naming another association. -/
 def ownerMatchesEnd (a : AssociationDecl) (p : PropertyDecl) : Prop :=
   match p.owner with | .class _ => True | .association aid => aid = a.id
 
+/-- A class-owned association end's owner must equal the reference source inferred
+from its opposite end. Association-owned ends have no navigable class owner. -/
 def classOwnerIsSource (p opposite : PropertyDecl) : Prop :=
   match p.owner, opposite.type with
   | .class source, .reference targetSource => source = targetSource
   | .association _, .reference _ => True
   | _, _ => False
 
+/-- The selected binary-association representation permits at most one nonnavigable,
+association-owned end. -/
 def atMostOneAssociationOwned (p q : PropertyDecl) : Prop :=
   match p.owner, q.owner with
   | .association _, .association _ => False
   | _, _ => True
+
+/-! ## Schema well-formedness -/
 
 /-- The schema-only obligations.  Every navigation used by snapshot semantics is
 resolved here, including names, ownership, types, binary ends and inheritance. -/
@@ -196,22 +245,33 @@ structure SchemaWellFormed (s : Schema) : Prop where
       | .class owner => (s.ancestors c.id).contains owner
       | .association _ => false)).length ≤ 1
 
+/-! ## Snapshot graph and conformance -/
+
+/-- The logical slot key used to reject duplicate observation rows. -/
 def Observation.key (o : Observation) : ObjectId × PropertyId := (o.object, o.property)
 
+/-- A stored occurrence from `src` to `dst` through a composite property. This raw
+edge predicate does not itself require resolved objects or typed observations. -/
 def compositeEdge (s : Schema) (m : Snapshot) (src dst : ObjectId) : Prop :=
   ∃ obs ∈ m.observations, obs.object = src ∧
     ∃ p ∈ s.properties, p.id = obs.property ∧ p.aggregation = .composite ∧
       .reference dst ∈ obs.occurrences
 
+/-- One executable containment expansion from objects in `ids`, retaining reference
+occurrences reached through composite properties. -/
 def outgoingComposite (s : Schema) (m : Snapshot) (ids : List ObjectId) : List ObjectId :=
   (m.observations.filter (fun o => ids.contains o.object)).flatMap fun o =>
     if s.properties.any (fun p => p.id = o.property ∧ p.aggregation = .composite)
     then o.occurrences.filterMap (fun v => match v with | .reference x => some x | _ => none)
     else []
 
+/-- Bounded reflexive-transitive containment reachability over the snapshot's object
+store. The containment reachability module proves its stored-path interpretation. -/
 def compositeReachable (s : Schema) (m : Snapshot) (src dst : ObjectId) : Prop :=
   dst ∈ iterateClosure (outgoingComposite s m) m.objects.length [src]
 
+/-- Number of raw composite reference occurrences that target one object. Occurrence
+counting, rather than distinct-source counting, supports the single-container rule. -/
 def incomingCompositeCount (s : Schema) (m : Snapshot) (target : ObjectId) : Nat :=
   (m.observations.flatMap fun o =>
     if s.properties.any (fun p => p.id = o.property ∧ p.aggregation = .composite)
@@ -251,7 +311,9 @@ structure SnapshotConforms (s : Schema) (m : Snapshot) : Prop where
   containmentAcyclic : ∀ o ∈ m.objects, ∀ child,
     compositeEdge s m o.id child → ¬ compositeReachable s m child o.id
 
+/-- Compatibility spelling for `SchemaWellFormed`. -/
 abbrev WellFormedSchema := SchemaWellFormed
+/-- Compatibility spelling for `SnapshotConforms`. -/
 abbrev Conforms := SnapshotConforms
 
 end VLMOF
