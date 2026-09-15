@@ -1,0 +1,11 @@
+{
+  "id": "train-batch-1-profile",
+  "condition": "historical-public-Train-v1-profile-adaptation",
+  "ecore": ["../../../../../../misc/third_review/development/delivery/VL-MOF-artifact/evidence/public/artifacts/railway.profile.ecore"],
+  "xmi": ["../../../../../../misc/third_review/development/delivery/VL-MOF-artifact/evidence/public/cases/railway-batch-1/adapted.xmi"],
+  "obligation": "retained public Train batch-1 adaptation (754-object historical input); actual EMF schema and loaded-state alignment must be observed afresh",
+  "state_relation": "historical-adaptation-requires-fresh-loaded-to-core-comparison",
+  "historical_adaptation_manifest": "../../../../../../misc/third_review/development/delivery/VL-MOF-artifact/evidence/public/cases/railway-batch-1/adaptation.manifest.json",
+  "expected": {},
+  "timing_eligible": false
+}

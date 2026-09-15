@@ -87,6 +87,45 @@ def fixture_paths(manifest_path: Path, fixture):
     return paths
 
 
+def native_identities(core, kind):
+    return {row["id"]: row["identity"] for row in core["provenance"]["identities"][kind]}
+
+
+def normalized_value(value, object_ids, literal_ids):
+    tag = value["tag"]
+    if tag == "reference":
+        return object_ids[value["object"]]
+    if tag == "enumeration":
+        return literal_ids[value["literal"]]
+    return str(value["value"]).lower() if isinstance(value.get("value"), bool) else str(value["value"])
+
+
+def compare_loaded_to_core(emf_report, core):
+    """Compare the actual loaded EObject feature lists with the bridge Core observation."""
+    object_ids = native_identities(core, "objects")
+    property_ids = native_identities(core, "properties")
+    literal_ids = native_identities(core, "literals")
+    ordered = {row["id"]: row["multiplicity"]["ordered"] for row in core["schema"]["properties"]}
+    expected = {}
+    for row in emf_report.get("loaded_observations", []):
+        expected[(row["object_uri"], row["feature_uri"])] = list(row["values"]) if row["is_set"] else []
+    observed = {}
+    for row in core["snapshot"]["observations"]:
+        key = (object_ids[row["object"]], property_ids[row["property"]])
+        observed[key] = [normalized_value(value, object_ids, literal_ids) for value in row["occurrences"]]
+    mismatches = []
+    for key in sorted(set(expected) | set(observed)):
+        left, right = expected.get(key), observed.get(key)
+        property_id = next((pid for pid, uri in property_ids.items() if uri == key[1]), None)
+        if property_id is not None and not ordered.get(property_id, True):
+            left, right = sorted(left or []), sorted(right or [])
+        if left != right:
+            mismatches.append({"object_uri": key[0], "feature_uri": key[1],
+                               "loaded_values": left, "core_values": right})
+    return {"loaded_observation_count": len(expected), "core_observation_count": len(observed),
+            "lossless": not mismatches, "mismatches": mismatches}
+
+
 def bridge_command(main_class, args):
     return ["mvn", "-q", "-f", str(BRIDGE_POM), "exec:java",
             f"-Dexec.mainClass={main_class}", f"-Dexec.args={' '.join(str(arg) for arg in args)}"]
@@ -164,6 +203,7 @@ def main():
         fixture_row["phases"]["emf_validation"] = {"status": emf_status, "record": emf_record,
                                                      "report": emf_report}
 
+        alignment = None
         core = output / "normalized" / f"{fixture_row['id']}.e1.json"
         source_args = ["import", *[(manifest_path.parent / path).resolve() for path in fixture["ecore"]], "--",
                        *[(manifest_path.parent / path).resolve() for path in fixture["xmi"]]]
@@ -172,8 +212,11 @@ def main():
         normalization_json = json_output(normalization_record, normalization_stdout)
         if normalization_json is not None:
             core.write_text(json.dumps(normalization_json, indent=2) + "\n", encoding="utf-8")
-            fixture_row["phases"]["normalization"] = {"status": "accepted", "record": normalization_record,
-                                                        "core": str(core.relative_to(output)), "sha256": digest(core)}
+            alignment = compare_loaded_to_core(emf_report or {}, normalization_json)
+            normalization_status = "accepted" if alignment["lossless"] else "normalization-loss"
+            fixture_row["phases"]["normalization"] = {"status": normalization_status, "record": normalization_record,
+                                                        "core": str(core.relative_to(output)), "sha256": digest(core),
+                                                        "loaded_to_core": alignment}
             checker = ROOT / ".lake" / "build" / "bin" / "vlmof"
             if checker.exists():
                 lean_record, lean_stdout = command(f"{fixture_row['id']}-vlmof-validate",
@@ -197,7 +240,7 @@ def main():
         if expected:
             observed = {"emf": fixture_row["phases"]["emf_validation"]["status"],
                         "vlmof": fixture_row["phases"]["vlmof_validation"]["status"]}
-            fixture_row["matches_expected"] = all(observed.get(key) == value for key, value in expected.items())
+            fixture_row["matches_expected"] = bool(alignment and alignment["lossless"]) and all(observed.get(key) == value for key, value in expected.items())
         if args.measure and fixture.get("timing_eligible") and emf_status == "accepted" and \
                 fixture_row["phases"]["vlmof_validation"]["status"] == "accepted":
             emf_timing, emf_timing_stdout = command(f"{fixture_row['id']}-emf-warm",

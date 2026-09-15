@@ -30,10 +30,11 @@ call E1 profile checks as validation.
 
 Fixtures name immutable Ecore/XMI bytes. The harness validates the `emf-loaded`
 state. The runner separately uses the E1 bridge to write normalized Core JSON,
-then runs VL-MOF on that file. Normalization preserves identity allocation and
-ordered occurrences; it does not deduplicate nonunique values, merge rows,
-complete opposites, repair containment, resolve undeclared resources, or replace
-integers.
+then compares every loaded object/property list through native URI identity maps
+before it runs VL-MOF on that file. Only a retained, successful comparison may
+be called lossless for that fixture. The contract forbids deduplicating
+nonunique values, merging rows, completing opposites, repairing containment,
+resolving undeclared resources, or replacing integers.
 
 The aligned condition excludes declared defaults and `unsettable` features.
 Original XML lexical presence distinguishes omission from explicit `false`, `0`,
