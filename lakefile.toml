@@ -12,3 +12,7 @@ name = "VLMOF"
 name = "vlmof"
 root = "Main"
 
+
+[[lean_exe]]
+name = "validationBench"
+root = "experiments.ValidationBench"
