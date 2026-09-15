@@ -8,7 +8,15 @@ a clause-audited EMOF 2.5.1 structural profile with identity- and
 occurrence-sensitive predicates, a checked finite decision procedure, and
 conditional source-to-Core correspondence.
 
-Coq4MDE proves conformance preservation for model composition under
+Thirioux et al. define a typed-graph EMOF subset and validate its
+metacircularity by promoting an EMOF model to its reference model
+\cite{thirioux_etal_2007}. Their development is set-theoretic; Coq implementation
+is reported as work in progress. Promotion supplies structural predicates,
+while ordering, default initialization and operational semantics remain deferred.
+Our checker equivalence and conditional symbolic correspondence concern different
+contracts; the bounded metadata pilot establishes no EMOF self-description.
+
+Later Coq4MDE work proves conformance preservation for model composition under
 operation-specific hypotheses \cite{kezadri_etal_2014}. Its set-based opposite
 relation compares membership and its composite predicate counts distinct source
 vertices. We instead retain repeated occurrences, distinguish parent identity
