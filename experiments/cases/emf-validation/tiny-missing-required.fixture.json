@@ -1,0 +1,10 @@
+{
+  "id": "tiny-missing-required",
+  "condition": "dynamic-ecore-default-validator",
+  "ecore": ["tiny.ecore"],
+  "xmi": ["tiny-missing-required.xmi"],
+  "obligation": "candidate aligned instance required-feature cardinality",
+  "state_relation": "lossless-e1-normalized",
+  "expected": {"emf": "rejected", "vlmof": "rejected"},
+  "timing_eligible": false
+}

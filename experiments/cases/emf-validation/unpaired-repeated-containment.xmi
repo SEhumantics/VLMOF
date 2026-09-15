@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<containment:Root xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:containment="https://vlmof.example/evaluation/containment"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://vlmof.example/evaluation/containment unpaired-containment.ecore">
+  <children xmi:id="c" label="only-child"/>
+  <children href="#c"/>
+</containment:Root>

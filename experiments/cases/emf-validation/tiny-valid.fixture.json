@@ -1,0 +1,10 @@
+{
+  "id": "tiny-valid",
+  "condition": "dynamic-ecore-default-validator",
+  "ecore": ["tiny.ecore"],
+  "xmi": ["tiny-valid.xmi"],
+  "obligation": "aligned-positive inheritance, containment, opposite, ordered nonunique occurrence values",
+  "state_relation": "lossless-e1-normalized",
+  "expected": {"emf": "accepted", "vlmof": "accepted"},
+  "timing_eligible": true
+}

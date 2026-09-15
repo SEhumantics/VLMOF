@@ -1,0 +1,10 @@
+{
+  "id": "unique-duplicate-source",
+  "condition": "dynamic-ecore-default-validator",
+  "ecore": ["unique.ecore"],
+  "xmi": ["unique-duplicate-source.xmi"],
+  "obligation": "semantic separator: XML duplicate versus EMF unique-list loaded state",
+  "state_relation": "loaded-state-observation-required",
+  "expected": {},
+  "timing_eligible": false
+}

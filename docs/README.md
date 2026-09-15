@@ -71,3 +71,26 @@ tested code outside that correspondence theorem.
 For details, see the [model representation](model.md), [source language](source-language.md),
 [metadata pilot](metadata.md), [native bridge](../bridge/README.md) and
 [explicit structural profile](../sources/PROFILE.md).
+
+## Actual EMF validation comparison
+
+`EmfInterchange` is a profile-limited interchange adapter; its successful load,
+save, or round trip is not EMF validation. The separate
+`org.vlmof.bridge.EmfValidationHarness` creates a fresh manifest-closed resource
+set and isolated `EValidator` registry, registers `EcoreValidator` for Ecore,
+then validates every Ecore and XMI root through `Diagnostician`. Dynamic Ecore
+instance packages use the documented `EObjectValidator` fallback. It records the
+effective registry and flattened EMF diagnostics as machine-readable JSON.
+
+The full local protocol, state-alignment contract, and reproduction commands are
+in [validation.md](validation.md). Run correctness cases into a **new** directory with:
+
+```sh
+python3 experiments/run_emf_validation.py --output /absolute/new-results
+```
+
+The optional `--measure` mode is only for a quiescent, pinned build. It runs 10
+warmups and 30 repetitions by default of the preloaded combined schema plus
+instance validation boundary; its retained values are observations, not speed
+claims. The runner separately retains bridge normalization and Lean checking,
+and refuses to overwrite a previous result directory.

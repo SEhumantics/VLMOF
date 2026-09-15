@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zero:Root xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:zero="https://vlmof.example/evaluation/zero"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://vlmof.example/evaluation/zero zero-upper.ecore"/>

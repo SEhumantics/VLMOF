@@ -1,0 +1,10 @@
+{
+  "id": "unpaired-two-feature-containment",
+  "condition": "dynamic-ecore-default-validator",
+  "ecore": ["unpaired-containment.ecore"],
+  "xmi": ["unpaired-two-feature-containment.xmi"],
+  "obligation": "semantic separator: one target named through two unpaired composite features of one parent",
+  "state_relation": "loaded-state-observation-required",
+  "expected": {},
+  "timing_eligible": false
+}

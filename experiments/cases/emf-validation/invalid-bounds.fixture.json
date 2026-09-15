@@ -1,0 +1,10 @@
+{
+  "id": "invalid-bounds",
+  "condition": "dynamic-ecore-default-validator",
+  "ecore": ["invalid-bounds.ecore"],
+  "xmi": ["invalid-bounds.xmi"],
+  "obligation": "candidate aligned schema typed-element bounds",
+  "state_relation": "lossless-e1-normalized",
+  "expected": {"emf": "rejected", "vlmof": "rejected"},
+  "timing_eligible": false
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tiny:Container xmlns:xmi="http://www.omg.org/XMI"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:tiny="https://vlmof.example/evaluation/tiny"
+  xsi:schemaLocation="https://vlmof.example/evaluation/tiny tiny.ecore" name="root">
+  <children baseCode="A" marks="7 7"/>
+</tiny:Container>

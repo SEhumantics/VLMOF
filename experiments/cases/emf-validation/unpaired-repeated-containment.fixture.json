@@ -1,0 +1,10 @@
+{
+  "id": "unpaired-repeated-containment",
+  "condition": "dynamic-ecore-default-validator",
+  "ecore": ["unpaired-containment.ecore"],
+  "xmi": ["unpaired-repeated-containment.xmi"],
+  "obligation": "semantic separator: repeated target in one unpaired nonunique composite feature",
+  "state_relation": "loaded-state-observation-required",
+  "expected": {},
+  "timing_eligible": false
+}

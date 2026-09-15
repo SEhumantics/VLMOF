@@ -1,0 +1,10 @@
+{
+  "id": "zero-upper",
+  "condition": "dynamic-ecore-default-validator",
+  "ecore": ["zero-upper.ecore"],
+  "xmi": ["zero-upper.xmi"],
+  "obligation": "semantic separator: structural 0..0 versus Ecore valid-upper-bound rule",
+  "state_relation": "lossless-e1-normalized",
+  "expected": {"emf": "rejected", "vlmof": "accepted"},
+  "timing_eligible": false
+}
