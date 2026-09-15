@@ -1,0 +1,29 @@
+{
+  "id": "recursive-containment-11",
+  "condition": "dynamic-ecore-default-validator",
+  "family": "containment-inheritance",
+  "ecore": [
+    "recursive-containment.ecore"
+  ],
+  "xmi": [
+    "recursive-containment-11.xmi"
+  ],
+  "obligation": "Accepted, losslessly aligned multi-size structural workload.",
+  "state_relation": "EMF loaded observations must equal the E1 Core state under native identity correspondence.",
+  "expected": {
+    "emf": "accepted",
+    "vlmof": "accepted"
+  },
+  "timing_eligible": true,
+  "generator": {
+    "script": "experiments/generate_scaling_cases.py",
+    "version": 1,
+    "parameters": {
+      "shape": "chain",
+      "objects": 11,
+      "observations": 33,
+      "occurrences": 32,
+      "maximum_containment_depth": 10
+    }
+  }
+}

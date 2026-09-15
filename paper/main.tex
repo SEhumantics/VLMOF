@@ -6,7 +6,7 @@
 \usetikzlibrary{arrows.meta,backgrounds,fit,positioning}
 \usepackage[hidelinks]{hyperref}
 \emergencystretch=2em
-\title{A Mechanized Structural Foundation for EMOF-Based Modeling}
+\title{Formalizing Structural EMOF for Metamodeling}
 % Author information must be supplied by the author before submission.
 \author{}
 \institute{}
@@ -15,22 +15,22 @@
 \pagestyle{empty}
 \thispagestyle{empty}
 \begin{abstract}
-A reusable foundation for model-driven software engineering requires an explicit
-meaning for metamodel declarations and their instances. We formalize a finite
-structural fragment of EMOF 2.5.1 in Lean, with source interpretations that remain
-separate from implementation proofs. The account distinguishes structural
-multiplicity from class-creation prerequisites, occurrence counts from container
-objects, and parent uniqueness from active container-role uniqueness. It retains
-inherited declaration identity, opposite incidence, ordering and duplicate values.
-Mechanized consequences and a complete checker expose this semantics for arbitrary
-supported metamodels and finite snapshots. A conditional adequacy theorem connects
-independently defined symbolic satisfaction to actual elaboration. An attributed
-Train metamodel projection demonstrates structural consequences without claiming
-to verify its domain queries. Actual EMF validation cases distinguish agreement
-on common obligations from schema restrictions and validator differences. The
-foundation supports later work on reflective preservation and richer metadata;
-operations, defaults/unset history and full EMOF self-description remain outside
-the established fragment.
+Metamodel declarations need precise conformance rules that validation and model
+reasoning can share. Deriving these rules from EMOF requires reconciling its
+restrictions, adopted UML definitions and reflective-operation contexts. We
+formalize a structural subset of EMOF 2.5.1 in Lean, covering inheritance,
+properties, occurrence multiplicity, opposites and containment. A source audit
+distinguishes creation prerequisites from structural bounds and parent identity
+from active container-property identity. We prove that an executable checker
+decides the defined conformance relation and that symbolic declarations preserve
+and reflect conformance through elaboration under explicit lexical conditions.
+A reusable opposite-count consequence rules out repeated-link edits across
+candidate snapshots, even for a nonunique forward property. A railway projection,
+structural witnesses and native EMF comparisons expose useful behavior, schema
+and validator differences, and default-presence limits. The resulting library
+supports reasoning over represented metamodels and finite snapshots; reflective
+execution, general default/unset state and full EMOF self-description remain
+unsupported. Parser and native-adapter correctness are outside the proved boundary.
 \keywords{EMOF \and Metamodeling \and Lean \and Model conformance}
 \end{abstract}
 \input{sections/introduction}

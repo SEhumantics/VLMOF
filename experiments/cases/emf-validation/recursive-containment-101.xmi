@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<chain:Node xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:chain="https://vlmof.example/evaluation/recursive-containment"
+ xsi:schemaLocation="https://vlmof.example/evaluation/recursive-containment recursive-containment.ecore" xmi:id="n0" name="node-0">
+ <children xmi:id="n1" name="node-1">
+  <children xmi:id="n2" name="node-2">
+   <children xmi:id="n3" name="node-3">
+    <children xmi:id="n4" name="node-4">
+     <children xmi:id="n5" name="node-5">
+      <children xmi:id="n6" name="node-6">
+       <children xmi:id="n7" name="node-7">
+        <children xmi:id="n8" name="node-8">
+         <children xmi:id="n9" name="node-9">
+          <children xmi:id="n10" name="node-10">
+           <children xmi:id="n11" name="node-11">
+            <children xmi:id="n12" name="node-12">
+             <children xmi:id="n13" name="node-13">
+              <children xmi:id="n14" name="node-14">
+               <children xmi:id="n15" name="node-15">
+                <children xmi:id="n16" name="node-16">
+                 <children xmi:id="n17" name="node-17">
+                  <children xmi:id="n18" name="node-18">
+                   <children xmi:id="n19" name="node-19">
+                    <children xmi:id="n20" name="node-20">
+                     <children xmi:id="n21" name="node-21">
+                      <children xmi:id="n22" name="node-22">
+                       <children xmi:id="n23" name="node-23">
+                        <children xmi:id="n24" name="node-24">
+                         <children xmi:id="n25" name="node-25">
+                          <children xmi:id="n26" name="node-26">
+                           <children xmi:id="n27" name="node-27">
+                            <children xmi:id="n28" name="node-28">
+                             <children xmi:id="n29" name="node-29">
+                              <children xmi:id="n30" name="node-30">
+                               <children xmi:id="n31" name="node-31">
+                                <children xmi:id="n32" name="node-32">
+                                 <children xmi:id="n33" name="node-33">
+                                  <children xmi:id="n34" name="node-34">
+                                   <children xmi:id="n35" name="node-35">
+                                    <children xmi:id="n36" name="node-36">
+                                     <children xmi:id="n37" name="node-37">
+                                      <children xmi:id="n38" name="node-38">
+                                       <children xmi:id="n39" name="node-39">
+                                        <children xmi:id="n40" name="node-40">
+                                         <children xmi:id="n41" name="node-41">
+                                          <children xmi:id="n42" name="node-42">
+                                           <children xmi:id="n43" name="node-43">
+                                            <children xmi:id="n44" name="node-44">
+                                             <children xmi:id="n45" name="node-45">
+                                              <children xmi:id="n46" name="node-46">
+                                               <children xmi:id="n47" name="node-47">
+                                                <children xmi:id="n48" name="node-48">
+                                                 <children xmi:id="n49" name="node-49">
+                                                  <children xmi:id="n50" name="node-50">
+                                                   <children xmi:id="n51" name="node-51">
+                                                    <children xmi:id="n52" name="node-52">
+                                                     <children xmi:id="n53" name="node-53">
+                                                      <children xmi:id="n54" name="node-54">
+                                                       <children xmi:id="n55" name="node-55">
+                                                        <children xmi:id="n56" name="node-56">
+                                                         <children xmi:id="n57" name="node-57">
+                                                          <children xmi:id="n58" name="node-58">
+                                                           <children xmi:id="n59" name="node-59">
+                                                            <children xmi:id="n60" name="node-60">
+                                                             <children xmi:id="n61" name="node-61">
+                                                              <children xmi:id="n62" name="node-62">
+                                                               <children xmi:id="n63" name="node-63">
+                                                                <children xmi:id="n64" name="node-64">
+                                                                 <children xmi:id="n65" name="node-65">
+                                                                  <children xmi:id="n66" name="node-66">
+                                                                   <children xmi:id="n67" name="node-67">
+                                                                    <children xmi:id="n68" name="node-68">
+                                                                     <children xmi:id="n69" name="node-69">
+                                                                      <children xmi:id="n70" name="node-70">
+                                                                       <children xmi:id="n71" name="node-71">
+                                                                        <children xmi:id="n72" name="node-72">
+                                                                         <children xmi:id="n73" name="node-73">
+                                                                          <children xmi:id="n74" name="node-74">
+                                                                           <children xmi:id="n75" name="node-75">
+                                                                            <children xmi:id="n76" name="node-76">
+                                                                             <children xmi:id="n77" name="node-77">
+                                                                              <children xmi:id="n78" name="node-78">
+                                                                               <children xmi:id="n79" name="node-79">
+                                                                                <children xmi:id="n80" name="node-80">
+                                                                                 <children xmi:id="n81" name="node-81">
+                                                                                  <children xmi:id="n82" name="node-82">
+                                                                                   <children xmi:id="n83" name="node-83">
+                                                                                    <children xmi:id="n84" name="node-84">
+                                                                                     <children xmi:id="n85" name="node-85">
+                                                                                      <children xmi:id="n86" name="node-86">
+                                                                                       <children xmi:id="n87" name="node-87">
+                                                                                        <children xmi:id="n88" name="node-88">
+                                                                                         <children xmi:id="n89" name="node-89">
+                                                                                          <children xmi:id="n90" name="node-90">
+                                                                                           <children xmi:id="n91" name="node-91">
+                                                                                            <children xmi:id="n92" name="node-92">
+                                                                                             <children xmi:id="n93" name="node-93">
+                                                                                              <children xmi:id="n94" name="node-94">
+                                                                                               <children xmi:id="n95" name="node-95">
+                                                                                                <children xmi:id="n96" name="node-96">
+                                                                                                 <children xmi:id="n97" name="node-97">
+                                                                                                  <children xmi:id="n98" name="node-98">
+                                                                                                   <children xmi:id="n99" name="node-99">
+                                                                                                    <children xmi:id="n100" name="node-100">
+                                                                                                    </children>
+                                                                                                   </children>
+                                                                                                  </children>
+                                                                                                 </children>
+                                                                                                </children>
+                                                                                               </children>
+                                                                                              </children>
+                                                                                             </children>
+                                                                                            </children>
+                                                                                           </children>
+                                                                                          </children>
+                                                                                         </children>
+                                                                                        </children>
+                                                                                       </children>
+                                                                                      </children>
+                                                                                     </children>
+                                                                                    </children>
+                                                                                   </children>
+                                                                                  </children>
+                                                                                 </children>
+                                                                                </children>
+                                                                               </children>
+                                                                              </children>
+                                                                             </children>
+                                                                            </children>
+                                                                           </children>
+                                                                          </children>
+                                                                         </children>
+                                                                        </children>
+                                                                       </children>
+                                                                      </children>
+                                                                     </children>
+                                                                    </children>
+                                                                   </children>
+                                                                  </children>
+                                                                 </children>
+                                                                </children>
+                                                               </children>
+                                                              </children>
+                                                             </children>
+                                                            </children>
+                                                           </children>
+                                                          </children>
+                                                         </children>
+                                                        </children>
+                                                       </children>
+                                                      </children>
+                                                     </children>
+                                                    </children>
+                                                   </children>
+                                                  </children>
+                                                 </children>
+                                                </children>
+                                               </children>
+                                              </children>
+                                             </children>
+                                            </children>
+                                           </children>
+                                          </children>
+                                         </children>
+                                        </children>
+                                       </children>
+                                      </children>
+                                     </children>
+                                    </children>
+                                   </children>
+                                  </children>
+                                 </children>
+                                </children>
+                               </children>
+                              </children>
+                             </children>
+                            </children>
+                           </children>
+                          </children>
+                         </children>
+                        </children>
+                       </children>
+                      </children>
+                     </children>
+                    </children>
+                   </children>
+                  </children>
+                 </children>
+                </children>
+               </children>
+              </children>
+             </children>
+            </children>
+           </children>
+          </children>
+         </children>
+        </children>
+       </children>
+      </children>
+     </children>
+    </children>
+   </children>
+  </children>
+ </children>
+</chain:Node>

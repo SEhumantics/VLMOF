@@ -57,7 +57,10 @@ clients should import the new modules or the aggregate `VLMOF` entry point.
 The default build includes the examples so their claims are checked along with
 the library. For a focused proof client, import only the module containing the
 result you need. [ProofClient.lean](../experiments/ProofClient.lean) demonstrates
-using a conformance consequence without reimplementing the checker.
+using a conformance consequence without reimplementing the checker. Its
+repeated-link edit result quantifies over arbitrary candidate snapshots of the
+example metamodel: reciprocity and a reverse upper-one bound exclude a repeated
+forward target even though that forward property is nonunique.
 
 ## What the proofs establish
 

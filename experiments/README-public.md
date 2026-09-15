@@ -39,9 +39,12 @@ passed to the importer before the metamodel adaptation and is expected to be
 `unsupported` because it retains generator annotations. Raw Train batch 1 is also
 imported with the adapted profile metamodel, without default materialization. Core
 accepts it because both enum properties have lower bound zero. The control records
-six empty `position` and six empty `currentPosition` observations, showing that
-materialization preserves intended EMF runtime-default meaning rather than repairing
-Core conformance. The pinned EMF Compare `compare.ecore` is passed to the real
+six empty `position` and six empty `currentPosition` observations. Materialization
+is not required for Core conformance: it introduces lexical presence that can
+differ from native `eIsSet`. A fresh batch-1 comparison preserving the original
+omissions aligns all 754 objects and 3,378 observation rows; the explicit-default
+adaptation retains twelve presence mismatches. This is a per-input state result,
+not general default/unset equivalence. The pinned EMF Compare `compare.ecore` is passed to the real
 importer and is expected to be `unsupported` because the declared E1 profile
 excludes operations.
 

@@ -33,11 +33,15 @@ profile checks as validation.
 
 Fixtures name immutable Ecore/XMI bytes. The harness validates the `emf-loaded`
 state. The runner separately uses the E1 bridge to write normalized Core JSON,
-then compares every loaded object/property list through native URI identity maps
-before it runs VL-MOF on that file. The comparison rejects duplicate or missing
-rows and non-bijective provenance maps; it does not treat an absent row as an
-empty feature list. Only a retained, successful comparison may be called
-lossless for that fixture. The contract forbids deduplicating
+then compares native object/classifier inventories and every loaded
+object/property list through native URI identity maps. Declaration inventories
+check class, property, enumeration and literal coverage, with property owners,
+ordering, types and literal owners checked against the mapped records. Objects
+without features remain visible through the separate object inventory.
+The comparison rejects duplicate or missing rows and non-bijective provenance
+maps; it does not treat an absent row as an empty feature list. “Lossless” means
+equality of these selected mapped identities and observations, not a general
+EMOF/Ecore metamodel-equivalence theorem. The contract forbids deduplicating
 nonunique values, merging rows, completing opposites, repairing containment,
 resolving undeclared resources, or replacing integers.
 
@@ -68,6 +72,13 @@ environment, normalized files, EMF reports, Lean reports, and unexpected
 results. It never overwrites or resumes. VL-MOF exit 1 is a semantic rejection,
 separate from malformed input and execution failure.
 
+Build the separate measurement executable and Java harness before timing:
+
+```sh
+lake build validationBench
+mvn -q -f bridge/pom.xml test-compile
+```
+
 After a quiescent pinned build, `--measure` enables the positive-only timing
 condition with 10 warmups and 30 retained repetitions:
 
@@ -84,3 +95,17 @@ decode and cold process costs are retained separately and are never speed ratios
 The runner starts those timed commands only when the fixture declares itself
 timing-eligible, both validators accept it, and its retained loaded-to-Core
 comparison is explicitly lossless.
+
+The multifamily runner generates deterministic star, recursive-chain and Train
+projection workloads, runs correctness first, then launches independent trials
+with both tool orders for each fixed case. Reversing case traversal does not
+change the case's stable scheduling index. Worker failures, missing reports and
+incomplete or rejected sample arrays must fail the timing condition rather than
+being hidden by successful untimed validation.
+
+```sh
+python3 experiments/run_fifth_evaluation.py --output /absolute/new-multifamily-results
+```
+
+The run records warmups, repetitions and independent process trials separately.
+Invalid or unsupported cases are correctness evidence, not timed positives.

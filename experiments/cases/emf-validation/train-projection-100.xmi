@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:railway="https://vlmof.example/evaluation/train-route-switch"
+  xsi:schemaLocation="https://vlmof.example/evaluation/train-route-switch train-route-switch.ecore">
+  <railway:Route xmi:id="r0" id="1" active="true" requires="s0a s0b"><follows xmi:id="p0" id="3" position="STRAIGHT" route="r0" target="sw0"/></railway:Route>
+  <railway:Switch xmi:id="sw0" id="2" currentPosition="STRAIGHT" positions="p0"/>
+  <railway:Sensor xmi:id="s0a" id="4"/><railway:Sensor xmi:id="s0b" id="5"/>
+  <railway:Route xmi:id="r1" id="11" active="true" requires="s1a s1b"><follows xmi:id="p1" id="13" position="STRAIGHT" route="r1" target="sw1"/></railway:Route>
+  <railway:Switch xmi:id="sw1" id="12" currentPosition="STRAIGHT" positions="p1"/>
+  <railway:Sensor xmi:id="s1a" id="14"/><railway:Sensor xmi:id="s1b" id="15"/>
+  <railway:Route xmi:id="r2" id="21" active="true" requires="s2a s2b"><follows xmi:id="p2" id="23" position="STRAIGHT" route="r2" target="sw2"/></railway:Route>
+  <railway:Switch xmi:id="sw2" id="22" currentPosition="STRAIGHT" positions="p2"/>
+  <railway:Sensor xmi:id="s2a" id="24"/><railway:Sensor xmi:id="s2b" id="25"/>
+  <railway:Route xmi:id="r3" id="31" active="true" requires="s3a s3b"><follows xmi:id="p3" id="33" position="STRAIGHT" route="r3" target="sw3"/></railway:Route>
+  <railway:Switch xmi:id="sw3" id="32" currentPosition="STRAIGHT" positions="p3"/>
+  <railway:Sensor xmi:id="s3a" id="34"/><railway:Sensor xmi:id="s3b" id="35"/>
+  <railway:Route xmi:id="r4" id="41" active="true" requires="s4a s4b"><follows xmi:id="p4" id="43" position="STRAIGHT" route="r4" target="sw4"/></railway:Route>
+  <railway:Switch xmi:id="sw4" id="42" currentPosition="STRAIGHT" positions="p4"/>
+  <railway:Sensor xmi:id="s4a" id="44"/><railway:Sensor xmi:id="s4b" id="45"/>
+  <railway:Route xmi:id="r5" id="51" active="true" requires="s5a s5b"><follows xmi:id="p5" id="53" position="STRAIGHT" route="r5" target="sw5"/></railway:Route>
+  <railway:Switch xmi:id="sw5" id="52" currentPosition="STRAIGHT" positions="p5"/>
+  <railway:Sensor xmi:id="s5a" id="54"/><railway:Sensor xmi:id="s5b" id="55"/>
+  <railway:Route xmi:id="r6" id="61" active="true" requires="s6a s6b"><follows xmi:id="p6" id="63" position="STRAIGHT" route="r6" target="sw6"/></railway:Route>
+  <railway:Switch xmi:id="sw6" id="62" currentPosition="STRAIGHT" positions="p6"/>
+  <railway:Sensor xmi:id="s6a" id="64"/><railway:Sensor xmi:id="s6b" id="65"/>
+  <railway:Route xmi:id="r7" id="71" active="true" requires="s7a s7b"><follows xmi:id="p7" id="73" position="STRAIGHT" route="r7" target="sw7"/></railway:Route>
+  <railway:Switch xmi:id="sw7" id="72" currentPosition="STRAIGHT" positions="p7"/>
+  <railway:Sensor xmi:id="s7a" id="74"/><railway:Sensor xmi:id="s7b" id="75"/>
+  <railway:Route xmi:id="r8" id="81" active="true" requires="s8a s8b"><follows xmi:id="p8" id="83" position="STRAIGHT" route="r8" target="sw8"/></railway:Route>
+  <railway:Switch xmi:id="sw8" id="82" currentPosition="STRAIGHT" positions="p8"/>
+  <railway:Sensor xmi:id="s8a" id="84"/><railway:Sensor xmi:id="s8b" id="85"/>
+  <railway:Route xmi:id="r9" id="91" active="true" requires="s9a s9b"><follows xmi:id="p9" id="93" position="STRAIGHT" route="r9" target="sw9"/></railway:Route>
+  <railway:Switch xmi:id="sw9" id="92" currentPosition="STRAIGHT" positions="p9"/>
+  <railway:Sensor xmi:id="s9a" id="94"/><railway:Sensor xmi:id="s9b" id="95"/>
+  <railway:Route xmi:id="r10" id="101" active="true" requires="s10a s10b"><follows xmi:id="p10" id="103" position="STRAIGHT" route="r10" target="sw10"/></railway:Route>
+  <railway:Switch xmi:id="sw10" id="102" currentPosition="STRAIGHT" positions="p10"/>
+  <railway:Sensor xmi:id="s10a" id="104"/><railway:Sensor xmi:id="s10b" id="105"/>
+  <railway:Route xmi:id="r11" id="111" active="true" requires="s11a s11b"><follows xmi:id="p11" id="113" position="STRAIGHT" route="r11" target="sw11"/></railway:Route>
+  <railway:Switch xmi:id="sw11" id="112" currentPosition="STRAIGHT" positions="p11"/>
+  <railway:Sensor xmi:id="s11a" id="114"/><railway:Sensor xmi:id="s11b" id="115"/>
+  <railway:Route xmi:id="r12" id="121" active="true" requires="s12a s12b"><follows xmi:id="p12" id="123" position="STRAIGHT" route="r12" target="sw12"/></railway:Route>
+  <railway:Switch xmi:id="sw12" id="122" currentPosition="STRAIGHT" positions="p12"/>
+  <railway:Sensor xmi:id="s12a" id="124"/><railway:Sensor xmi:id="s12b" id="125"/>
+  <railway:Route xmi:id="r13" id="131" active="true" requires="s13a s13b"><follows xmi:id="p13" id="133" position="STRAIGHT" route="r13" target="sw13"/></railway:Route>
+  <railway:Switch xmi:id="sw13" id="132" currentPosition="STRAIGHT" positions="p13"/>
+  <railway:Sensor xmi:id="s13a" id="134"/><railway:Sensor xmi:id="s13b" id="135"/>
+  <railway:Route xmi:id="r14" id="141" active="true" requires="s14a s14b"><follows xmi:id="p14" id="143" position="STRAIGHT" route="r14" target="sw14"/></railway:Route>
+  <railway:Switch xmi:id="sw14" id="142" currentPosition="STRAIGHT" positions="p14"/>
+  <railway:Sensor xmi:id="s14a" id="144"/><railway:Sensor xmi:id="s14b" id="145"/>
+  <railway:Route xmi:id="r15" id="151" active="true" requires="s15a s15b"><follows xmi:id="p15" id="153" position="STRAIGHT" route="r15" target="sw15"/></railway:Route>
+  <railway:Switch xmi:id="sw15" id="152" currentPosition="STRAIGHT" positions="p15"/>
+  <railway:Sensor xmi:id="s15a" id="154"/><railway:Sensor xmi:id="s15b" id="155"/>
+  <railway:Route xmi:id="r16" id="161" active="true" requires="s16a s16b"><follows xmi:id="p16" id="163" position="STRAIGHT" route="r16" target="sw16"/></railway:Route>
+  <railway:Switch xmi:id="sw16" id="162" currentPosition="STRAIGHT" positions="p16"/>
+  <railway:Sensor xmi:id="s16a" id="164"/><railway:Sensor xmi:id="s16b" id="165"/>
+  <railway:Route xmi:id="r17" id="171" active="true" requires="s17a s17b"><follows xmi:id="p17" id="173" position="STRAIGHT" route="r17" target="sw17"/></railway:Route>
+  <railway:Switch xmi:id="sw17" id="172" currentPosition="STRAIGHT" positions="p17"/>
+  <railway:Sensor xmi:id="s17a" id="174"/><railway:Sensor xmi:id="s17b" id="175"/>
+  <railway:Route xmi:id="r18" id="181" active="true" requires="s18a s18b"><follows xmi:id="p18" id="183" position="STRAIGHT" route="r18" target="sw18"/></railway:Route>
+  <railway:Switch xmi:id="sw18" id="182" currentPosition="STRAIGHT" positions="p18"/>
+  <railway:Sensor xmi:id="s18a" id="184"/><railway:Sensor xmi:id="s18b" id="185"/>
+  <railway:Route xmi:id="r19" id="191" active="true" requires="s19a s19b"><follows xmi:id="p19" id="193" position="STRAIGHT" route="r19" target="sw19"/></railway:Route>
+  <railway:Switch xmi:id="sw19" id="192" currentPosition="STRAIGHT" positions="p19"/>
+  <railway:Sensor xmi:id="s19a" id="194"/><railway:Sensor xmi:id="s19b" id="195"/>
+</xmi:XMI>

@@ -1,55 +1,32 @@
 \section{Introduction}
-Model-driven software engineering uses metamodels to define the structures of
-modeling languages. Essential MOF (EMOF) supplies a shared vocabulary of classes,
-properties, inheritance and associations. A reusable formal foundation should
-explain which declarations are legal, which finite object structures they admit,
-and which consequences follow for every supported metamodel. Such an account can
-support later reasoning about model transformations, reflective operations and
-interchange without rebuilding structural conformance for each language.
+Metamodel authors need to know which object structures their declarations admit.
+A model may load successfully in an editor yet fail a multiplicity constraint;
+two validators may accept inputs whose values changed during loading. A reusable
+structural semantics gives validation, model reasoning and interchange analysis
+a common object of study. Essential MOF (EMOF) provides the metamodeling vocabulary,
+but deriving that semantics requires relating its restrictions, adopted UML
+definitions and reflective-service requirements \cite{omg_mof_251,omg_uml_25}.
 
-The difficulty is partly interpretive. EMOF combines its own restrictions with
-adopted UML definitions and reflective-service clauses. A class-creation
-prerequisite need not be a global metamodel restriction. Repeated references need
-not denote distinct containers. Inherited properties must retain declaration
-identity across different paths. A mechanized checker can be correct for a
-predicate that resolves these questions incorrectly; source justification and
-proof of implementation correctness therefore require separate evidence.
+Containment illustrates the problem: repeated references can name one parent,
+while two container properties can both name that parent. MOF distinguishes
+these obligations. A checker proof alone cannot establish that its predicate
+selects the right specification context.
 
-Formal MOF accounts already provide reusable results.
-Boronat and Meseguer give an executable algebraic account of model types and
-conformance \cite{boronat_meseguer_2010}. Coq4MDE proves model-composition
-preservation under explicit hypotheses \cite{kezadri_etal_2014}; mechanized
-UML/OCL and textual metamodeling also provide substantial precedents
-\cite{brucker_tuong_wolff_2020,jouault_bezivin_2006}.
-Our contribution is a version-specific, inspectable structural EMOF account
-connecting source interpretations, occurrence-sensitive consequences and a
-mechanized realization. We do not claim the first formal MOF semantics, and
-choice of proof assistant or concrete notation alone is not the contribution.
+Formal MOF semantics already has substantial precedents. Boronat and Meseguer
+provide executable algebraic conformance and reflective machinery
+\cite{boronat_meseguer_2010}; Coq4MDE proves composition preservation under explicit
+conditions \cite{kezadri_etal_2014}; Isabelle UML/OCL supplies conservative theory
+generation \cite{brucker_tuong_wolff_2020}. We contribute an inspectable structural
+interpretation of EMOF 2.5.1 that connects source decisions, identity- and
+occurrence-sensitive constraints, a proved finite checker, and conditional
+correspondence with independently defined symbolic metamodels and instances.
+The incremental result is this checked semantic contract and its demonstrated
+consequences, rather than Lean, syntax or collection support alone.
 
-We investigate three research questions:
-\begin{description}
-\item[RQ1.] Which structural interpretation is justified by the EMOF source set,
-and which contextual distinctions change admitted schemas or snapshots?
-\item[RQ2.] What reusable consequences and executable/authoring correspondence
-can be established for that interpretation?
-\item[RQ3.] What modeling consequences arise in a published language fragment,
-and how do outcomes and execution costs compare with aligned EMF validation?
-\end{description}
-
-VL-MOF contributes (i) an explicit structural interpretation of EMOF 2.5.1,
-with source-derived separating examples; (ii) a Lean library of conformance
-predicates and consequences, with checker correctness and conditional
-source-elaboration adequacy; and (iii) a realization evaluated through a
-published Train metamodel projection and a declared EMF comparison protocol.
-The semantic domain includes finite nested packages, classes and inheritance,
-properties and binary associations, selected primitive/enumeration values,
-occurrence multiplicity, uniqueness, ordering, opposites and static containment.
-Defaults and unset history, reflective execution, richer values and full
-self-description are deferred. Structural acceptance does not establish a
-language's domain invariants or the correctness of its generated software.
-
-Section~2 motivates these distinctions with the published case. Section~3
-explains source interpretation, definitions and proofs; Section~4 describes
-the realization. Section~5 answers the research questions from the evidence.
-Section~6 discusses related work and threats to validity, and Section~7 identifies
-the results and concrete extensions of this foundation.
+We ask: \textbf{RQ1}, which source interpretations change admitted declarations
+or snapshots; \textbf{RQ2}, what reasoning and authoring/checking guarantees follow;
+and \textbf{RQ3}, what the executable examples and native-state comparisons
+establish about practical scope and cost. We answer through selected definitions
+and a proof, source-derived separating cases, a railway edit scenario, and a
+corpus that retains unsupported and misaligned inputs. Mathematical generality
+over represented schemas is kept separate from empirical breadth.

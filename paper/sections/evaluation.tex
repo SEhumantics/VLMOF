@@ -1,95 +1,105 @@
 \section{Evaluation}
-\subsection{Evidence and Research Questions}
-The evaluation separates source justification, formal consequences and runtime
-observations. The artifact retains commands, input hashes, tool versions,
-diagnostics and raw measurements. Historical Train round-trip records remain
-separate from the new validator comparison: load/save success is not validation,
-and Train's domain-query timings are not a baseline for structural conformance.
+\subsection{Questions, corpus and formal reuse}
+Correctness and alignment precede timing. The portfolio distinguishes public
+Train, authored containment/inheritance, and unchanged public EMF Compare as an
+unsupported boundary. Sizes and railway groups do not create independent
+families. Only Train supplies public positives. Original files, licences,
+adaptation maps, raw commands and phase outcomes remain in the artifact.
 
-\paragraph{RQ1: Source interpretation.}
-Kernel-checked examples separate structural $0..0$ validity from positive-upper
-creation bounds: empty observations conform, nonempty ones fail, and the class
-fails creation bounds. Four containment cases separate repeated unpaired
-occurrences (accepted), two parents (rejected), two unpaired features from one
-parent (accepted), and two paired active container roles (rejected). The last
-fails only ownership in a well-formed schema. A diamond example counts inherited
-identifier declarations once by identity. These answer RQ1 within the selected
-fragment; the deferred source-encoding findings are not implemented fixes.
+\paragraph{RQ1: Source interpretations.}
+Checked witnesses distinguish empty $0..0$ validity from creation bounds,
+repeated unpaired containment from two parents, and one parent from two active
+paired container roles. A diamond exposes one inherited declaration identity.
+These demonstrate the consequences of the selected readings in
+Table~\ref{tab:source-findings}. Deferred default/operation discrepancies are
+source findings rather than implemented semantic repairs.
 
-\paragraph{RQ2: Reusable formal results.}
-The Lean build checks Equations~\ref{eq:checker} and~\ref{eq:adequacy}, finite
-reachability results and semantic examples. Source preservation/reflection
-transport both ownership obligations through actual allocations; optimized
-representative-key tests are equivalent to pairwise predicates without assuming
-conformance. Opposite-upper-one bounds forward occurrence counts across
-metamodels, and observation-key injectivity makes conforming rows functional.
-The metadata example reuses checking while separately validating interpreted
-schemas. These establish bounded reuse, not parser/codec correctness or full
-self-description.
+\paragraph{RQ2: What reasoning can be reused?}
+The Lean build checks the decision and source results. A client applies the opposite-count
+theorem to a metamodel with a nonunique forward end: for \emph{any} candidate
+snapshot containing the two specified objects, two occurrences of the target
+imply nonconformance. A duplicated-link edit instantiates this exclusion.
+This rules out a class of models rather than checking a batch. The metadata
+pilot separately checks interpretation in addition to metadata typing.
 
-\subsection{Published Case and Actual EMF Validation}
-The Train projection in Section~2 has five authored objects and thirteen
-applicable observations. Its complete source is accepted. Reusing an ordinary
-integer \emph{id} value on two objects remains accepted; removing one required
-sensor is rejected for multiplicity, and removing the inverse route value is
-rejected for opposite counts. These are structural consequences of the mapped
-metamodel. No Train domain query is evaluated.
-
-The comparison uses EMF Ecore/XMI 2.39.0 with Common 2.42.0. An isolated registry
-selects EcoreValidator for schema objects and the generic EObjectValidator for
-dynamic instances. Diagnostician validates schema roots and instance roots
-separately; results retain both phases and diagnostic codes. Generated domain
-validators and OCL delegates are not part of this condition. The bridge's
-representation restrictions remain separate from validator outcomes.
-
-A positive generic model is accepted by both systems. Both reject a missing
-required String and an inconsistent interval with lower one and upper zero.
-The zero-upper schema illustrates a domain difference: EMF's schema validator
-rejects upper zero, whereas the structural EMOF interpretation accepts its empty
-interval. Nonunique multivalued containment schemas are likewise rejected by
-Ecore's schema-level uniqueness restriction; this is not evidence of an
-instance-container disagreement. A unique String list containing equal repeated
-values produces another difference: the loaded native list retains both values,
-its generic validator accepts, and VL-MOF rejects uniqueness. Its cause must be
-read in the context of the pinned validator and loaded state, not generalized
-to all EMF editors or generated validators.
-
-\paragraph{RQ3: Outcomes and bounded cost.}
-Before timing, the harness compares loaded feature observations with normalized
-Core rows through recorded native identities, including occurrence order and
-absence. The five-object Train projection and three-object generic positive pass.
-A retained public Train input with 754 objects validates in EMF, but twelve
-unset enumeration features become explicit \texttt{FAILURE} values in Core.
-This normalization loss excludes that input from paired timing; native validation
-alone cannot establish equal input states.
-
-The aligned positives receive ten warmups and thirty measured repetitions in
-separate preloaded processes on Linux under WSL2, with Java~21. Both timed paths
-return Booleans for combined schema and instance validation; diagnostic reporting,
-startup, loading, conversion and serialization are outside this boundary. VL-MOF
-includes a small result-cell forcing overhead. All measured results are true.
-Table~\ref{tab:validation-time} reports medians and ranges; the artifact retains
-individual repetitions, means, sample deviations, toolchain and machine details.
+\subsection{Native outcomes and state alignment}
+The comparison pins EMF Ecore/XMI 2.39.0 and Common 2.42.0 under Java~21.
+An isolated registry selects EcoreValidator for schemas and generic
+EObjectValidator for dynamic instances. Diagnostician validates schema and
+instance roots separately. Generated validators and OCL delegates are outside
+this condition. Table~\ref{tab:correctness} reports fresh outcomes, including
+instance calls on schemas that Ecore rejects; those calls do not imply acceptance
+of the schema/instance pair.
 
 \begin{table}[t]
-\centering
-\caption{Preloaded combined validation in milliseconds: median [minimum, maximum],
-30 repetitions after 10 warmups. Descriptive observations on two aligned positives.}
-\label{tab:validation-time}
-\small
-\setlength{\tabcolsep}{6pt}
-\begin{tabular}{lrr}
+\centering\small
+\caption{Selected correctness outcomes. A: accept; R: reject. Alignment concerns
+mapped identities, classifiers and observations, not general schema equivalence.}
+\label{tab:correctness}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{40mm}cccp{31mm}}
 \hline
-Input & EMF & VL-MOF \\
+Case & EMF S & EMF I & VL-MOF & Alignment \\
 \hline
-Generic (3 objects) & 0.586 [0.193, 3.450] & 0.156 [0.152, 0.203] \\
-Train (5 objects) & 0.729 [0.306, 1.722] & 1.127 [1.085, 1.528] \\
+Aligned positives (11 states) & A & A & A & Match \\
+Missing required String & A & R & R & Match \\
+Lower 1 / upper 0 & R & R & R & Match \\
+Empty $0..0$ & R & A & A & Match \\
+Repeated unique String & A & A & R & Match \\
+Repeated unpaired containment & R & A & A & Collector repeats a visit \\
+Two unpaired features, one parent & R & A & A & Collector repeats a visit \\
+Train adaptation (754 objects) & A & A & A & 12 presence differences \\
+Original Train XMI / profile & A & A & A & Match \\
 \hline
 \end{tabular}
 \end{table}
 
-Thus RQ3 establishes working structural examples, observed agreements and
-explicitly classified differences, plus reproducible costs for two small aligned
-states. It does not establish scalability or a general performance advantage.
-The larger public input exposes the next interoperability requirement: represent
-and align default presence before extending the matched timing corpus.
+The zero-upper and nonunique-containment rows expose Ecore schema restrictions.
+The repeated unique String survives loading but is accepted by this generic
+validator and rejected by VL-MOF; it does not establish the behavior of every
+EMF editor or generated validator. Repeated traversal of a contained object
+produces duplicate collector rows in the two unpaired cases. Their alignment is
+conservatively unsuccessful even though their distinct URI/value comparisons
+agree; they are not timed.
+
+Alignment compares objects/classifiers, including featureless objects, bijective
+declaration provenance, occurrence counts and ordered lists. A postmeasurement
+primitive-type/tag gate was replayed on all 63 retained native/Core pairs without
+changing decisions. This does not prove the adapter or complete schema equivalence.
+
+For the retained public Train adaptation, the mismatch reproduces on 754 objects
+and 3,378 observations:
+twelve explicitly written first-enumeration values are reported unset by native
+\texttt{eIsSet}, while the lexical Core route retains \texttt{FAILURE}.
+Both systems accept their respective states. This input had materialized twelve
+omitted defaults and stays excluded from paired timing. A fresh control using
+untouched original batch-1 XMI and the explicitly adapted Ecore profile is accepted
+by both validators and aligns. Zero lower bounds permit its omissions; preserving
+them resolves this comparison without inserting defaults. This does not establish
+general default/unset equivalence. The unadapted generated schema remains an
+unsupported annotation boundary.
+
+\subsection{Controlled sizes, shapes and costs}
+The generated positive workload has stars with inherited scalar features and
+ordered occurrences (11/101/501 objects), Train projection groups (10/100/500),
+and recursive containment chains (11/101/501, depths 10/100/500). It uses
+retained deterministic parameters. The number of classes, properties, inheritance
+edges, observations and reference occurrences is recorded alongside object count.
+This varies graph size and shape; it does not test growing schema vocabularies.
+
+Five independent process trials use ten warmups and thirty measured repetitions.
+Each fixed case receives both tool orders, with reversed traversal on alternate
+trials. Builds finish before timing. The primary window is preloaded combined
+schema/instance validation; diagnostics, loading and serialization are excluded.
+Lean also records schema-only samples and file-read/decode time. Command wall time
+includes startup and other work and is kept separate. Registry-only and
+instance-only timing remain unexecuted protocol items; subtracting schema time
+would not measure the latter.
+
+\input{sections/validation-times}
+
+\paragraph{RQ3: Achieved evidence and limitations.}
+Two timed families provide size/shape evidence, not industrial breadth or
+universal validator agreement. Early runs with scheduling, inventory and worker
+defects remain retained and excluded; complete raw samples and explicit timeout
+records support the reported costs.

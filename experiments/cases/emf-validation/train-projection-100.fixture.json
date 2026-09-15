@@ -1,0 +1,28 @@
+{
+  "id": "train-projection-100",
+  "condition": "dynamic-ecore-default-validator",
+  "family": "train-projection",
+  "ecore": [
+    "train-route-switch.ecore"
+  ],
+  "xmi": [
+    "train-projection-100.xmi"
+  ],
+  "obligation": "Accepted, losslessly aligned multi-size structural workload.",
+  "state_relation": "EMF loaded observations must equal the E1 Core state under native identity correspondence.",
+  "expected": {
+    "emf": "accepted",
+    "vlmof": "accepted"
+  },
+  "timing_eligible": true,
+  "generator": {
+    "script": "experiments/generate_scaling_cases.py",
+    "version": 1,
+    "parameters": {
+      "groups": 20,
+      "objects": 100,
+      "observations": 260,
+      "occurrences": 280
+    }
+  }
+}

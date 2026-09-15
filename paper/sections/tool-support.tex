@@ -1,72 +1,81 @@
 \section{Tool Support}
-\subsection{One checker, three input routes}
-The command-line tool accepts symbolic text and versioned Core JSON. Both reach
-the same checker; reports distinguish conformance failures, binding/decoding
-errors and unsupported inputs. Figure~\ref{fig:boundary} locates the proved
-connections. Equation~\ref{eq:adequacy} begins at the AST, outside the parser.
-The JSON decoder admits malformed represented records for the checker to reject;
-its key-normalization policy is documented separately.
+\subsection{Implementation and proof boundary}
+The Lean library exposes raw records, structural predicates, finite checks and
+reusable theorems. Its CLI accepts symbolic text and versioned Core JSON, with
+separate parse, bind, decode, unsupported-input and conformance outcomes.
+Figure~\ref{fig:boundary} separates proved checking from the tested export/reload
+comparison loop.
 
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[font=\scriptsize,
- box/.style={draw,align=center,minimum width=20mm,minimum height=8mm},
+ box/.style={draw,align=center,text width=27mm,minimum height=9mm},
  arr/.style={-{Stealth[length=1.5mm]}}]
-\node[box] (text) at (-4,1) {source text};
-\node[box] (ast) at (-1.3,1) {source AST};
-\node[box] (json) at (-4,0) {Core JSON};
-\node[box] (decode) at (-1.3,0) {decoder};
-\node[box] (native) at (-4,-1) {Ecore/XMI};
-\node[box] (map) at (-1.3,-1) {load and map};
-\node[box,minimum height=29mm,fill=black!4] (core) at (1.5,0) {Core schema\\and snapshot};
-\node[box] (check) at (4.2,0) {decision};
-\draw[arr] (text) -- node[above]{parse} (ast);
-\draw[arr,double,double distance=.5pt] (ast) -- node[above]{elaborate} ([yshift=10mm]core.west);
-\draw[arr] (json) -- (decode);
-\draw[arr] (decode) -- (core);
-\draw[arr] (native) -- (map);
-\draw[arr] (map) -- ([yshift=-10mm]core.west);
-\draw[arr,double,double distance=.5pt] (core) -- node[above]{check} (check);
-\node[box] (export) at (-4,-2.7) {Core export};
-\node[box] (fresh) at (-1.3,-2.7) {fresh Ecore/XMI};
-\node[box] (reload) at (1.5,-2.7) {EMF reload};
-\node[box] (compare) at (4.2,-2.7) {mapped comparison};
-\draw[arr] (export) -- (fresh);
-\draw[arr] (fresh) -- (reload);
-\draw[arr] (reload) -- (compare);
-\node[align=center] at (.1,-3.4) {Native experiment: compare original and reloaded observations\\under the retained identity bijection.};
+\node[box] (text) at (-3.8,2) {Text / source AST};
+\node[box,fill=black!5] (core) at (0,2) {Core schema $S$\\snapshot $M$};
+\node[box] (check) at (3.8,2) {Lean check\\$\Longleftrightarrow C(S,M)$};
+\node[box] (fresh) at (0,.2) {Fresh Ecore/XMI\\export and reload};
+\node[box] (loaded) at (0,-1.5) {Loaded native state\\mapped observations};
+\node[box] (validate) at (-3.8,-1.5) {EMF schema and\\instance validation};
+\node[box] (compare) at (3.8,-1.5) {State comparison\\match or mismatch};
+\draw[arr] (text) -- (core);
+\node[align=center] at (-1.9,2.8) {parse /\\elaborate};
+\draw[arr,double,double distance=.5pt] (core) -- (check);
+\draw[arr] (core) -- node[right]{tested export} (fresh);
+\draw[arr] (fresh) -- node[right]{load and map} (loaded);
+\draw[arr] (loaded) -- (validate);
+\draw[arr] (loaded) -- (compare);
+\draw[arr] (core.east) -- ++(.3,0) -- ++(0,-2.9) -| (compare.north);
+\node at (2.8,-.6) {original state};
 \end{tikzpicture}
-\caption{Input routes and the separate native round-trip experiment. Double
-arrows identify computations covered by formal correspondence results under
-their stated premises. Parsing, codecs, loading and native comparison are tested
-boundaries. An actual EMF validator is a separate experimental oracle.}
+\caption{Native comparison is a loop back to the original Core observations.
+The source-AST correspondence requires $A(d)$ and actual successful elaboration;
+parsing is outside it. Only the Core checker arrow has an unconditional
+correspondence theorem. Native validation and state equality are separate results.}
 \label{fig:boundary}
 \end{figure}
 
-\subsection{Restricted EMF realization}
-The Java bridge loads Ecore/XMI through dynamic EMF objects. Its restricted
-profile rejects unsupported annotations, operations, generics, declared defaults,
-derived/unsettable features, custom datatypes and unresolved references. Export
-also requires class-owned association ends, representable packages/names and
-signed 32-bit integers.
+\subsection{Authoring notation and its costs}
+The explicit language supports inspection and malformed-state diagnosis.
+Qualified aliases select inherited declarations; \texttt{@} denotes an object
+reference; \texttt{observe} records occurrences. Scalars use singleton lists;
+\texttt{[]} is zero occurrences (optional scalar/reference absence or an empty
+multivalued collection), while a missing row violates coverage. These are
+interface choices, not EMOF syntax. The running example contains:
+\par\noindent\begin{minipage}{\linewidth}\small
+\begin{verbatim}
+object route : railway::Route {
+  observe railway::RailwayElement::id = [101];
+  observe railway::Route::active = [true];
+  observe railway::Route::follows = [@switchPosition];
+  observe railway::Route::requires = [@sensorA, @sensorB];
+}
+\end{verbatim}
+\end{minipage}\par
+The complete file includes declarations, other objects and inverse rows.
+Paired inconsistency yields an opposite-count diagnostic; missing sensors yield a
+multiplicity diagnostic. No inverse repair or duplicate removal is implicit.
 
-Import allocates identities from containment. An XML pass tracks written scalar
-values separately from omitted ones. This lexical policy can differ from native
-\texttt{eIsSet}, especially for enumeration defaults; Section~5 reports an actual
-mismatch. Lossless alignment is therefore checked per input, not assumed from
-successful import.
+Concise sugar and Emfatic are alternatives \cite{emfatic_docs}. Short names and
+scalar assignments need ambiguity, omission and inverse-conflict rules, so that
+sugar remains unimplemented. Emfatic supports containment/opposites but can
+exceed the native profile and has no proved AST boundary. There is no measured
+productivity advantage; persistent identity and default/unset need migration.
 
-Export constructs fresh resources, establishes both opposite pointers and compares
-observations before serialization. A sidecar maps Core identities to native URIs.
-Reload comparison requires a bijection, remaps references, and compares sequences
-or multisets according to ordering. These are executable checks outside the Lean
-proof, not universal codec correctness results.
+\subsection{EMF interchange and metadata clients}
+The Java bridge loads Ecore/XMI through dynamic EMF. Its profile rejects
+annotations, operations, generics, declared defaults, derived/unsettable features,
+custom datatypes and unresolved references. Export requires class-owned ends,
+representable packages/names and signed 32-bit integers.
 
-\subsection{Reuse for bounded metadata}
-A fixed metadata vocabulary represents class and scalar-attribute descriptions
-as ordinary objects and properties. The common checker validates a description
-before an interpreter produces a Core schema. The example describes an optional
-Boolean property and then checks an instance of the resulting class. A dangling
-owner is rejected as metadata; reversed bounds can be well-typed metadata yet
-produce an invalid interpreted schema. This separates validity of the
-description graph from validity of what it denotes.
+Import allocates identities from containment and tracks written scalars separately
+from omissions. This can differ from \texttt{eIsSet}, especially for an explicit
+first enum literal; declared defaults remain unsupported. Export establishes both
+opposites in fresh resources. Its sidecar maps Core IDs to native URIs; comparison
+uses that bijection and ordered sequences or unordered multisets. Thus lossless
+alignment is checked per input, not inferred from acceptance.
+
+A metadata client interprets ordinary objects for concrete root classes and finite
+scalar attributes as a schema, then checks it. A dangling owner fails typing;
+reversed bounds can pass typing yet fail schema validity. Packages, inheritance,
+references and full self-description remain outside the pilot.

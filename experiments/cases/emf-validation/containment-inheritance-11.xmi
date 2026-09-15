@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tiny:Container xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:tiny="https://vlmof.example/evaluation/tiny" xmi:id="root"
+  xsi:schemaLocation="https://vlmof.example/evaluation/tiny tiny.ecore" name="root">
+  <children xsi:type="tiny:Child" xmi:id="c0" baseCode="B0" name="child-0" marks="0 1"/>
+  <children xsi:type="tiny:Child" xmi:id="c1" baseCode="B1" name="child-1" marks="1 2"/>
+  <children xsi:type="tiny:Child" xmi:id="c2" baseCode="B2" name="child-2" marks="2 3"/>
+  <children xsi:type="tiny:Child" xmi:id="c3" baseCode="B3" name="child-3" marks="3 4"/>
+  <children xsi:type="tiny:Child" xmi:id="c4" baseCode="B4" name="child-4" marks="4 5"/>
+  <children xsi:type="tiny:Child" xmi:id="c5" baseCode="B5" name="child-5" marks="5 6"/>
+  <children xsi:type="tiny:Child" xmi:id="c6" baseCode="B6" name="child-6" marks="6 7"/>
+  <children xsi:type="tiny:Child" xmi:id="c7" baseCode="B7" name="child-7" marks="7 8"/>
+  <children xsi:type="tiny:Child" xmi:id="c8" baseCode="B8" name="child-8" marks="8 9"/>
+  <children xsi:type="tiny:Child" xmi:id="c9" baseCode="B9" name="child-9" marks="9 10"/>
+</tiny:Container>

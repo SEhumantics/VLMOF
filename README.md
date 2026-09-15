@@ -62,8 +62,9 @@ establish standards fidelity merely by checking our definitions.
 
 Run `make -C paper` to build `paper/build/main.pdf`.
 [Paper build instructions](paper/README.md) describe dependencies and formatting.
-The manuscript and code are being revised following Review 3. No fourth review
-or submission-readiness claim is implied by a successful build.
+The manuscript presents the structural definitions, their source justification,
+proved correspondence results and bounded native evaluation. Successful builds
+establish the recorded checks, not submission readiness or author acceptance.
 
 Keep mathematical definitions, their explanations and useful consequences together.
 Use the existing semantic layers for new modules, put fixtures under `Examples/`,

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<chain:Node xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:chain="https://vlmof.example/evaluation/recursive-containment"
+ xsi:schemaLocation="https://vlmof.example/evaluation/recursive-containment recursive-containment.ecore" xmi:id="n0" name="node-0">
+ <children xmi:id="n1" name="node-1">
+  <children xmi:id="n2" name="node-2">
+   <children xmi:id="n3" name="node-3">
+    <children xmi:id="n4" name="node-4">
+     <children xmi:id="n5" name="node-5">
+      <children xmi:id="n6" name="node-6">
+       <children xmi:id="n7" name="node-7">
+        <children xmi:id="n8" name="node-8">
+         <children xmi:id="n9" name="node-9">
+          <children xmi:id="n10" name="node-10">
+          </children>
+         </children>
+        </children>
+       </children>
+      </children>
+     </children>
+    </children>
+   </children>
+  </children>
+ </children>
+</chain:Node>

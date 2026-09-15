@@ -1,23 +1,13 @@
 \section{Conclusion}
-VL-MOF provides a mechanized, reusable structural interpretation of EMOF 2.5.1.
-The formalization separates structural multiplicity from class-creation bounds,
-occurrence counts from container identities, and parent uniqueness from active
-container-role uniqueness. Inherited declaration identity and opposite-count
-consequences apply across supported metamodels. Checker correctness and conditional
-source adequacy connect practical checking and authoring to that foundation.
-The published Train projection makes concrete both structural consequences and
-the limits of what acceptance establishes.
+VL-MOF connects a source-audited structural EMOF interpretation to a proved
+finite checker and conditional symbolic correspondence. The opposite-count
+consequence rules out repeated-link edits across candidate snapshots without
+assuming forward uniqueness. Native comparisons demonstrate why acceptance and
+loaded-state alignment must remain separate; scaling exposes practical limits
+of the present implementation.
 
-The EMF comparison distinguishes common outcomes, schema restrictions and
-validator differences. Repeated timings cover two small aligned states; the
-larger Train input exposes a default-presence mismatch.
-
-The next research steps have specific dependencies. Reflective operations can
-reuse identities, occurrence typing and conformance, but require transition
-relations and operation-specific preservation or failure results. Defaults and
-unset histories require a richer observation state; additional value domains
-require their own equality and typing account. Metadata interpretation must extend
-the bounded pilot with packages, inheritance and associations, and materialize
-ownership before addressing self-description. Broader aligned language/tool studies
-can then assess reuse beyond the single published metamodel. These extensions
-build on the current foundation; none is implied by static conformance alone.
+Further work has concrete dependencies: reflective operations need transition
+and preservation results; defaults/unset history need richer observation states;
+full metadata interpretation needs packages, inheritance, references and
+materialized ownership. The delivered static definitions and proofs support
+that work without establishing those additional capabilities.

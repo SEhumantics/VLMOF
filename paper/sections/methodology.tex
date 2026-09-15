@@ -1,82 +1,89 @@
 \section{Methodology}
 \subsection{A bounded interpretation of EMOF}
-Figure~\ref{fig:semantics} summarizes the workflow and its proof boundary.
-The account starts from a source audit, because a mechanized predicate cannot by
-itself establish that it is the right reading of a standard. The audit covers
-all 32 restrictions in MOF 2.5.1 Clause 12.4 and records, for each one, whether
-the selected representation enforces it, excludes the corresponding construct,
-or defers it. Adopted UML material supplies the treatment of generalization and
-inherited properties \cite{omg_mof_251,omg_uml_25}. The original normative and
-machine-readable sources remain unchanged; discrepancies in auxiliary OCL and
-repeated XML identifiers are documented rather than silently repaired.
+Figure~\ref{fig:semantics} connects structural meaning to authoring and checking.
+The audit records whether each of MOF 2.5.1 Clause~12.4's 32 restrictions is
+enforced, excluded, or deferred; adopted UML supplies generalization and
+inheritance \cite{omg_mof_251,omg_uml_25}.
 
-The selected domain is structural and finite. It includes nested packages,
-abstract and concrete classes, multiple inheritance, properties, binary
-associations, primitive and enumeration values, multiplicity, ordering,
-uniqueness, opposites, and containment. A binary association may have one
-association-owned nonnavigable end; its retained observation denotes incidence,
-not a reflective getter. The primitive domains are Boolean, arbitrary Integer,
-and XML-valid String. Real, general structured datatypes, operations,
-parameters, defaults and unset histories, derived behavior, comments, and
-generic reflection are deferred.
+The structural finite domain includes packages, classes and multiple inheritance,
+properties, binary associations, selected primitive/enum values, multiplicity,
+ordering, uniqueness, opposites and containment. One association end may be
+association-owned and nonnavigable; its observation denotes incidence. Values are
+Boolean, arbitrary Integer and XML-valid String; Real, structured datatypes,
+operations, defaults/unset histories, derived behavior, comments and reflection
+are deferred.
 
-Two interpretation choices determine the snapshot domain. Structural upper bounds
-are no smaller than their lower bounds; the interval $0..0$ admits only an empty
-collection, as allowed by adopted UML. A separate class-creation query records only the bound
-prerequisite that the upper bound admits one (MOF 9.3.3); it is outside structural
-acceptance and does not implement creation. The account also retains repeated occurrences on a
-nonunique reference. This is a static observation model: it does not assert that
-every admitted list is reachable through each reflective insertion operation.
-For containment, MOF 12.5.5 includes two ownership obligations: one container object and
-one non-null container property. We compare parent identities in composite
-observations and separately compare identities of nonempty opposite container
-roles. Repetition within one unpaired slot does not create another container.
-Two active paired roles from one parent nevertheless violate the second obligation.
-This separates mandatory static constraints from stronger runtime policies.
+Structural upper bounds are no smaller than lower bounds; $0..0$ permits an
+empty collection under adopted UML. MOF~9.3.3 instead requires an upper bound
+admitting one in its creation context. A separate query records that prerequisite
+without implementing creation. Nonunique references retain repeated occurrences; static
+acceptance does not assert reflective reachability.
 
 \paragraph{Source findings and their relevance.}
-The primitive-default rules in the supplied \texttt{EMOFConstraints.ocl}
-(lines 231--238) test Enumeration, although the corresponding MOF 12.4[26]
-prose concerns PrimitiveType. The auxiliary operation rule also adds
-\texttt{isQuery=true}, absent from numbered restriction 12.4[10]. Defaults
-and operations are deferred here, so these are encoding discrepancies, not
-implemented semantic repairs. In the dated UML XMI dependency, seven package-import
-identifiers occur on 47 elements: 40 occurrences repeat an earlier identifier.
-A naive identifier map can therefore conflate different source nodes. We preserve
-the original bytes and diagnose this input-integrity problem; it is unrelated
-to permission for duplicate runtime object identities. None of these findings
-is presented as an official OMG erratum.
+Table~\ref{tab:source-findings} distinguishes source problems from decisions in
+our own formalization. For example, changing the former containment predicate
+to compare parent identities is an implementation correction justified by
+MOF~12.5.5; it is not a defect discovered in that clause.
+\begin{table}[t]
+\centering\small
+\caption{Selected source findings and their consequences. Full witnesses and
+artifact identities are retained in the source ledger.}
+\label{tab:source-findings}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{>{\raggedright\arraybackslash}p{27mm}>{\raggedright\arraybackslash}p{31mm}>{\raggedright\arraybackslash}p{53mm}}
+\hline
+Source / issue & Classification & Consequence \\
+\hline
+MOF 9.3.3 / UML 7.5: upper zero & Contextual restriction & Static empty interval allowed; creation bounds checked separately. \\
+MOF 10.6: Class-valued insertion & Snapshot/API tension & Retain nonunique raw states; do not claim API reachability. \\
+MOF 12.5.5: ownership & Two distinct obligations & Check parent and active reverse-property identities. \\
+MOF 12.4[26] / OCL & Encoding mismatch & Primitive default antecedent differs; defaults deferred. \\
+MOF 12.4[10] / OCL & Extra restriction & Auxiliary \texttt{isQuery} condition recorded; operations deferred. \\
+Dated UML XMI IDs & Input-integrity defect & Preserve collisions; do not overwrite an identifier map. \\
+\hline
+\end{tabular}
+\end{table}
+
+MOF XMI is normative and the auxiliary OCL informative. The OCL file's
+lines 231--238 test \texttt{Enumeration} where
+prose 12.4[26] concerns \texttt{PrimitiveType}. A primitive property with a
+nonliteral default violates the prose rule but makes the OCL antecedent false.
+Defaults remain deferred. The extra \texttt{isQuery} restriction and seven
+UML-XMI IDs shared by 47 nodes (40 excess uses) are likewise recorded findings,
+not implemented repairs or claimed OMG errata.
 
 \subsection{Identity-based schemas and snapshots}
-A schema $S$ is a finite collection of package, class, property, association,
-enumeration, and literal declarations. Each kind has its own identity type;
-names are metadata. An implicit outer package owns declarations written at the
-source root. This is an unstored scope convention, not a materialized reflective
-package graph or a proved embedding into one. A snapshot $M$ contains identified objects. Its finite observation
-rows have the form $(o,p,L)$, where $L$ is a list of primitive, enumeration, or object
-reference values. Raw records are intentionally permissive: duplicate
-identities, dangling references, and duplicate observation keys can be
-represented and then rejected by the semantics.
+A schema $S$ contains finite package, class, property, association, enumeration
+and literal declarations with distinct identity types; names are metadata. The
+implicit root scope is not a materialized reflective package graph. A snapshot
+$M$ has objects and rows $(o,p,L)$ of primitive, enum or reference occurrences.
+Raw records can retain duplicate identities, dangling references and duplicate
+keys for later rejection.
 
-Schema well-formedness, written $W(S)$, requires unique and resolved
-identities, valid names, acyclic package and inheritance graphs, valid ownership
-and types, normalized multiplicities, binary end consistency, and at most one
-inherited identifier property. A property applies to a class when its owning
-class is an ancestor or when it is the applicable association-owned end.
-Ancestor closure is deduplicated by declaration identity. In Train,
-\emph{Switch} therefore receives the one declaration \emph{RailwayElement.id}
-through TrackElement, rather than a new declaration constructed from its name.
-The library separately exercises a diamond, where two paths still expose one
-property identity.
+Schema well-formedness $W(S)$ requires unique/resolved identities, valid names,
+acyclic package and inheritance graphs, ownership/type/multiplicity/end
+consistency, and at most one inherited identifier property. Applicability uses
+an owning ancestor or an applicable association-owned end; ancestor closure is
+deduplicated by declaration identity. Thus \emph{Switch} inherits one
+\emph{RailwayElement.id}, and a diamond still exposes one identity.
 
-Snapshot conformance, $C(S,M)$, includes $W(S)$, unique object and
-observation identities, concrete resolved classifiers, and exactly one row for
-each applicable object/property pair. An optional property is represented by an
-empty row, which keeps absence distinct from false, zero, and the empty String.
-Every occurrence has the declared type; list length satisfies multiplicity; and
-a unique property has no equal values. Reference equality is object identity.
-Ordered lists compare as sequences and unordered lists up to permutation, so
-both retain duplicate counts.
+Snapshot conformance $C(S,M)$ includes $W(S)$, unique object IDs and observation
+keys, concrete resolved classifiers, and one row per applicable pair. \texttt{[]} is
+zero occurrences: absence for an optional scalar/reference or an empty
+multivalued collection, distinct from false, zero and empty String. Occurrences
+are typed; lengths meet bounds; unique properties have no equal values; reference
+equality is object identity. Observation equivalence compares ordered lists as
+sequences and unordered lists up to permutation; it is not conformance.
+
+For an applicable property declaration $p$ and stored object $o$, the local
+obligations include
+\[
+ \ell_p\leq |L_M(o,p)|\ \land\
+ (u_p=\ast\ \lor\ |L_M(o,p)|\leq u_p),
+ \qquad \mathit{unique}_p\Rightarrow\operatorname{Nodup}(L_M(o,p)).
+\]
+Each member must match the declared type; bounds, uniqueness and typing are
+separate obligations.
 
 For an association with opposite properties $p$ and $q$, let $L_M(o,p)$
 be the occurrences observed for object $o$ at $p$. For every object pair
@@ -88,22 +95,45 @@ $x,y$, conformance requires
 \end{equation}
 In Figure~\ref{fig:train}, a position occurs at the route's \emph{follows}
 end exactly as often as that route occurs at the position's \emph{route} end.
-Containment additionally permits at most one parent identity and one nonempty
-container-role identity, and forbids a nonempty composite path back to its source.
-These obligations use the same observation store, but ownership counts identities
-while multiplicity counts occurrences.
+For containment, write $a\triangleright t$ when observation row $a$ contains a
+reference to child $t$ through a composite property, and $K(p)$ when $p$ is an
+explicit opposite of a composite end. The implemented pairwise obligations are
+\begin{align*}
+ a\triangleright t\land b\triangleright t
+   &\Rightarrow a.\mathit{object}=b.\mathit{object},\\
+ \left.\begin{gathered}
+ a.\mathit{object}=b.\mathit{object}=t,\\
+ K(a.p)\land K(b.p),\quad a.L\ne[]\land b.L\ne[]
+ \end{gathered}\right\}
+   &\Rightarrow a.p=b.p.
+\end{align*}
+Both quantify over stored rows: the first constrains parent identities and the
+second active reverse-property identities. Acyclicity forbids a nonempty
+composite path back to its source. Thus repeated unpaired occurrences can have
+one parent, while two active reverse roles can fail the second rule.
+
+\subsection{A reusable consequence}
+Suppose $C(S,M)$, a stored association has ends $(p,q)$, and its stored declaration
+of $q$ has upper bound one. Let $x,y$ be stored objects with $q$ applicable at
+$y$. The library proves
+\[
+ \#_{\operatorname{ref}(y)}L_M(x,p)
+ =\#_{\operatorname{ref}(x)}L_M(y,q)
+ \leq |L_M(y,q)|\leq 1.
+\]
+Reciprocity gives equality, counting gives the length bound, and conformance the
+reverse multiplicity bound. This limits repetitions per target, not the number
+of targets; forward uniqueness is not a premise. The stored declaration, object
+and reverse-applicability premises are material, so the result rules out an edit
+without enumerating conforming snapshots.
 
 \subsection{A complete finite decision}
-The definitions above quantify only over finite stores, but they use transitive
-reachability for inheritance, package nesting, and containment. Reachability is
-computed by expanding adjacent identities, discarding identities already seen,
-and stopping after the size of the relevant carrier. Every computed identity
-has a stored path. Completeness uses the well-formedness and resolution premises
-that keep the relevant paths inside the finite carrier. Under these premises,
-before stabilization each further expansion must
-add a fresh carrier identity, so no path endpoint can remain undiscovered after
-that many iterations. An early fixed-point optimization is proved to return the
-same closure.
+Finite reachability for inheritance, packages and containment expands adjacent
+identities, discards those seen, and stops at carrier size. Well-formedness and
+resolution keep paths in that carrier; each unstabilized expansion adds a fresh
+identity. Every computed identity has a stored path. The early fixed-point
+optimization returns the same closure. This is a
+completeness argument, not a practical runtime bound.
 
 The executable schema and snapshot checks are Boolean conjunctions of these
 finite obligations. Their correctness statements are unconditional over the raw
@@ -114,32 +144,22 @@ representation:
 \label{eq:checker}
 \end{equation}
 with an analogous equivalence for $W(S)$. The diagnostic interface reports
-the failed conjuncts; it does not claim to compute a minimum repair. A further
-library result illustrates reuse: if the opposite of $p$ has upper bound one,
-Equation~\ref{eq:opposite} bounds each $p$-to-object pair count by one, without
-adding uniqueness to $p$.
+the failed conjuncts; it does not claim to compute a minimum repair.
 
 \subsection{Independent source meaning and elaboration}
-The symbolic source document $d$ uses qualified aliases for declarations and
-objects. Its satisfaction relation, $\mathcal S(d)$, is defined directly over
-those aliases with inductive path relations, source-level applicability,
-occurrence typing, opposite counts, and containment. It does not call the Core
-checker, elaborator, or $C$. This independence makes a preservation result
-informative rather than definitional.
+The symbolic source document $d$ uses qualified declaration and object aliases.
+Its independently defined satisfaction relation $\mathcal S(d)$ uses path
+relations, applicability, typing, opposite counts and containment, without
+calling the Core checker, elaborator or $C$.
 
-Elaboration $E$ validates global alias uniqueness and qualification, resolves
-every symbolic reference, allocates a per-kind identity at each list position,
-and translates observation values. The proof relates each source declaration
-to its allocated identity, then transports superclass reachability,
-applicability, list length, equality, duplicate freedom, permutation, pair
-counts, and containment paths. For Train, this is why the \texttt{Route::follows} and
-\texttt{SwitchPosition::route} rows still describe the same endpoint pair after
-names have disappeared from semantic lookup.
+Elaboration $E$ checks global alias uniqueness/qualification, resolves symbolic
+references, allocates per-kind list-position identities, and translates values.
+Its proof transports reachability, applicability, list facts and containment
+through alias-to-identity correspondence.
 
-Let $A(d)$ require every declaration and object alias to be nonempty, with
-nonempty components containing XML-valid characters. The binder enforces the
-nonemptiness conditions; source satisfaction also imposes character validity. It contains no conformance assumption. The
-main connection is
+Let $A(d)$ require declaration and object aliases to be nonempty, with nonempty
+XML-valid components. The binder checks nonemptiness; source satisfaction adds
+character validity. This contains no conformance premise. The connection is
 \begin{equation}
  A(d)\Longrightarrow\left(
  \mathcal S(d)\ \Longleftrightarrow\
@@ -147,45 +167,36 @@ main connection is
  \operatorname{check}(S,M)=\mathsf{true}\right).
 \label{eq:adequacy}
 \end{equation}
-The forward direction includes successful elaboration. The reverse direction
-reflects every conformance field through the actual successful bindings. A
-fixed-result form equates $\mathcal S(d)$ directly with $C(S,M)$ when the
-exhibited elaboration succeeds.
+The forward direction obtains elaboration; the reverse reflects conformance
+through actual bindings. A fixed-result form equates $\mathcal S(d)$ and
+$C(S,M)$ under exhibited successful elaboration.
 
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[font=\scriptsize,
- box/.style={draw,align=center,text width=23mm,minimum height=12mm},
+ box/.style={draw,align=center,text width=29mm,minimum height=12mm},
  arr/.style={-{Stealth[length=1.5mm]}}]
-\node[box] (sources) at (0,0) {Pinned sources\\and dependencies};
-\node[box] (choices) at (2.9,0) {Interpretations\\and separating models};
-\node[box] (math) at (5.8,0) {Predicates\\and mechanized proofs};
-\node[box] (eval) at (8.7,0) {Realization\\and evaluation};
-\draw[arr] (sources) -- (choices);
-\draw[arr] (choices) -- (math);
-\draw[arr] (math) -- (eval);
+\node[box] (sources) at (0,1.8) {MOF / adopted UML\\clauses and artifacts};
+\node[box,fill=black!5] (math) at (0,0) {Structural meaning\\$W(S)$ and $C(S,M)$};
+\node[box] (source) at (-3.8,0) {Symbolic meaning\\$\mathcal S(d)$};
+\node[box] (check) at (3.8,0) {Finite decision\\$\operatorname{check}(S,M)$\\$=\mathsf{true}$};
+\node[box] (client) at (0,-1.8) {Consequences for models\\e.g. opposite count bound};
+\draw[arr,dashed] (sources) -- node[right]{source audit} (math);
+\draw[<->] (source) -- (math);
+\draw[<->] (math) -- (check);
+\node[align=center,font=\scriptsize] at (-3.8,1.05)
+ {under $A(d)$ and\\$E(d)=\mathsf{ok}(S,M)$};
+\node[align=center,font=\scriptsize] at (3.8,.95) {for all raw $S,M$};
+\draw[arr] (math) -- node[right]{stated premises} (client);
 \end{tikzpicture}
-\par\medskip
-\parbox{\linewidth}{\small
-Source interpretation is an audited argument. Within the formal domains,
-under $A(d)$ and actual $E(d)=\mathsf{ok}(S,M)$:
-\[
-\mathcal S(d)\ \Longleftrightarrow\ C(S,M)
-\ \Longleftrightarrow\ \operatorname{check}(S,M)=\mathsf{true}.
-\]
-The second equivalence also holds for arbitrary raw represented $S,M$.
-Failure of elaboration supplies no $S,M$ to which the first equivalence applies.}
-\caption{Formalization workflow and its conditional mathematical results.
-Workflow arrows are research steps, not proofs that prose denotes our predicates.
-Parser and native-adapter correctness are outside the displayed equivalences.}
+\caption{Structural semantics, authoring correspondence and finite decision.
+The dashed source-audit link is an interpretive argument, not a theorem.
+The left equivalence requires $A(d)$ and actual $E(d)=\mathsf{ok}(S,M)$;
+the right holds for all raw $S,M$. Parser and native-adapter correctness are
+outside these equivalences.}
 \label{fig:semantics}
 \end{figure}
 
-The source language allocates consecutive identities and always supplies display
-names, whereas raw Core records can use arbitrary identities and unnamed
-declarations. Equation~\ref{eq:adequacy} therefore characterizes the actual
-source route; it does not say that every conforming raw Core record is literally
-an elaboration result. A conditional reifier is available when a suitable alias
-assignment, source satisfaction, and structural round-trip equalities are
-supplied; existence of such assignments for all conforming Core records is not proved. The theorem begins at the AST, leaving parser correctness
-to the tool boundary considered next.
+The theorem begins at the AST, not bytes. Consecutive IDs and required display
+names mean it is not universal Core representability; the conditional reifier
+requires aliases, source satisfaction and round-trip equalities.

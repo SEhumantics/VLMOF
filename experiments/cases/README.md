@@ -73,14 +73,17 @@ committed output for all six snapshots. The script uses only
 ### Exact expected observations for E1
 
 These observations were derived from source XML, independently of an importer.
-After the explicitly permitted default-materialization adaptation, an E1 result
-for `railway-batch-1.xmi` must show 754 bridge objects including its root, 753
+An E1 result for untouched `railway-batch-1.xmi` against the generated profile
+schema must show 754 bridge objects including its root, 753
 distinct ordinary Integer `id` values, a one-to-one bridge identity map, child
 and reference order retained, all three opposite pairs mutually consistent,
 one containment parent for every non-root object, and `Route.requires` with at
 least two targets. Its six missing `position` and six missing
-`currentPosition` values must be documented as inserted `FAILURE` values.
-Before that adaptation the same raw input must be reported as unsupported.
+`currentPosition` values remain empty optional observations. Default
+materialization is a separately manifested adaptation: EMF reports
+`eIsSet=false` when the explicit value equals `FAILURE`, so that adaptation is
+not loaded-state aligned with a Core representation that retains the explicit
+occurrence.
 
 | Snapshot | Objects / distinct ordinary IDs | missing `position` / `currentPosition` | reference lists / repeated-target lists |
 |---|---:|---:|---:|

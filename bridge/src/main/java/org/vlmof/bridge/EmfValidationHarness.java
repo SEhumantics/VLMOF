@@ -162,6 +162,56 @@ public final class EmfValidationHarness {
     return rows;
   }
 
+  /** Retain every loaded object even when its class has no structural features. */
+  private static ArrayNode loadedObjects(Loaded loaded) {
+    ArrayNode rows = JSON.createArrayNode();
+    for (Resource resource : loaded.instanceResources()) for (EObject root : resource.getContents()) {
+      List<EObject> objects = new ArrayList<>();
+      objects.add(root);
+      var iterator = root.eAllContents();
+      while (iterator.hasNext()) objects.add(iterator.next());
+      for (EObject object : objects) {
+        ObjectNode row = rows.addObject();
+        row.put("object_uri", uri(object));
+        row.put("class_uri", uri(object.eClass()));
+      }
+    }
+    return rows;
+  }
+
+  /** Inventory native declaration identities and the fields used by alignment. */
+  private static ObjectNode loadedDeclarations(Loaded loaded) {
+    ObjectNode result = JSON.createObjectNode();
+    ArrayNode classes = result.putArray("classes");
+    ArrayNode properties = result.putArray("properties");
+    ArrayNode enumerations = result.putArray("enumerations");
+    ArrayNode literals = result.putArray("literals");
+    for (Resource resource : loaded.schemaResources()) for (EObject root : resource.getContents()) {
+      List<EObject> declarations = new ArrayList<>();
+      declarations.add(root);
+      var iterator = root.eAllContents();
+      while (iterator.hasNext()) declarations.add(iterator.next());
+      for (EObject declaration : declarations) {
+        if (declaration instanceof EClass cls) {
+          classes.addObject().put("class_uri", uri(cls));
+        } else if (declaration instanceof org.eclipse.emf.ecore.EEnum enumeration) {
+          enumerations.addObject().put("enumeration_uri", uri(enumeration));
+        } else if (declaration instanceof EStructuralFeature feature) {
+          ObjectNode row = properties.addObject();
+          row.put("feature_uri", uri(feature));
+          row.put("owner_class_uri", uri(feature.getEContainingClass()));
+          row.put("type_uri", uri(feature.getEType()));
+          row.put("ordered", feature.isOrdered());
+        } else if (declaration instanceof EEnumLiteral literal) {
+          ObjectNode row = literals.addObject();
+          row.put("literal_uri", uri(literal));
+          row.put("enumeration_uri", uri(literal.getEEnum()));
+        }
+      }
+    }
+    return result;
+  }
+
   private static boolean containsError(Diagnostic diagnostic) {
     if (diagnostic.getSeverity() >= Diagnostic.ERROR) return true;
     for (Diagnostic child : diagnostic.getChildren()) if (containsError(child)) return true;
@@ -295,6 +345,8 @@ public final class EmfValidationHarness {
     } catch (Exception error) { throw new IllegalStateException("cannot hash fixture input", error); }
     output.set("validators", registryInventory(loaded));
     output.set("loaded_observations", loadedObservations(loaded));
+    output.set("loaded_objects", loadedObjects(loaded));
+    output.set("loaded_declarations", loadedDeclarations(loaded));
     if (diagnosticPass) output.putArray("diagnostics");
     boolean schemas = validateRoots(loaded, roots(loaded.schemaResources()), diagnosticPass, "schema", output);
     boolean instances = validateRoots(loaded, roots(loaded.instanceResources()), diagnosticPass, "instance", output);

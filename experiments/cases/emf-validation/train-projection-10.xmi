@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:railway="https://vlmof.example/evaluation/train-route-switch"
+  xsi:schemaLocation="https://vlmof.example/evaluation/train-route-switch train-route-switch.ecore">
+  <railway:Route xmi:id="r0" id="1" active="true" requires="s0a s0b"><follows xmi:id="p0" id="3" position="STRAIGHT" route="r0" target="sw0"/></railway:Route>
+  <railway:Switch xmi:id="sw0" id="2" currentPosition="STRAIGHT" positions="p0"/>
+  <railway:Sensor xmi:id="s0a" id="4"/><railway:Sensor xmi:id="s0b" id="5"/>
+  <railway:Route xmi:id="r1" id="11" active="true" requires="s1a s1b"><follows xmi:id="p1" id="13" position="STRAIGHT" route="r1" target="sw1"/></railway:Route>
+  <railway:Switch xmi:id="sw1" id="12" currentPosition="STRAIGHT" positions="p1"/>
+  <railway:Sensor xmi:id="s1a" id="14"/><railway:Sensor xmi:id="s1b" id="15"/>
+</xmi:XMI>

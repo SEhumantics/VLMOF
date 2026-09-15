@@ -1,10 +1,9 @@
 \section{Motivation}
-The Train Benchmark provides a published railway metamodel, model generators
-and domain queries \cite{szarnyas_etal_2018}. We select its route--switch-position
-structure as a small modeling-language case. The original artifact describes the
-metamodel in Xcore; our executable notation is a separately attributed
-translation. Neither that translation nor the small authored snapshot below is
-an original Train input or evidence of a production railway system.
+The railway metamodel of Sz\'{a}rnyas et al. connects routes, switch positions,
+switches and sensors \cite{szarnyas_etal_2018}. We use a structural projection
+to ask what an edit must preserve. Its authored snapshot and textual translation
+are supplied separately from the original Train Benchmark Xcore and generated
+inputs; the task concerns structural modeling, not railway safety.
 
 \begin{figure}[t]
 \centering
@@ -39,10 +38,8 @@ multiplicity. Its source Xcore includes:
 contains SwitchPosition[] follows opposite route
 refers Sensor[2..*] requires
 \end{verbatim}
-These Route declarations use Xcore syntax. The inverse route has upper bound
-one. The projection retains RailwayElement and TrackElement inheritance,
-Boolean and Integer attributes, and Position's three literals. Containers,
-regions, segments and semaphores are omitted and documented in the artifact.
+The inverse route has upper bound one. RailwayElement and TrackElement
+inheritance, Boolean/Integer attributes and Position's three literals remain.
 
 Consider one route, one switch, one switch position and two sensors. Removing
 one required sensor violates the lower bound. Removing only the position's
@@ -50,30 +47,13 @@ reverse route value breaks opposite consistency while preserving local upper
 bounds. This represented inconsistency need not be reachable through an
 inverse-maintaining editor.
 
-Reciprocity and an upper-one reverse bound also prohibit repeated forward
-references to one target, even without forward uniqueness. Train explicitly
-requires uniqueness; a separate nonunique example isolates the theorem's
-premises. Unpaired composite occurrences can repeat with one parent identity,
-whereas two paired composite features can activate two forbidden container
-roles. These distinctions motivate a foundation before a tool comparison.
-
-The implemented VL-MOF translation includes the following route object:
-\begin{minipage}{\linewidth}
-\begin{verbatim}
-object route : railway::Route {
-  observe railway::RailwayElement::id = [101];
-  observe railway::Route::active = [true];
-  observe railway::Route::follows = [@switchPosition];
-  observe railway::Route::requires = [@sensorA, @sensorB];
-}
-\end{verbatim}
-\end{minipage}
-Qualified names identify declarations, \texttt{@} denotes references, and lists
-retain occurrences. Scalars are singleton lists; absence is empty. The complete
-example supplies the other objects and inverse rows, without implicit completion.
-Default-sensitive scalar values are explicit.
-
 The inherited \emph{id} is ordinary Integer data: equal values on distinct
 objects are structurally admissible. Train's SwitchSet query additionally uses
 route activity, entry-semaphore state and switch-position agreement. The
 projection omits semaphores and does not evaluate that domain query.
+
+The projection retains six of ten classes and one of two enumerations, omitting
+outer containers/regions, segments, semaphores and their connections. The surviving
+task connects inherited values, sensors, opposites and containment. Larger states
+support evaluation; separate nonunique witnesses expose opposite constraints
+that Train's own uniqueness flags would otherwise conceal.

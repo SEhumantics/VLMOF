@@ -1,0 +1,28 @@
+{
+  "id": "containment-inheritance-501",
+  "condition": "dynamic-ecore-default-validator",
+  "family": "containment-inheritance",
+  "ecore": [
+    "tiny.ecore"
+  ],
+  "xmi": [
+    "containment-inheritance-501.xmi"
+  ],
+  "obligation": "Accepted, losslessly aligned multi-size structural workload.",
+  "state_relation": "EMF loaded observations must equal the E1 Core state under native identity correspondence.",
+  "expected": {
+    "emf": "accepted",
+    "vlmof": "accepted"
+  },
+  "timing_eligible": true,
+  "generator": {
+    "script": "experiments/generate_scaling_cases.py",
+    "version": 1,
+    "parameters": {
+      "children": 500,
+      "objects": 501,
+      "observations": 2002,
+      "occurrences": 3001
+    }
+  }
+}
