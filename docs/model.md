@@ -38,7 +38,7 @@ absence, permutation-sensitive observations, and representable malformed input. 
 metadata schema and snapshot additionally represent the `Person` class as an ordinary
 object with an ordinary String-valued `name` observation. They use no special metadata
 constructors or access path; these raw examples alone establish no conformance.
-The separate [metadata pilot](METADATA.md) proves its bounded common-checker results.
+The separate [metadata pilot](metadata.md) proves its bounded common-checker results.
 
 Primary interpretation locators are MOF 2.5.1 9.3.3, 9.4.1, 10.5-10.6, 12.4, and
 12.5 (printed pages 13-21 and 29-32), plus UML 2.5 9.9.4 (printed pages 130-134) and

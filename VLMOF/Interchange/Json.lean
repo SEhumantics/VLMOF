@@ -2,18 +2,30 @@ import Lean.Data.Json
 import VLMOF.Model.Basic
 
 /-!
-The E1 wire format is intentionally a lossless envelope around `Core.Schema` and
-`Core.Snapshot`.  It is a boundary adapter, not a second model representation:
-declaration and object ids, and each occurrence (including empty observations),
-are carried explicitly.  Producers must reject unsupported EMF input before
-emitting this format; `provenance` records how an accepted source was obtained.
+# JSON representation of schemas and snapshots
+
+The versioned E1 format carries raw `Schema` and `Snapshot` records. Declaration
+and object IDs, list order, repeated values and empty observations are explicit.
+Decoding reconstructs these records; it does not establish conformance. The CLI
+passes successful decoding results to the same checker used by the proof library.
+
+Read `Document`, `encode`, `decode` and `decodeDocument` for the public interface.
+The private codecs follow the model's datatypes and declaration kinds.
+The JSON parser and these codecs are tested boundary code, not a verified parser.
+Unknown object fields are ignored, and Lean's JSON parser normalizes duplicate
+object keys before these functions see them. Declaration/object lists themselves
+are not deduplicated or repaired. Producer-supplied provenance is carried as data;
+it is not an attestation that an original native model was supported.
 -/
 namespace VLMOF.Interchange
 
 open Lean
 
+/-- Wire-version discriminator checked before reading schema and snapshot fields. -/
 def version : String := "vlmof-e1-1"
 
+/-- A raw model pair and opaque producer metadata. The checker consumes the model
+pair; it does not derive any semantic fact from `provenance`. -/
 structure Document where
   schema : Schema
   snapshot : Snapshot
@@ -107,15 +119,55 @@ private def listToJson {α : Type} (f : α → Json) (xs : List α) := Json.arr 
 private def listOfJson {α : Type} (f : Json → Except String α) (j : Json) : Except String (List α) := do
   (← arr j).toList.mapM f
 
-def encode (d : Document) : Json := Json.mkObj [("version", version), ("schema", Json.mkObj [("packages", listToJson packageToJson d.schema.packages), ("classes", listToJson classToJson d.schema.classes), ("properties", listToJson propertyToJson d.schema.properties), ("associations", listToJson associationToJson d.schema.associations), ("enumerations", listToJson enumToJson d.schema.enumerations), ("literals", listToJson literalToJson d.schema.literals)]), ("snapshot", Json.mkObj [("objects", listToJson (fun o => Json.mkObj [("id", o.id.val), ("classifier", o.classifier.val)]) d.snapshot.objects), ("observations", listToJson (fun o => Json.mkObj [("object", o.object.val), ("property", o.property.val), ("occurrences", listToJson valueToJson o.occurrences)]) d.snapshot.observations)]), ("provenance", d.provenance)]
+/-- Encode explicit identities and occurrence lists without conformance checking
+or normalization. Malformed represented models can also be serialized for tests;
+successful encoding is not a validity certificate. -/
+def encode (d : Document) : Json := Json.mkObj [
+  ("version", version),
+  ("schema", Json.mkObj [
+    ("packages", listToJson packageToJson d.schema.packages),
+    ("classes", listToJson classToJson d.schema.classes),
+    ("properties", listToJson propertyToJson d.schema.properties),
+    ("associations", listToJson associationToJson d.schema.associations),
+    ("enumerations", listToJson enumToJson d.schema.enumerations),
+    ("literals", listToJson literalToJson d.schema.literals)]),
+  ("snapshot", Json.mkObj [
+    ("objects", listToJson (fun o => Json.mkObj [
+      ("id", o.id.val), ("classifier", o.classifier.val)]) d.snapshot.objects),
+    ("observations", listToJson (fun o => Json.mkObj [
+      ("object", o.object.val),
+      ("property", o.property.val),
+      ("occurrences", listToJson valueToJson o.occurrences)]) d.snapshot.observations)]),
+  ("provenance", d.provenance)]
 
+/-- Decode the supported wire shape into raw records. Tags, field representations
+and binary arity are checked; dangling references and duplicate declaration IDs
+remain for the conformance checker. This interface does not require provenance. -/
 def decode (j : Json) : Except String (Schema × Snapshot) := do
-  if (← str (← field j "version")) != version then throw s!"E1: unsupported interchange version `{← str (← field j "version")}`"
-  let s ← field j "schema"; let i ← field j "snapshot"
-  let schema : Schema := { packages := ← listOfJson packageOfJson (← field s "packages"), classes := ← listOfJson classOfJson (← field s "classes"), properties := ← listOfJson propertyOfJson (← field s "properties"), associations := ← listOfJson associationOfJson (← field s "associations"), enumerations := ← listOfJson enumOfJson (← field s "enumerations"), literals := ← listOfJson literalOfJson (← field s "literals") }
-  let snapshot : Snapshot := { objects := ← listOfJson (fun o => return { id := ⟨← nat (← field o "id")⟩, classifier := ⟨← nat (← field o "classifier")⟩ }) (← field i "objects"), observations := ← listOfJson (fun o => return { object := ⟨← nat (← field o "object")⟩, property := ⟨← nat (← field o "property")⟩, occurrences := ← listOfJson valueOfJson (← field o "occurrences") }) (← field i "observations") }
+  if (← str (← field j "version")) != version then
+    throw s!"E1: unsupported interchange version `{← str (← field j "version")}`"
+  let s ← field j "schema"
+  let i ← field j "snapshot"
+  let schema : Schema := {
+    packages := ← listOfJson packageOfJson (← field s "packages")
+    classes := ← listOfJson classOfJson (← field s "classes")
+    properties := ← listOfJson propertyOfJson (← field s "properties")
+    associations := ← listOfJson associationOfJson (← field s "associations")
+    enumerations := ← listOfJson enumOfJson (← field s "enumerations")
+    literals := ← listOfJson literalOfJson (← field s "literals") }
+  let snapshot : Snapshot := {
+    objects := ← listOfJson (fun o => return {
+      id := ⟨← nat (← field o "id")⟩
+      classifier := ⟨← nat (← field o "classifier")⟩ }) (← field i "objects")
+    observations := ← listOfJson (fun o => return {
+      object := ⟨← nat (← field o "object")⟩
+      property := ⟨← nat (← field o "property")⟩
+      occurrences := ← listOfJson valueOfJson (← field o "occurrences") })
+      (← field i "observations") }
   pure (schema, snapshot)
 
+/-- Decode the model pair and retain mandatory producer metadata as opaque data.
+This checks that the field exists, not whether its contents are true. -/
 def decodeDocument (j : Json) : Except String Document := do
   let (schema, snapshot) ← decode j
   return { schema, snapshot, provenance := ← field j "provenance" }

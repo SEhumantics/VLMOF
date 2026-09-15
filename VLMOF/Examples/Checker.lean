@@ -1,6 +1,6 @@
 import VLMOF.Checker.Correctness.Diagnostics
 
-/-! Source-derived separating cases. These cases hold all unrelated K0 rows fixed:
+/-! Source-derived separating cases. These cases hold unrelated fixture rows fixed:
 MOF multiplicity absence, identity uniqueness, type domains, and reciprocal counts. -/
 namespace VLMOF.CheckExample
 open VLMOF.Example

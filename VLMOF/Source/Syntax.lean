@@ -10,7 +10,7 @@ remaining separately addressable. Runtime object aliases have a separate domain.
 
 A Model has an implicit outer package scope. Top-level declarations are owned by
 that scope; `package := none` is its compact encoding, not absent ownership.
-The scope has no source binding alias (see REPRESENTATION.md).
+The scope has no source binding alias (see docs/model.md).
 
 This AST is before binding and therefore retains unknown references and ambiguous
 aliases for diagnostics. Multiplicity and aggregation reuse value constructors,

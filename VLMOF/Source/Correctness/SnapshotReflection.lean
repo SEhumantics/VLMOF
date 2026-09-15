@@ -7,8 +7,34 @@ Successful binding is injective on symbolic aliases and values.  Consequently
 target conformance can be reflected to the original source snapshot once the
 source declaration model is known to be well formed.  Object alias XML validity
 is kept explicit because the binder checks only nonempty alias components.
+
+## Reading the argument
+
+`sourceSatisfies_of_snapshotConforms_of_bindings` assembles the result near the
+end. Its source-model premise is discharged separately by schema reflection in
+`Source.Adequacy`; its object-alias premise cannot be read back from numeric IDs.
+
+The proof first recovers the source row corresponding to each target object,
+property and observation. Injective resolution reflects observation-key
+uniqueness; applicability correspondence then identifies exactly the required
+rows. Value binding reflects typing, list length and duplicate-freedom. The
+remaining arguments preserve more than membership: opposite counts are compared
+per endpoint pair, incoming composite occurrences are summed over rows, and a
+source containment path translates to a target path contradicting acyclicity.
+
+Read the public `source_*` lemmas as the individual fields of `SourceSatisfies`.
+Private helpers invert successful computations or establish the local counting
+equalities needed by those fields. None of them defines source satisfaction by
+calling the Core checker.
 -/
 namespace VLMOF.Source
+
+/-!
+## Recovering rows and keys
+
+Source-to-target witnesses come from successful list allocation. The key
+arguments use injectivity of resolution, not uniqueness of display names.
+-/
 
 private theorem propertyAliases_uniqueBy {model : Model} (h : ModelWellFormed model) :
     uniqueBy Property.alias model.properties := by
@@ -234,6 +260,9 @@ private theorem classAliases_uniqueBy {model : Model} (h : ModelWellFormed model
   simp only [aliases, List.nodup_append] at hn
   exact hn.1.1.1.1.2.1
 
+/-- Every source object has a resolvable classifier once instance binding succeeds.
+Despite the historical theorem name, this fact needs no conformance premise:
+the object-entry binder itself has already resolved the class alias. -/
 theorem source_classifiersResolved_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hinstance : bindInstance model source = .ok target) :
@@ -242,6 +271,9 @@ theorem source_classifiersResolved_of_snapshotConforms
   obtain ⟨targetObject, _, _, hclassifier⟩ := sourceObject_target hinstance hobject
   exact resolvesClass_of_classId hclassifier
 
+/-- A source object cannot instantiate an abstract declaration if its bound
+target conforms. Unique aliases identify the original class and binding preserves
+its abstraction flag. -/
 theorem source_concreteClassifiers_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -264,6 +296,9 @@ theorem source_concreteClassifiers_of_snapshotConforms
   exact hconforms.concreteClassifiers targetObject htargetObject targetClass htargetClass
     htargetClassId
 
+/-- Source observation existence is equivalent to source property applicability.
+Transport row existence to the target, apply its exact-domain condition, then
+reflect applicability through classifier and property binding. -/
 theorem source_observationsExact_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -304,6 +339,8 @@ private theorem sourceProperty_of_propertyId {model : Model} {name : Name} {id :
     simp [he] at hget
     exact ⟨property, List.mem_iff_getElem?.mpr ⟨id.val, he⟩, hget⟩
 
+/-- Successful binding supplies an existing object and property for each source
+observation key. This is a name-resolution fact, independent of target validity. -/
 theorem source_observationKeysResolved_of_binding
     {model : Model} {source : Instance} {target : Snapshot}
     (hinstance : bindInstance model source = .ok target) :
@@ -315,6 +352,9 @@ theorem source_observationKeysResolved_of_binding
     sourceObservation_target hinstance hobservation
   exact ⟨sourceObject_of_objectId hobject, sourceProperty_of_propertyId hproperty⟩
 
+/-- Each explicit source observation belongs to a property applicable to its
+object's classifier. Target applicability reflects through the actual bound IDs;
+the source declaration model provides unique aliases and inheritance meaning. -/
 theorem source_observationApplicable_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -336,6 +376,9 @@ theorem source_observationApplicable_of_snapshotConforms
   exact (propertyApplies_iff_applicableProperty hwell hmodel
     hclassifier hobservationProperty).mpr happlicable
 
+/-- Reflect cardinality bounds without counting distinct values instead of
+occurrences. Binding copies the property's multiplicity and preserves the length
+of the complete occurrence list for the corresponding object/property key. -/
 theorem source_bounds_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -358,6 +401,9 @@ theorem source_bounds_of_snapshotConforms
   rw [← bindInstance_occurrences_length_eq hinstance hobjectId hpropertyId] at hbound
   exact hbound
 
+/-- A unique source property has no repeated occurrence values when its target
+conforms. Injectivity of value binding makes target duplicate-freedom strong
+enough to distinguish the original source values. -/
 theorem source_uniqueness_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -379,6 +425,13 @@ theorem source_uniqueness_of_snapshotConforms
   apply (bindInstance_occurrences_nodup_iff hinstance hobjectId hpropertyId).mpr
   exact hconforms.uniqueness targetObject htargetObject targetProperty htargetProperty
     htargetApplies htargetUnique
+
+/-!
+## Reflecting values
+
+Recover enumeration, literal and object declarations from their bound IDs.
+These facts support the separate primitive, enumeration and reference typing cases.
+-/
 
 private theorem enumerationId_of_uniqueAliasAt {model : Model} {name : Name}
     {id : EnumerationId}
@@ -433,9 +486,10 @@ private theorem enumerationId_ok_iff (model : Model) (name : Name) (id : Enumera
     cases h : resolveIndex "enumeration" (model.enumerations.map Enumeration.alias) name <;>
       simp [enumerationId, h, Except.map]
 
-/-- Target value typing reflects to source value typing under the same successful
-type and value bindings.  Reference subtyping is reflected through the allocated
-class graph; enumeration literals are recovered through unique target IDs. -/
+/-- Reflect the type of one bound value. Primitive cases preserve the value;
+enumerations recover both declaration identities; references recover the object
+classifier and reflect its subtype relation. The binding relation is essential:
+an unrelated well-typed target value would say nothing about the source value. -/
 theorem valueMatches_to_sourceValueMatches
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -545,6 +599,8 @@ theorem valueMatches_to_sourceValueMatches
               hsubtype (classAliasAt_of_classId hclassifier)
               (classAliasAt_of_classId hc)⟩
 
+/-- Every source occurrence has its property's source type. Lift single-value
+typing reflection over the occurrence binding relation for each applicable row. -/
 theorem source_valuesTyped_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -566,6 +622,13 @@ theorem source_valuesTyped_of_snapshotConforms
   exact valueMatches_to_sourceValueMatches hwell hmodel hinstance hconforms htype
     hvalueBind (hconforms.valuesTyped targetObservation htargetObservation targetProperty
       htargetProperty htargetPropertyId targetValue htargetValue)
+
+/-!
+## Opposite occurrence counts
+
+Recover the allocated endpoint pair, then transport the count of each bound
+reference value in the full occurrence lists at both ends.
+-/
 
 private theorem bindAssociationEntry_ends {model : Model} {source : Association}
     {index : Nat} {target : AssociationDecl}
@@ -603,6 +666,9 @@ private theorem referenceValueBinds_of_objectId {model : Model} {source : Instan
   exact (resolveIndex_iff_uniqueAliasAt _ _ _ _).mp
     ((objectId_ok_iff source name id).mp h)
 
+/-- Reflect opposite consistency for each source endpoint pair. The proof uses
+equality of occurrence counts under value binding, so repeated references are
+not collapsed to an edge-membership statement. -/
 theorem source_oppositeCounts_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hmodel : bindModel model = .ok schema)
@@ -649,6 +715,13 @@ theorem source_oppositeCounts_of_snapshotConforms
         htargetEnds targetFirst htargetFirst targetSecond htargetSecond
     _ = (sourceOccurrences source secondObject.alias second).count
         (.reference firstObject.alias) := hright.symm
+
+/-!
+## Incoming composite occurrences
+
+The source and target tests select the same composite properties. Counts are
+transported first per observation and then across the allocated observation list.
+-/
 
 private theorem bindPropertyEntry_aggregation {model : Model} {source : Property}
     {index : Nat} {target : PropertyDecl}
@@ -771,6 +844,9 @@ private theorem incomingCompositeCount_reflect_eq {model : Model} {source : Inst
   unfold Source.incomingCompositeCount VLMOF.incomingCompositeCount
   exact incomingCompositeCount_mapM hwell hmodel (bindInstance_ok_mapM hinstance).2 hid
 
+/-- Reflect the selected profile's bound of one incoming composite occurrence.
+The preceding counting lemmas sum matching references across bound observations;
+they preserve repeated occurrences, including repeats within one source row. -/
 theorem source_oneIncomingComposite_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -782,6 +858,13 @@ theorem source_oneIncomingComposite_of_snapshotConforms
     sourceObject_target hinstance hobject
   rw [incomingCompositeCount_reflect_eq hwell hmodel hinstance hobjectId]
   exact hconforms.oneIncomingComposite targetObject htargetObject
+
+/-!
+## Containment paths
+
+Each source edge determines target endpoint IDs. Induction translates source
+paths into stored target paths, allowing target acyclicity to rule out a source cycle.
+-/
 
 private theorem sourceCompositeEdge_ids
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
@@ -838,6 +921,9 @@ private theorem sourceCompositeReachable_to_storedPath
     subst finishId
     exact .step hprefixTarget htargetEdge
 
+/-- A source containment cycle would bind to a stored target path. Completeness
+of finite target reachability turns that path into a contradiction with target
+acyclicity. This is independent of the incoming-occurrence bound. -/
 theorem source_containmentAcyclic_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
@@ -919,6 +1005,9 @@ private theorem elaborate_ok_bindings {document : Document} {schema : Schema}
       rw [← hs, ← ht]
       exact ⟨rfl, rfl⟩
 
+/-- Expose snapshot reflection at the document elaborator interface. Invert its
+successful schema/instance computations and apply the field-by-field result.
+`Source.Adequacy` later removes the source-model premise using schema reflection. -/
 theorem sourceSatisfies_of_snapshotConforms_of_elaborate
     {document : Document} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed document.model)

@@ -15,7 +15,7 @@ with the same name remain different.
 Each Schema denotes an implicit outer package scope. A missing explicit package
 reference on a class, enumeration or association denotes ownership by that scope,
 not an ownerless EMOF declaration. Explicit packages with no parent also sit in
-that scope. See REPRESENTATION.md for the interpretation and its omitted root API.
+that scope. See docs/model.md for the interpretation and its omitted root API.
 -/
 
 namespace VLMOF

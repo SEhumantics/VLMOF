@@ -4,7 +4,7 @@ import VLMOF.Checker.Correctness.Acceptance
 /-!
 # Semantic examples
 
-These cases exercise the raw K0 example and the interaction theorem.  The duplicated
+These cases exercise the diamond/association fixture and the interaction theorem. The duplicated
 snapshots separate the theorem's two material premises: reciprocity and upper one.
 -/
 
@@ -108,20 +108,27 @@ example : ¬ SchemaWellFormed orphanAssociationEnd := by
     (by simp [orphanAssociationEnd, interactionSchema])
   simp [orphanAssociationEnd, interactionSchema, orphan, assoc, forward, reverse] at ho
 
-/-- The checker correspondence certifies the unchanged K0 declaration fixture. -/
+/-- The shared diamond/association fixture satisfies the schema constraints.
+The proof reduces the finite checker and uses checker correctness; it does not
+assume that constructing the raw fixture made it valid. -/
 theorem k0_schema_wellFormed : SchemaWellFormed VLMOF.Example.schema := by
   apply (checkSchema_iff _).mp
   decide
 
-/-- Repeated values and reciprocal repeated links in the K0 snapshot conform. -/
+/-- The fixture's snapshot conforms with inherited properties and an
+association-owned end represented through the ordinary occurrence store. -/
 theorem k0_snapshot_conforms : SnapshotConforms VLMOF.Example.schema VLMOF.Example.snapshot := by
   apply (checkSnapshot_iff _ _).mp
   decide
 
+/-- The two-end schema used to study reciprocity and the upper-one bound is
+itself valid; the interaction example is not vacuous because of an invalid schema. -/
 theorem interactionSchema_wellFormed : SchemaWellFormed interactionSchema := by
   apply (checkSchema_iff _).mp
   decide
 
+/-- A single reciprocal link witnesses satisfiability of the interaction
+theorem's premises. The duplicated variants above separate those premises. -/
 theorem oneLink_conforms : SnapshotConforms interactionSchema oneLink := by
   apply (checkSnapshot_iff _ _).mp
   decide
@@ -134,4 +141,3 @@ example : ¬ SnapshotConforms interactionSchema withoutReciprocity := by
   simp [withoutReciprocity, oneLink, Snapshot.occurrences, x, y, forward, reverse] at hc
 
 end VLMOF.SemanticExample
-

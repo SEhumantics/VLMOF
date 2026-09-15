@@ -6,11 +6,39 @@ import VLMOF.Source.Correctness.SchemaPreservation
 The reverse direction explicitly assumes XML lexical admissibility of raw source
 aliases.  Successful binding itself supplies the weaker executable alias check,
 global uniqueness, qualification, and all resolver successes.
+
+## Reading the argument
+
+Start with `modelWellFormed_of_bindModel` at the end. It constructs each field of
+`ModelWellFormed` from successful allocation and target `SchemaWellFormed`.
+The intermediate results follow the obligations in that structure:
+
+* Binding inversion recovers the checked aliases and copied declaration fields.
+* Allocation relates each source declaration to its target row; target validity
+  supplies names, bounds, ownership and association constraints.
+* Source inheritance/package paths translate to target paths. A source cycle
+  would therefore contradict the target's acyclicity.
+* End-membership counts and inherited identifier declarations reflect through
+  injective alias resolution: distinct source declarations cannot be hidden by
+  one target identity.
+
+The lexical premise concerns aliases, not display names. The target checker
+validates copied display names, but does not see the aliases used to bind them.
+Consequently target conformance cannot establish XML validity of a raw AST alias.
+`Source.Adequacy` combines this result with snapshot reflection; this module does
+not assume the source-model validity that it is proving.
 -/
 namespace VLMOF.Source
 
 variable {α : Type}
 variable {model : Model} {target : Schema}
+
+/-!
+## Inverting successful computations
+
+These helpers recover the alias checks, resolver successes and copied fields
+from the actual binder execution. They introduce no semantic validity premise.
+-/
 
 private theorem except_bind_ok_reflect {ε α β : Type} {x : Except ε α}
     {f : α → Except ε β} {y : β} (h : x.bind f = .ok y) :
@@ -235,6 +263,9 @@ private theorem qualifiedOptional {alias : Name} {owner : Option Name}
   rw [checkQualification_iff] at hq
   cases owner <;> simpa [rootQualified, qualifiedBy] using hq
 
+/-- Successful allocation already checks package references and lexical
+qualification for packages, classes and enumerations. These source obligations
+need no target-conformance premise: they are enforced before allocation succeeds. -/
 theorem ModelAllocation.reflectedPackageFields (a : ModelAllocation model target) :
     (∀ p ∈ model.packages, match p.parent with
       | none => rootQualified p.alias
@@ -284,6 +315,9 @@ theorem ModelAllocation.reflectedPackageFields (a : ModelAllocation model target
           simp only [hpackage] at hf
           exact ⟨optionalPackage_resolved hf.2.1, qualifiedOptional hf.1⟩
 
+/-- Association package references obey the same resolution and qualification
+contract as other packaged declarations. Invert each allocated association's
+entry computation to recover the source checks. -/
 theorem ModelAllocation.reflectedAssociationPackages (a : ModelAllocation model target) :
     ∀ association ∈ model.associations, match association.package with
       | none => rootQualified association.alias
@@ -303,6 +337,9 @@ theorem ModelAllocation.reflectedAssociationPackages (a : ModelAllocation model 
       simp only [hpackage] at hq hp
       exact ⟨optionalPackage_resolved hp, qualifiedOptional hq⟩
 
+/-- Recover the source references checked by the binder: superclasses, property
+owners/types and enumeration-literal owners. An allocated row witnesses that
+every resolver used to construct it succeeded. -/
 theorem ModelAllocation.reflectedResolutionFields (a : ModelAllocation model target) :
     (∀ c ∈ model.classes, ∀ super ∈ c.directSupers, resolvesClass model super) ∧
     (∀ p ∈ model.properties, match p.owner with
@@ -367,6 +404,8 @@ theorem ModelAllocation.reflectedResolutionFields (a : ModelAllocation model tar
         exact ⟨enumerationResolved_of_id hf.2.1,
           by simpa [qualifiedBy] using qualifiedOptional hf.1⟩
 
+/-- Display names are copied unchanged. Therefore the target's name constraints
+imply source display-name validity; this says nothing about binding aliases. -/
 theorem ModelAllocation.reflectedDisplayNames (a : ModelAllocation model target)
     (wf : SchemaWellFormed target) :
     (∀ x ∈ model.packages, validDisplayName x.name) ∧
@@ -417,6 +456,9 @@ theorem ModelAllocation.reflectedDisplayNames (a : ModelAllocation model target)
             rw [literalBinding_components hb |>.2.2] at hn
             simpa [validName, validDisplayName] using hn
 
+/-- Reflect bounds and the restrictions attached to property types/aggregation.
+The binder copies multiplicity and flags, while successful type binding fixes
+which primitive, enumeration or reference case applies. -/
 theorem ModelAllocation.reflectedPropertyFacts (a : ModelAllocation model target)
     (wf : SchemaWellFormed target) :
     (∀ p ∈ model.properties, multiplicityValid p.multiplicity) ∧
@@ -445,6 +487,14 @@ theorem ModelAllocation.reflectedPropertyFacts (a : ModelAllocation model target
         cases he : enumerationId model name <;>
           simp [ht, bindType, he, Functor.map, Except.map] at hbind
         cases hbind.trans htype
+
+/-!
+## Recovering declaration identities and transporting paths
+
+Allocated IDs are list positions. Unique aliases reconnect those positions to
+source declarations, which lets us transport ownership and superclass/parent
+paths without identifying unrelated declarations by display name.
+-/
 
 private theorem classBinding_id {x : Class × Nat} {d : ClassDecl}
     (hb : bindClassEntry model x = .ok d) : d.id = ⟨x.2⟩ := by
@@ -706,6 +756,8 @@ private theorem classPath_target (a : ModelAllocation model target)
       rcases ih hs hmid0 with ⟨n, hp⟩
       exact ⟨n + 1, .step hp ⟨d, hd, rfl, hnext⟩⟩
 
+/-- A source superclass cycle would bind to a target superclass path returning
+to its start. Target acyclicity rules this out; no source acyclicity is assumed. -/
 theorem ModelAllocation.reflectedInheritanceAcyclic (a : ModelAllocation model target)
     (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
     ∀ c ∈ model.classes, ∀ super ∈ c.directSupers,
@@ -747,6 +799,9 @@ private theorem packagePath_target (a : ModelAllocation model target)
       have hparentTarget : d.parent = some fid := hoptional.symm
       exact .step (ih hs hmid0) ⟨d, hd, rfl, hparentTarget⟩
 
+/-- Reflect package acyclicity by translating a hypothetical source parent path
+to a forbidden target cycle. The argument concerns stored packages, not a
+materialization of the implicit outer scope. -/
 theorem ModelAllocation.reflectedPackageAcyclic (a : ModelAllocation model target)
     (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
     ∀ p ∈ model.packages, ∀ parent, p.parent = some parent →
@@ -772,6 +827,9 @@ theorem ModelAllocation.reflectedPackageAcyclic (a : ModelAllocation model targe
       apply List.mem_eraseDups.mpr
       exact (packageClosure_iff target wf hstart).mpr path
 
+/-- Recover the binary association's source endpoint constraints from its target
+declarations. Resolver injectivity transfers endpoint identity and ownership;
+copied flags transfer the composite-end restriction. -/
 theorem ModelAllocation.reflectedAssociationEnds (a : ModelAllocation model target)
     (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
     ∀ source ∈ model.associations, ∃ p q,
@@ -819,6 +877,9 @@ theorem ModelAllocation.reflectedAssociationEnds (a : ModelAllocation model targ
     · rw [(propertyBinding_data hbq).2.1]
       exact both.2
 
+/-- The source end opposite a composite end inherits the target's upper-one
+container bound. This uses copied multiplicities and the allocated endpoint pair,
+not an assumption about source snapshot contents. -/
 theorem ModelAllocation.reflectedContainerUpperOne (a : ModelAllocation model target)
     (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
     ∀ source ∈ model.associations, ∀ p q,
@@ -858,6 +919,13 @@ theorem ModelAllocation.reflectedContainerUpperOne (a : ModelAllocation model ta
     have := htarget.2 hdc
     rw [(propertyBinding_data hbp).1] at this
     exact this
+
+/-!
+## Counting association membership
+
+Endpoint membership is counted per association row. The local equality below
+relates source-alias hits to target-ID hits before summing over allocations.
+-/
 
 private def reflectedTargetEndHit (id : PropertyId) (association : AssociationDecl) : Nat :=
   if association.ends.1 = id then 1 else if association.ends.2 = id then 1 else 0
@@ -908,6 +976,9 @@ private theorem reflectedEndHit_binding
     · simp [hfe, hse, hf, hs]
     · simp [hfe, hse, hf, hs, Ne.symm hfe, Ne.symm hse]
 
+/-- A property cannot acquire multiple source association memberships while its
+target has at most one. The proof transports each association's endpoint-hit
+count and sums over the allocated association list. -/
 theorem ModelAllocation.reflectedEndMembershipUnique (a : ModelAllocation model target)
     (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
     ∀ p ∈ model.properties,
@@ -951,6 +1022,9 @@ theorem ModelAllocation.reflectedEndMembershipUnique (a : ModelAllocation model 
   rw [hs, ← hmap', ← ht]
   exact wf.endMembershipUnique d hd
 
+/-- An association-owned source property must occur among its owner's member
+ends. Target validity supplies the membership; allocation and unique resolution
+identify the corresponding source association and property. -/
 theorem ModelAllocation.reflectedAssociationOwnedEnds (a : ModelAllocation model target)
     (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
     ∀ p ∈ model.properties, match p.owner with
@@ -985,6 +1059,13 @@ theorem ModelAllocation.reflectedAssociationOwnedEnds (a : ModelAllocation model
             · right; exact (propertyId_names_eq hpId hsecond hend.symm)
           exact ⟨source, hs, halias, by rw [hends]; simpa [hmem]⟩
 
+/-!
+## Inherited identifier declarations
+
+The at-most-one target list forces any two inherited source ID declarations
+to resolve to the same target property. Injectivity then identifies their aliases.
+-/
+
 private theorem eq_of_mem_length_le_one {α : Type} {xs : List α} {x y : α}
     (hx : x ∈ xs) (hy : y ∈ xs) (hlen : xs.length ≤ 1) : x = y := by
   cases xs with
@@ -994,6 +1075,9 @@ private theorem eq_of_mem_length_le_one {α : Type} {xs : List α} {x y : α}
       | nil => simp_all
       | cons w tail => simp at hlen
 
+/-- Reflect the limit on inherited identifier attributes by declaration identity.
+Two distinct source ID attributes would yield distinct applicable target
+properties, contradicting the target's at-most-one bound. -/
 theorem ModelAllocation.reflectedInheritedIdCount (a : ModelAllocation model target)
     (hn : uniqueAliases model) (wf : SchemaWellFormed target) :
     ∀ c ∈ model.classes, ∀ p ∈ model.properties, ∀ q ∈ model.properties,

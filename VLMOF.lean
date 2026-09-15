@@ -23,3 +23,4 @@ import VLMOF.Source.Correctness.SnapshotPreservation
 import VLMOF.Examples.Interchange
 import VLMOF.Source.Adequacy
 import VLMOF.Source.Representability
+import VLMOF.Examples.Metadata

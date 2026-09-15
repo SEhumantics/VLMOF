@@ -4,6 +4,8 @@ import VLMOF.Source.Semantics
 
 namespace VLMOF.Source.SemanticExamples
 
+/-- A source model with one concrete class and a single instance, without
+properties. The two proofs below establish validity directly from source meaning. -/
 def accepted : Document :=
   { model :=
       { packages := [{ alias := ["p"], name := "P", parent := none }]
@@ -12,6 +14,7 @@ def accepted : Document :=
         properties := [], associations := [], enumerations := [], literals := [] }
     snapshot := { objects := [{ alias := ["o"], classifier := ["p", "C"] }], observations := [] } }
 
+/-- Check the fixture's declaration obligations without invoking elaboration. -/
 theorem accepted_model : ModelWellFormed accepted.model := by
   constructor <;>
     simp [accepted, aliases, uniqueAliases, NameValid, VLMOF.validString, VLMOF.xmlChar,
@@ -20,6 +23,8 @@ theorem accepted_model : ModelWellFormed accepted.model := by
       rootQualified, validDisplayName]
   all_goals native_decide
 
+/-- The property-free instance satisfies the independently defined source
+predicate. This witness prevents the source theory from being vacuously empty. -/
 theorem accepted_satisfies : SourceSatisfies accepted := by
   constructor
   · exact accepted_model
@@ -29,7 +34,8 @@ theorem accepted_satisfies : SourceSatisfies accepted := by
       sourceCompositeEdge, incomingCompositeCount]
   all_goals native_decide
 
-/-- Duplicate identities are raw source syntax but cannot satisfy `ModelWellFormed`. -/
+/-- Two class declarations share an alias; their separate records must not hide
+the ambiguity of binding that alias. -/
 def duplicateClassAlias : Model :=
   { accepted.model with classes := accepted.model.classes ++ accepted.model.classes }
 
@@ -38,8 +44,7 @@ example : ¬ ModelWellFormed duplicateClassAlias := by
   have hd := h.uniqueQualifiedAliases
   simp [duplicateClassAlias, accepted, uniqueAliases, aliases] at hd
 
-/-- Target metadata names are optional only before source validation; an empty
-source spelling is rejected because elaboration produces `some ""`. -/
+/-- A valid alias cannot compensate for an invalid empty display name. -/
 def emptyDisplayName : Model :=
   { accepted.model with classes :=
       [{ alias := ["p", "C"], name := "", package := some ["p"],
@@ -53,8 +58,7 @@ example : ¬ ModelWellFormed emptyDisplayName := by
   have hc := hn c (by simp [c, emptyDisplayName, accepted])
   simp [c, validDisplayName] at hc
 
-/-- A descendant that skips a lexical owner level is raw syntax but fails the same
-`dropLast` qualification rule used by binding. -/
+/-- A packaged declaration omits the required lexical qualification component. -/
 def skippedQualification : Model :=
   { accepted.model with classes :=
       [{ alias := ["p", "nested", "C"], name := "C", package := some ["p"],
@@ -67,7 +71,7 @@ example : ¬ ModelWellFormed skippedQualification := by
   have hq := h.classPackages c (by simp [c, skippedQualification, accepted])
   simp [c, skippedQualification, qualifiedBy] at hq
 
-/-- A nonbinary association is representable but rejected by the raw-binary end rule. -/
+/-- Three member-end aliases violate the binary source-association constraint. -/
 def nonbinaryAssociation : Model :=
   { packages := []
     classes :=
