@@ -4,19 +4,17 @@
 This module isolates the arithmetic meaning of a property multiplicity from the
 rest of the raw schema representation. `Upper.allows` and
 `Multiplicity.intervalConsistent` describe ordinary natural-number intervals.
-`multiplicityValid` adds this project's selected-profile rule that a finite upper
-bound must be positive. Keeping those predicates separate makes clear that the
-profile rejects `0..0` even though it is a mathematically consistent interval.
+`multiplicityValid` checks interval consistency, including `0..0` as allowed
+by UML 2.5, 7.5.3.2. `Multiplicity.creationBounds` separately records the
+positive-upper premise of MOF 2.5.1, 9.3.3[4-5]. A prerequisite of reflective
+creation must not reject an otherwise well-formed uninstantiated declaration.
 
 `isOrdered` and `isUnique` describe collection observation and validity; they do
 not change which cardinalities the lower and upper bounds admit.
 
-The separation and the lower-bound witness used below adapt the semantic style of
-the archived multiplicity prototype at commit `16182c7`. The names and record
-shape here retain the established VL-MOF API and its stricter finite-upper policy.
-Source relationship: MOF 2.5.1, clauses 12.4[32] (literal domains), 9.3.3[4–5]
-(creation-valid bounds, printed page 13) and 12.5; see
-`sources/PROFILE.md` for the selected subset and exact locators.
+Source relationship: UML 2.5, 7.5.3.2 and 7.8.8.8 define the structural
+interval; MOF 2.5.1, 12.4[32] fixes literal kinds and 9.3.3[4-5] supplies
+class-creation prerequisites. See `sources/PROFILE.md` for scope.
 -/
 
 namespace VLMOF
@@ -57,18 +55,21 @@ abbrev Multiplicity.Admits (m : Multiplicity) (n : Nat) : Prop :=
   withinMultiplicity m n
 
 /-- The raw lower and upper bounds describe a nonempty natural-number interval.
-This accepts `0..0`; selected-profile admissibility is expressed separately by
-`multiplicityValid`. -/
+This accepts `0..0`; reflective creation has an additional positive-upper premise. -/
 def Multiplicity.intervalConsistent (m : Multiplicity) : Prop :=
   m.upper.allows m.lower
 
-/-- The selected structural profile's schema-level multiplicity restriction. A
-finite upper bound must be positive as well as no smaller than the lower bound;
-an unlimited upper bound is always accepted. -/
+/-- Structural multiplicity validity follows the adopted UML interval rules.
+Zero upper bounds are legal when the lower bound is also zero. -/
 def multiplicityValid (m : Multiplicity) : Prop :=
   match m.upper with
-  | .finite u => 0 < u ∧ m.lower ≤ u
+  | .finite u => m.lower ≤ u
   | .unlimited => True
+
+/-- The multiplicity prerequisites of MOF Factory.create, not complete creation
+semantics. The class-scoped predicate selects inherited class-owned properties. -/
+def Multiplicity.creationBounds (m : Multiplicity) : Prop :=
+  multiplicityValid m ∧ m.upper.allows 1
 
 /-- Some natural cardinality is admitted exactly when the raw interval is
 consistent. For the reverse direction the lower bound itself is the witness; for
@@ -91,16 +92,23 @@ theorem Multiplicity.exists_admitted_iff_intervalConsistent (m : Multiplicity) :
           · intro _
             exact ⟨lower, Nat.le_refl lower, True.intro⟩
 
-/-- Profile-valid multiplicities always have consistent bounds. The converse does
-not hold for the consistent interval `0..0`, because this profile requires positive
-finite upper bounds. -/
+/-- Structural validity implies a nonempty cardinality interval. This result
+concerns arithmetic feasibility, not existence of a conforming object graph. -/
 theorem multiplicityValid_implies_intervalConsistent {m : Multiplicity}
     (h : multiplicityValid m) : m.intervalConsistent := by
   cases m with
   | mk lower upper ordered unique =>
       cases upper with
-      | finite upper => exact h.2
+      | finite upper => exact h
       | unlimited => trivial
+
+/-- The zero interval admits exactly the empty collection, while failing the
+positive-upper creation premise. These are compatible contextual statements. -/
+theorem zero_interval_separates_creation (ordered unique : Bool) :
+    let m : Multiplicity := ⟨0, .finite 0, ordered, unique⟩
+    multiplicityValid m ∧ (∀ n, m.Admits n ↔ n = 0) ∧ ¬ m.creationBounds := by
+  simp [multiplicityValid, Multiplicity.Admits, withinMultiplicity,
+    Multiplicity.creationBounds, Upper.allows]
 
 /-- Changing ordering or uniqueness metadata leaves admitted cardinalities
 unchanged. This result records the boundary between interval arithmetic and

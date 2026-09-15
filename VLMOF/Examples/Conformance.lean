@@ -141,4 +141,44 @@ example : ¬ SnapshotConforms interactionSchema withoutReciprocity := by
     oneLink.objects[1] (by simp [oneLink, withoutReciprocity])
   simp [withoutReciprocity, oneLink, Snapshot.occurrences, x, y, forward, reverse] at hc
 
+/-- A zero-upper reference declaration is structurally valid even though its
+owning class does not meet Factory.create's positive-upper bound prerequisite.
+The reverse end remains optional, so the all-empty snapshot is a real witness. -/
+def zeroBoundSchema : Schema :=
+  { interactionSchema with properties := interactionSchema.properties.map fun p =>
+      if p.id = forward then
+        { p with multiplicity := { p.multiplicity with upper := .finite 0 } }
+      else p }
+
+/-- Complete observations distinguish empty property values from missing rows. -/
+def emptyLinks : Snapshot :=
+  { oneLink with observations := oneLink.observations.map fun o =>
+      { o with occurrences := [] } }
+
+/-- This witnesses structural conformance rather than just interval arithmetic. -/
+theorem zeroBound_empty_conforms : SnapshotConforms zeroBoundSchema emptyLinks := by
+  apply (checkSnapshot_iff _ _).mp
+  decide
+
+/-- A single reference exceeds the zero bound; accepting the schema does not
+remove the snapshot obligation to obey its declared multiplicities. -/
+theorem zeroBound_nonempty_rejected : ¬ SnapshotConforms zeroBoundSchema oneLink := by
+  intro h
+  have checked := (checkSnapshot_iff zeroBoundSchema oneLink).mpr h
+  have rejected : checkSnapshot zeroBoundSchema oneLink = false := by decide
+  rw [rejected] at checked
+  contradiction
+
+/-- The zero-upper class is not creation-bound-ready, despite a conforming
+static snapshot. Static state validity does not imply reflective reachability. -/
+theorem zeroBound_not_creation_ready : ¬ zeroBoundSchema.classCreationBounds A := by
+  intro h
+  have hp : zeroBoundSchema.properties[0] ∈ zeroBoundSchema.properties := by
+    simp [zeroBoundSchema, interactionSchema]
+  have bound := h.2 zeroBoundSchema.properties[0] hp A (by decide) (by decide)
+  have impossible : ¬ zeroBoundSchema.properties[0].multiplicity.creationBounds := by
+    simp [zeroBoundSchema, interactionSchema, forward, reverse,
+      Multiplicity.creationBounds, Upper.allows]
+  exact impossible bound
+
 end VLMOF.SemanticExample

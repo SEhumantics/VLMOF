@@ -246,6 +246,15 @@ structure SchemaWellFormed (s : Schema) : Prop where
       | .class owner => (s.ancestors c.id).contains owner
       | .association _ => false)).length ≤ 1
 
+/-- The bound prerequisites for creating an instance of `c`, including properties
+inherited from its superclasses (MOF 2.5.1, 9.3.3). Requiring the class to exist
+avoids treating an unresolved classifier as creation-ready. This predicate covers
+bounds only: it neither executes creation nor supplies all its other premises.
+Association-owned incidence ends are not class-owned reflective properties. -/
+def Schema.classCreationBounds (s : Schema) (c : ClassId) : Prop :=
+  s.classDecls c ≠ [] ∧ ∀ p ∈ s.properties, ∀ owner,
+    p.owner = .class owner → s.isSubtype c owner → p.multiplicity.creationBounds
+
 /-! ## Snapshot graph and conformance -/
 
 /-- The logical slot key used to reject duplicate observation rows. -/

@@ -32,8 +32,11 @@ for diagnostic testing; their representability must not imply acceptance.
 
 ## Selected static interpretation
 
-- Use nonnegative lower bounds and positive finite upper bounds or unlimited,
-  with lower <= upper, for a normalized creation-valid schema profile.
+- Use nonnegative lower bounds and finite upper bounds or unlimited, with
+  lower <= upper. The consistent interval `0..0` is structurally legal under
+  adopted UML 7.5.3.2 and 7.8.8.8. Positive upper bounds belong separately to
+  `Schema.classCreationBounds`, scoped to a class and inherited class-owned
+  properties under MOF 9.3.3; this is not a full creation-service formalization.
 - `isUnique` controls equal-value duplication for both references and data.
   Multiplicity counts occurrences. Reference equality is object identity;
   primitive equality is value equality; literals retain their enumeration.
@@ -113,11 +116,12 @@ these value-space restrictions.
 
 ## Boundaries confirmed during semantic review
 
-The positive-upper restriction above follows MOF 9.3.3[4]-[5], printed page 13:
-the prerequisites for instantiating a Class include lower <= upper and upper >= 1
-for all its Properties, including inherited Properties. General UML abstract syntax
-can represent 0..0; this profile selects creation-valid declarations and does not
-claim every structurally valid UML multiplicity.
+Structural multiplicity and creation readiness have different contexts. UML 2.5
+7.5.3.2 explicitly permits 0..0, and 7.8.8.8 requires lower <= upper.
+MOF 9.3.3[4]-[5] adds upper >= 1 before instantiating a Class, including its
+inherited class properties. The structural checker admits the empty zero interval;
+Schema.classCreationBounds records only the separate bound prerequisites.
+Neither predicate implements creation or establishes that a snapshot is reachable.
 
 Occurrence-sensitive lists preserve repeated endpoint values, and reference equality
 uses ObjectId. They provide no first-class Link IDs or cross-end identity for two

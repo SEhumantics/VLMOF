@@ -22,7 +22,7 @@ integer bounds are well-typed metadata but fail interpreted schema validity. Thi
 separates structural metadata typing from external semantic obligations.
 
 Scope: concrete root classes and Boolean/Integer/String attributes with finite
-nonnegative bounds (creation-valid positive upper checked afterward). This pilot
+nonnegative bounds (interval consistency checked afterward). This pilot
 omits metadata for packages, inheritance, associations/reference-valued properties,
 unlimited bounds, operations, reflection and self-description. It does not prove
 that every conforming metadata snapshot expresses a valid schema, nor that the whole

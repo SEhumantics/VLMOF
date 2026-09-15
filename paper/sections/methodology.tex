@@ -19,9 +19,10 @@ and XML-valid String. Real, general structured datatypes, operations,
 parameters, defaults and unset histories, derived behavior, comments, and
 generic reflection are deferred.
 
-Two interpretation choices determine the snapshot domain. Finite upper bounds
-are positive and no smaller than their lower bounds, following the creation
-premises in MOF 9.3.3. The account also retains repeated occurrences on a
+Two interpretation choices determine the snapshot domain. Structural upper bounds
+are no smaller than their lower bounds; the interval $0..0$ admits only an empty
+collection, as allowed by adopted UML. Positive upper bounds are separately
+required by the class-creation premises in MOF 9.3.3. The account also retains repeated occurrences on a
 nonunique reference. This is a static observation model: it does not assert that
 every admitted list is reachable through each reflective insertion operation.
 For containment, the profile adopts the stronger occurrence-sensitive reading:

@@ -18,11 +18,20 @@ establishes consistency. Conversely, the lower bound is an admitted witness.
 For an unlimited upper bound that same witness works without an upper inequality.
 This argument is independent of a particular metamodel or checker implementation.
 
-The selected schema profile adds a different condition: a finite upper bound must
-be positive. Thus `0..0` is a consistent mathematical interval admitting zero,
-but fails `multiplicityValid`. The restriction is tied to MOF 2.5.1's class-creation
-prerequisites in 9.3.3[4–5], printed page 13. It is not a statement that UML cannot
-represent `0..0`. [The profile](../sources/PROFILE.md) records this interpretation.
+Structural validity accepts `0..0`: it admits exactly an empty occurrence list.
+This follows UML 2.5, 7.5.3.2 and 7.8.8.8. MOF 2.5.1, 9.3.3[4-5] separately
+requires positive upper bounds before `Factory.create` instantiates a class.
+`Multiplicity.creationBounds` expresses the bound prerequisite;
+`Schema.classCreationBounds` applies it to a resolved class and its inherited
+class-owned properties. It does not implement creation or establish its other
+preconditions. Association-owned incidence ends are not reflective class properties.
+
+`zeroBound_empty_conforms` and `zeroBound_nonempty_rejected` in
+[the conformance examples](../VLMOF/Examples/Conformance.lean) exhibit both sides:
+a valid zero-bound schema has an empty conforming snapshot, while a nonempty
+reference is rejected. `zeroBound_not_creation_ready` separates static conformance
+from the bound prerequisite of reflective creation. The distinction matters for
+schemas inspected before use, abstract classes and future operation semantics.
 
 Changing ordering or uniqueness does not change admitted cardinalities, as
 `withinMultiplicity_withFlags` proves. It can still change whether an actual
@@ -32,8 +41,6 @@ values. Interval feasibility is therefore not a theorem that a conforming object
 model exists. Typing, uniqueness, opposites and containment add their own obligations
 in [Model.Semantics](../VLMOF/Model/Semantics.lean).
 
-The design and lower-bound witness adapt the earlier `Multiplicity.lean`
-development in the archived `VL-MOF-20260914` repository (commit `16182c7`). That
-prototype separated `Allows`, `Admits` and well-formed bounds. The current module
-keeps that conceptual separation while preserving the existing record API and
-making the stronger profile condition explicit. The old archive remains unchanged.
+The lower-bound witness preserves the earlier development's distinction between
+interval feasibility and graph existence. No reflection or reachability theorem
+is implied by structural checker acceptance.

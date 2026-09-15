@@ -45,7 +45,7 @@ narrower domain and rejects unsupported constructs rather than erasing them.
 | 29 | DataType-owned properties have DataType values. | General structured datatypes deferred; enum properties already excluded. |
 | 30 | Association member ends Class-typed. | `associationEnds` requires reference types at both ends. |
 | 31 | Multivalued properties/parameters lack defaults. | Defaults excluded and rejected at native boundary. |
-| 32 | Bound literal kinds Integer / UnlimitedNatural. | Core uses normalized natural lower and finite-natural/unlimited upper constructors. Creation-valid bounds additionally follow MOF 9.3.3[4–5], p. 13. Native raw literal-kind fidelity is an adapter obligation. |
+| 32 | Bound literal kinds Integer / UnlimitedNatural. | Core uses normalized natural lower and finite-natural/unlimited upper constructors. Structural bounds follow UML 7.5.3.2/7.8.8.8 and admit 0..0. The separate class-scoped creation-bound prerequisite follows MOF 9.3.3[4–5]. Native raw literal-kind fidelity is an adapter obligation. |
 
 The static semantics additionally uses MOF 12.5 identity/absence/opposite/container
 consequences, MOF 9.4 and 10.5–10.6 equality/collection discussion, and adopted
