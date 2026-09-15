@@ -1,6 +1,6 @@
 # Metadata pilot
 
-`MetadataPilot.lean` represents class and scalar-attribute descriptions as ordinary
+[Metadata.Pilot](../VLMOF/Metadata/Pilot.lean) represents class and scalar-attribute descriptions as ordinary
 objects. The fixed vocabulary has ClassDescription and AttributeDescription classes,
 eight ordinary properties, and a three-literal scalar-type enumeration. The common
 snapshot checker validates these descriptions before interpretation. There is no
@@ -11,7 +11,8 @@ reads names, owners, types, finite bounds, ordering and uniqueness from the same
 occurrence store, and constructs a schema. The fixture describes `Person.active :
 Boolean [0..1]`; the interpreted schema validates a separate Person instance. Both
 metadata conformance and application conformance are proved through the ordinary
-checker correspondence and kernel reduction.
+checker correspondence and kernel reduction in
+[Examples.Metadata](../VLMOF/Examples/Metadata.lean).
 
 The general `text_ok_iff` theorem characterizes exact single-String observation;
 `interpret_input_conforms` proves interpreted inputs passed common metadata

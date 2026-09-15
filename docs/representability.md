@@ -1,6 +1,6 @@
 # Source representability boundary
 
-`Representability.lean` states the exact finite Core image of the symbolic source
+[Source.Representability](../VLMOF/Source/Representability.lean) states the exact finite Core image of the symbolic source
 language. The statement is deliberately narrower than “every Core record has source
 text.” Raw Core records retain malformed and unnamed forms for diagnostics, while the
 source language assigns qualified symbolic aliases and the binder allocates numeric

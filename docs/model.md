@@ -32,7 +32,7 @@ characters outside the selected XML Schema string value space; later validity/im
 checks must diagnose them. Enumeration values retain both enumeration and literal
 identity, and references retain object identity.
 
-The examples in `Core.lean` cover multiple inheritance, a shared diamond feature,
+The examples in [Examples.Model](../VLMOF/Examples/Model.lean) cover multiple inheritance, a shared diamond feature,
 two same-named feature declarations, an association-owned end, repeated links, optional
 absence, permutation-sensitive observations, and representable malformed input. A small
 metadata schema and snapshot additionally represent the `Person` class as an ordinary

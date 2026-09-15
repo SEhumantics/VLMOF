@@ -29,8 +29,9 @@ every component is nonempty and valid under the Core string discipline. -/
 def NameValid (n : Name) : Prop :=
   n ≠ [] ∧ ∀ component ∈ n, component ≠ "" ∧ VLMOF.validString component
 
-/-- The source domain uses the binder's exact lexical rule: a declaration is one
-component below its owner.  This is `checkQualification` stated as a proposition. -/
+/-- Removing the local component leaves the owner's alias. With the separately
+required nonempty aliases, this places a declaration one component below its
+owner. The relation itself performs no lexical validity check. -/
 def qualifiedBy (parent child : Name) : Prop := child.dropLast = parent
 
 /-- A declaration is root-qualified when removing its local component leaves the

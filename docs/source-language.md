@@ -1,4 +1,24 @@
-# Declarative DSL grammar
+# Writing a source model
+
+This document describes the concrete syntax accepted by `check-dsl`. Start with
+a class and an object that observes one of its properties:
+
+```text
+class Book {
+  inPrint : Boolean [0..1] unordered unique;
+}
+object book : Book {
+  observe Book::inPrint = [false];
+}
+```
+
+The value is explicitly present. Replacing `[false]` with `[]` denotes absence;
+the optional bound permits either. Omitting the observation row entirely is a
+different input: snapshots must give a row for every applicable property, including
+an empty row for an absent optional value. Run a saved document with
+`lake exe vlmof check-dsl path/to/model.dsl`.
+
+## Grammar
 
 The parser accepts whitespace separated declarations. Qualified names use `::`;
 binding aliases are prefixed by enclosing package and member aliases. `as
@@ -27,7 +47,8 @@ binding performs reference and ownership checks later.
 ## Semantic guarantee
 
 The parser returns `Source.Document`; source satisfaction is independently defined
-in [SourceSemantics.lean](SourceSemantics.lean). [SourceAdequacy.lean](SourceAdequacy.lean)
+in [Source.Semantics](../VLMOF/Source/Semantics.lean).
+[Source.Adequacy](../VLMOF/Source/Adequacy.lean)
 proves `sourceSatisfies_iff_exists_accepted`: for a `LexicallyAdmissible` document,
 source satisfaction holds exactly when actual elaboration succeeds and its Core
 snapshot is accepted. Lexical admissibility requires nonempty, XML-valid declaration
