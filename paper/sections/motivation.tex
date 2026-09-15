@@ -1,56 +1,73 @@
 \section{Motivation}
-Consider a railway metamodel with classes \emph{Element}, \emph{Segment} and
-\emph{Sensor}. A segment can inherit the same identifier property through two
-superclasses. Counting paths would then manufacture two identifiers; counting
-declaration identities exposes one. Conversely, unrelated declarations with the
-same display name must remain distinct. Neither strings as identities nor a
-naive concatenation of inherited property lists expresses this distinction.
-
-Now let a segment's \emph{monitoredBy} references and a sensor's \emph{monitors}
-references form opposite association ends. If the forward observation contains
-one sensor twice, a membership-only opposite test cannot distinguish that list
-from a single reference. Our profile retains occurrences and requires matching
-counts for each endpoint pair. If the reverse end has upper bound one, the
-forward pair count must therefore be at most one, even when the forward end is
-not declared unique. This is a derived interaction, not a separate uniqueness
-assumption. When a reference is composite, two incoming occurrences consume two
-ownership positions, even if they name the same parent.
-
 \begin{figure}[t]
 \centering
-\[
-\resizebox{.65\linewidth}{!}{$\boxed{\mathrm{Segment}\ x}\quad
-\underset{q:[x]}{\overset{p:[y,y]}{\rightleftarrows}}\quad
-\boxed{\mathrm{Sensor}\ y}$}
-\]
-\caption{A separating snapshot: forward pair count two and reverse pair count
-one violate reciprocity although membership agrees. An upper-one reverse end
-also prevents repairing the snapshot merely by duplicating its reverse entry.}
-\label{fig:pair}
+\begin{tikzpicture}[
+  font=\scriptsize,
+  cls/.style={draw,rounded corners=1pt,align=left,inner sep=3pt,text width=25mm},
+  obj/.style={draw,rounded corners=1pt,align=left,inner sep=3pt,fill=black!3},
+  rel/.style={-{Stealth[length=1.5mm]},line width=.45pt},
+  note/.style={align=left,text width=30mm}
+]
+\node[cls] (entry) {\textbf{Entry} \emph{abstract}\\\rule{24mm}{.2pt}\\key : String [1] \{id\}\\catalog : Catalog [1]};
+\node[cls,below=7mm of entry] (book) {\textbf{Book} $<$ Entry\\\rule{24mm}{.2pt}\\inPrint : Boolean [0..1]\\authors : Author [1..*] ordered};
+\node[cls,right=29mm of book] (author) {\textbf{Author}\\\rule{24mm}{.2pt}\\name : String [1]\\books : Book [0..*]};
+\node[cls,right=29mm of entry] (catalog) {\textbf{Catalog}\\\rule{24mm}{.2pt}\\entries : Entry [0..*]\\\hspace*{7mm}\emph{composite}};
+\draw[-{Triangle[open,length=2.1mm]},line width=.5pt] (book) -- (entry);
+\draw[rel] ([yshift=2pt]catalog.west) -- node[above,sloped]{entries} ([yshift=2pt]entry.east);
+\draw[rel] ([yshift=-2pt]entry.east) -- node[below,sloped]{catalog} ([yshift=-2pt]catalog.west);
+\draw[rel] ([yshift=2pt]book.east) -- node[above,sloped]{authors} ([yshift=2pt]author.west);
+\draw[rel] ([yshift=-2pt]author.west) -- node[below,sloped]{books} ([yshift=-2pt]book.east);
+
+\node[obj,below=19mm of book,xshift=-13mm,text width=27mm] (co)
+  {\textbf{catalog : Catalog}\\entries = [book]};
+\node[obj,right=5mm of co,text width=35mm] (bo)
+  {\textbf{book : Book}\\key = [``semantics'']\\catalog = [catalog]\\inPrint = [false]\\authors = [authorOne,\\\hspace*{9mm}authorTwo]};
+\node[obj,right=5mm of bo,text width=32mm] (au)
+  {\textbf{authorOne : Author}\\name = [``A. Writer'']\\books = [book]\\[2pt]
+   \textbf{authorTwo : Author}\\name = [``B. Writer'']\\books = [book]};
+\node[draw=black!45,fit=(co)(bo)(au),inner sep=3pt,label={[font=\scriptsize]below:one conforming snapshot as observation lists}] {};
+\end{tikzpicture}
+\caption{Running catalog example. The lower panel exposes the actual observation
+lists: paired rows record both association ends. The composite \emph{entries}
+reference gives \emph{book} one incoming containment occurrence, and
+\emph{key} applies to \emph{book} by inheritance.}
+\label{fig:catalog}
 \end{figure}
 
-Absence is another separating case. An optional Boolean observation can be
-empty or contain \texttt{false}; an optional Integer can be empty or contain zero.
-EMF's dynamic default-value behavior can obscure this distinction when a reader
-consults only the resulting scalar value. A bridge that invents a value for an
-omitted XML attribute changes the snapshot being checked. Our importer therefore
-tracks lexical presence, and adaptations of public files are separate artifacts.
+The catalog is small, but its single snapshot already requires several facts to
+agree. The alias \texttt{Entry::key} denotes one declaration inherited by the
+\emph{book} object. The list \texttt{Book::authors} records two ordered object
+identities. Each occurrence must be matched at the opposite end by a
+\texttt{Author::books} occurrence. The book is contained once through
+\texttt{Catalog::entries}, while the upper-one \texttt{Entry::catalog} end
+records the inverse. These are related parts of one conformance judgment, not
+independent validation options.
 
-The following complete source document exercises absence-sensitive scalar values
-and repeated ordered occurrences. It is accepted by \texttt{check-dsl}.
+The source also records \texttt{Book::inPrint = [false]}. Because the property is
+optional, \texttt{[]} would also satisfy its multiplicity, but it would describe
+absence rather than the Boolean value false. This distinction matters when the
+same model is realized in a format with default-value behavior.
+
+The central source fragment is readable without exposing allocated identifiers:
 \begin{verbatim}
-class C {
-  active : Boolean [0..1] unordered unique;
-  scores : Integer [0..2] ordered nonunique;
+abstract class Entry {
+  key : String [1..1] unordered unique (id);
+  catalog : Catalog [1..1] unordered unique;
 }
-object o : C {
-  observe C::active = [false];
-  observe C::scores = [0, 0];
+class Book extends Entry {
+  inPrint : Boolean [0..1] unordered unique;
+  authors : Author [1..*] ordered unique;
+}
+object book : Book {
+  observe Entry::key = ["semantics"];
+  observe Entry::catalog = [@catalog];
+  observe Book::inPrint = [false];
+  observe Book::authors = [@authorOne, @authorTwo];
 }
 \end{verbatim}
-Changing \texttt{scores} to unique rejects the repeated occurrence. Replacing
-\texttt{[false]} with \texttt{[]} denotes absence, not a Boolean conversion.
-Names such as \texttt{C::scores} are binding aliases; semantic access after
-elaboration uses a property identity. These examples motivate retaining an
-explicit source semantics and testing the entire tool boundary, in addition to
-proving a checker correct over an internal record type.
+The complete listing in the artifact includes the catalog, authors, both
+associations, and every required observation; the current command-line checker
+accepts it. The modeling question is whether this acceptance has the same
+meaning as the symbolic document. Answering it requires both a precise account
+of finite EMOF conformance and a proof about the elaboration that replaces
+aliases with identities.

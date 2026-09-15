@@ -1,63 +1,54 @@
 \section{Evaluation}
-\subsection{Evidence design and reproducibility}
-We separate universal proofs, finite tests, native compatibility observations and
-single-run timings. Runners record hashes, commands and outcomes; distinguish
-accepted, rejected, unsupported, not-run and execution failure; and fail on
-unexpected outcomes.
+\subsection{Evidence design}
+The evaluation asks different evidence to support different claims. Kernel
+checking supports the universal formal statements. Authored fixtures exercise
+representation boundaries and diagnostic behavior. Native round trips test the
+trusted adapter on fixed inputs. Timings describe those runs only. The artifact
+runner records commands, input hashes, outcomes, and whether a stage was
+accepted, rejected, unsupported, not run, or failed to execute.
 
-The companion \path{VL-MOF-review4-supplement.zip} contains a source Git bundle,
-this PDF and reproduction instructions. Its \texttt{INDEX.json} identifies the
-source revision and hashes. Paths \path{evidence/authored/} and
-\path{evidence/public/} hold \texttt{results.json}, input hashes and command logs;
-\texttt{reviews/} holds independent assessments and fresh reproduction.
-The reviewed candidate is \texttt{4aa3bed}; authored measurements use
-\texttt{f0edde1}. The public runner and Java bridge use \texttt{6985361}, with
-checker built at \texttt{b5e86cc}. The public manifest hashes that executable and
-every bridge source and retains resolved dependencies for all 67 commands.
-Fresh review reproduces candidate outcomes and structural counts;
-Table~\ref{tab:train} retains the earlier timings.
+The proof build checks the conformance decision, reachability, source
+preservation and reflection, and the metadata consequence. A separate client
+uses the library to derive that two conforming rows with the same object/property
+key have equal occurrence lists. Ten authored regression cases cover acceptance,
+absence, type errors, duplicates, unresolved binding, malformed records, and an
+unsupported wire version. The complete catalog source in this paper was also
+run through the symbolic command and accepted. These examples exercise code
+paths; the universal evidence is the proof of Equations~\ref{eq:checker} and
+\ref{eq:adequacy}.
 
-All ten authored cases match expectations: three accepted, six rejected and one
-unsupported wire version. They exercise absence, typing, duplication, binding and
-malformed input. The build verifies six pinned OMG files, runs five acquisition
-tests and ten CLI groups, and compiles the proofs. These finite boundary checks
-do not establish the universal checker theorem.
-
-An independent proof client reuses observation-key injectivity: conforming rows
-with the same object/property key have equal occurrence lists. Its record includes
-an axiom report, demonstrating use of a library consequence.
+The companion archive is named \path{VL-MOF-artifact.zip}. Its top-level
+instructions map mathematical concepts in the paper to declarations, give the
+reproduction commands, and describe the trust boundary. Machine-readable
+manifests contain source revisions and hashes. Those build identifiers are
+artifact metadata rather than part of the scientific argument.
 
 \subsection{Public inputs and explicit adaptation}
-Train Benchmark is pinned to commit
-\texttt{6490047d7449}; the six railway XMI
-snapshots share its Xcore metamodel. The original metamodel has no checked-in
-generated Ecore suitable for this route. A pinned Xcore compiler produces an
-intermediate Ecore, but its primitive mappings become EJavaObject and it includes
-a generator annotation. A separately named adapted metamodel removes exactly
-one annotation and changes three primitive mappings. The attributes \emph{RailwayElement.id}
-and \emph{Segment.length} become EInt,
-and \emph{Route.active} to EBoolean, using the original Xcore declarations as
-source evidence. The manifest records the original annotation details, each
-qualified type change and the input, output and Xcore hashes. This is an explicit
-adaptation, not a claim that the compiler directly preserved the intended types.
+The public study uses six XMI snapshots from Train Benchmark
+\cite{szarnyas_etal_2018}. They share one
+Xcore metamodel and therefore form six instances of one language, not six
+independent compatibility cases. The original project does not provide a
+checked-in Ecore file for this route. A pinned Xcore compiler produces an
+intermediate Ecore with generic Java-object mappings for three primitives and a
+generator annotation that the bridge rejects. The evaluated adapted metamodel
+removes that annotation and maps the three properties to EInt or EBoolean, as
+declared in the original Xcore. The manifest records each change and retains the
+original inputs.
 
-The native snapshots omit some default enum values that their runtime interprets
-as FAILURE. Separate adapted copies materialize those occurrences. Table~\ref{tab:train}
-records every insertion count. A raw batch-1 control using the profile Ecore is also accepted: those enum
-properties are optional. Materialization changes the represented default meaning;
-it is not required to repair conformance. The original files are unchanged; object identities
-are allocated independently of the ordinary \emph{id} attribute. A successful
-check of an adapted file therefore means conformance of that explicit adapted
-snapshot. It does not certify the omitted-value semantics of the raw original.
+Some native snapshots omit enumeration values interpreted by their originating
+runtime as a default literal. Separate adapted copies materialize those values;
+Table~\ref{tab:train} reports the number inserted. A raw batch-1 control is also
+accepted because the corresponding properties are optional in the selected
+profile. Materialization therefore changes the represented default meaning; it
+is an explicit experimental adaptation rather than a conformance repair.
 
 \begin{table}[t]
-\caption{Integrated Train imports. All six adapted snapshots are accepted.
-Rows count explicit object/property observations; insertions count materialized
-enum defaults in the adapted XMI.}
+\caption{Accepted Train imports. Rows are explicit object/property observations;
+insertions are materialized enumeration defaults.}
 \label{tab:train}\centering\small
 \begin{tabular}{lrrrr}
 \hline
-Case & Objects & Rows & Insertions & Check seconds \\
+Case & Objects & Rows & Insertions & Check (s) \\
 \hline
 batch-1 & 754 & 3,378 & 12 & 2.17 \\
 batch-2 & 2,389 & 10,723 & 58 & 9.52 \\
@@ -69,39 +60,26 @@ repair-2 & 2,687 & 12,072 & 58 & 11.53 \\
 \end{tabular}
 \end{table}
 
-For each accepted Core input, the native route constructs a fresh Ecore/XMI pair,
-reloads it, compares declarations and observations using its recorded identity
-map, and checks the reloaded Core again. The bridge regression separately
-exercises explicit false/zero/empty String/first-enum values beside absent ones,
-repeated scalars, repeated reciprocal references, independent opposite ordering,
-changed numeric IDs and object traversal, duplicate maps and inconsistent inverse
-counts. Thus successful public round trips are accompanied by tests targeted at
-semantically consequential failure modes.
-
-EMF Compare is pinned to commit
-\texttt{9f25a964c1be}. Its metamodel is rejected
-for unsupported operations. Separate fixtures exercise defaults, derived
-features, custom datatypes, generics and broken references. These outcomes
-characterize the native boundary; none is counted as accepted EMOF compatibility.
+Each adapted snapshot passes import and Core checking, fresh Ecore/XMI export,
+reload, identity-map comparison, observation comparison, and a second Core
+check. Regression fixtures separately cover explicit false, zero, empty String,
+and first-enumeration values beside absence; repeated scalars and reciprocal
+references; independent ordering at opposite ends; changed numeric identities
+and containment traversal; duplicate identity maps; and inconsistent opposite
+counts. A richer EMF Compare metamodel is rejected because it contains
+operations. Further fixtures confirm rejection of defaults, derived features,
+custom datatypes, generics, and broken references.
 
 \subsection{Answers to the research questions}
-RQ1 is answered by the declarative definitions, the unconditional checker
-correspondence and finite-closure completeness. Their statements apply to the
-represented domain and have no empirical success-rate premise. The authored
-cases demonstrate distinctions that the tools must preserve, particularly
-duplicate identity versus duplicate value and absence versus explicit defaults.
+RQ1 is answered by the declarative semantics, finite-closure argument, and
+unconditional checker equivalence. RQ2 is answered by
+Equation~\ref{eq:adequacy}: the independently defined source meaning agrees with
+successful elaboration and acceptance under a lexical premise that contains no
+model-validity assumption. RQ3 receives a narrower empirical answer: the bridge
+preserves the selected observations on six explicitly adapted snapshots and one
+raw control, while rejecting constructs it cannot represent faithfully.
 
-RQ2 is answered by Equation~\ref{eq:adequacy}: satisfaction is specified
-independently, and actual successful elaboration connects it in both directions
-to checker acceptance. Lexical admissibility contains only alias conditions;
-the reverse result does not assume source-model validity. The forward result
-also establishes elaboration success. These proofs do not certify parsing or
-imply unrestricted representation of every raw Core record.
-
-RQ3 is answered by six accepted adapted routes, the accepted raw-XMI control
-and two unsupported metamodel controls, with no failed or skipped stages.
-The operational timing question is completion on these fixed inputs. Table entries
-are one CLI process each, measured by Python's monotonic wall clock on WSL2/Linux,
-an Intel i5-14400F and one checker binary. Import, export and compilation are
-excluded. Concurrent development load was not controlled; these observations
-are neither comparative benchmarks nor speedup claims.
+The times in Table~\ref{tab:train} measure one checker process per fixed input on
+Linux under WSL2, using an Intel i5-14400F. Import, export, and compilation are excluded,
+and concurrent load was uncontrolled. They demonstrate completion at these
+sizes, not comparative performance.

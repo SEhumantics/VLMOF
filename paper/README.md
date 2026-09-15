@@ -26,13 +26,38 @@ The camera-ready page separately specifies 12-15 pages including references
 for full papers. This manuscript follows the submission page policy; the later
 production policy applies to camera-ready work. Recheck the venue rules before submission.
 
-Author fields are empty because author information has not been supplied;
-they must be completed before submission. The manuscript describes the delivered
-structural semantics, source adequacy, executable checker and bounded EMF route.
-Its proof and compatibility claims have different trust boundaries, stated in the
-text. Evaluation identifies the recorded artifact commit and named adaptations.
-The companion `VL-MOF-review4-supplement.zip` packages source history, recorded
-evaluation and independent Review 4 reports. Its `INDEX.json` identifies the shipped
-source revision and hashes; `README.md` explains evidence locations and reproduction.
-Technical review support and a successful PDF build are not submission-readiness
-verdicts: author details and final venue requirements still need the author's check.
+The manuscript describes the delivered structural semantics, source adequacy,
+executable checker and bounded EMF route. Its proof and compatibility claims
+have different trust boundaries, stated in the text.
+
+The companion archive is named `VL-MOF-artifact.zip`. Artifact manifests, rather
+than the scientific narrative, record exact source revisions, dependency and
+input hashes, bridge versions, and command logs. Its reproduction guide should
+map the paper's mathematical concepts to the public layout. The principal map is:
+
+- Core records: `VLMOF/Model/Basic.lean`;
+- $W(S)$ and $C(S,M)$: `VLMOF/Model/Semantics.lean`, declarations
+  `SchemaWellFormed` and `SnapshotConforms`;
+- reachability and derived properties: `VLMOF/Model/Reachability/` and
+  `VLMOF/Model/Properties.lean`;
+- Equation (2): `VLMOF/Checker/Correctness/Acceptance.lean`, declaration
+  `checkSnapshot_iff`;
+- symbolic syntax and independent meaning: `VLMOF/Source/Syntax.lean` and
+  `VLMOF/Source/Semantics.lean`, declaration `SourceSatisfies`;
+- actual translation: `VLMOF/Source/Elaboration.lean`;
+- Equation (3): `VLMOF/Source/Adequacy.lean`, declaration
+  `sourceSatisfies_iff_exists_accepted`;
+- the metadata reuse case: `VLMOF/Metadata/Pilot.lean`.
+
+The reproduction guide also identifies the command-line front ends, restricted
+EMF bridge, public evaluation manifests, and all trusted runtime boundaries.
+
+The full running example is `paper/catalog-example.dsl`. From the repository
+root, check it with:
+
+```
+lake exe vlmof check-dsl paper/catalog-example.dsl
+```
+
+Author fields remain empty because no author information was supplied. They and
+the venue rules must be checked before submission.

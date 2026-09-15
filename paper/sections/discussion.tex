@@ -1,73 +1,72 @@
 \section{Discussion}
-\subsection{Related work and the scope of the guarantee}
-Table~\ref{tab:prior} compares the closest inspected guarantees. A connected
-executable MOF foundation, mechanized preservation and certified textual tooling
-all precede this work. The comparison concerns the published formulas and their
-boundaries; it does not establish featurewise equivalence or subsumption.
+\subsection{What the connection adds}
+The finite conformance semantics is useful beyond the current parser and
+checker because it gives both implementations a common target. A new surface
+language can be related to $\mathcal S$ and $E$; a new decision procedure can
+be related to $C$. The catalog example shows why the split matters. Its
+meaning is stated once in terms of inherited declarations and occurrence lists.
+The source proof explains why alias resolution preserves that meaning, while
+the checker proof explains why the final Boolean decides it.
+
+The native study has a different role. It demonstrates how textual presence,
+object identity, opposite maintenance, and ordering must be accounted for when
+the formal observations meet a modeling framework. Its explicit sidecar makes
+identity reallocation observable, and its rejection policy keeps unsupported
+constructs visible. This is evidence about one bridge design, not a serializer
+theorem.
+
+\subsection{Related work}
+Table~\ref{tab:prior} compares semantic domains and guarantees rather than
+surface feature counts. Algebraic MOF supplies executable membership-equational
+theories and reflective execution \cite{boronat_meseguer_2010}. Coq4MDE proves
+that typed finite-multigraph composition preserves selected conformance
+properties \cite{kezadri_etal_2014}. Isabelle UML/OCL work distinguishes
+conservative theory generation from semantic preservation between source and
+target interpretations \cite{brucker_tuong_wolff_2020}. Our operation is actual
+alias-to-identity elaboration, and our target is a finite static EMOF profile.
+
 \begin{table}[t]
-\caption{Prior guarantees compared with the delivered AST-level result.}
+\caption{Nearest formal guarantees and their semantic domains.}
 \label{tab:prior}\centering\small
-\begin{tabular}{>{\raggedright\arraybackslash}p{.24\textwidth}>{\raggedright\arraybackslash}p{.65\textwidth}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{.23\textwidth}>{\raggedright\arraybackslash}p{.66\textwidth}}
 \hline
-Work & Inspected guarantee and domain \\
+Work & Guarantee compared here \\
 \hline
-Algebraic MOF~\cite{boronat_meseguer_2010} & Membership-equational MOF theories define structural conformance; reflective bootstrapping and Maude/EMF execution connect metamodels and models. \\
-Coq4MDE~\cite{kezadri_etal_2014} & Typed finite multigraph composition preserves multiplicity, opposites and composite references. Lower-bound and composite results require compatibility, freshness and injective bind; the opposite theorem reports no such residual premise. \\
-Isabelle UML/OCL~\cite{brucker_tuong_wolff_2020} & Generated theory extensions are conservative. The article distinguishes logical safety from semantic preservation between interpretations of source and target. \\
-VL-MOF & Under lexical alias admissibility, independent source satisfaction iff successful elaboration to checker acceptance; fixed-result adequacy also characterizes Core conformance. \\
+Algebraic MOF~\cite{boronat_meseguer_2010} & Structural conformance in membership-equational theories, connected to Maude and EMF execution. \\
+Coq4MDE~\cite{kezadri_etal_2014} & Preservation of multiplicity, opposites, and composite references by typed graph composition, under the premises of each theorem. \\
+Isabelle UML/OCL~\cite{brucker_tuong_wolff_2020} & Conservative generated theory extensions, with semantic preservation identified as a separate translation concern. \\
+VL-MOF & Independent symbolic satisfaction iff actual elaboration to a finite conforming and accepted Core result, under lexical admissibility. \\
 \hline
 \end{tabular}
 \end{table}
 
-The distinction from Coq4MDE is consequential at the representation level:
-its \emph{areComposite} predicate counts distinct typed source vertices in an
-edge-set comprehension; our incoming-composite measure counts raw matching
-reference occurrences. Repeating a value therefore contributes repeatedly here.
-The operations being proved correct also differ: model composition there,
-actual alias-to-ID elaboration here. Neither difference supports a claim of the
-first mechanized conformance preservation.
+In Coq4MDE, the composite predicate counts distinct source vertices in an
+edge-set construction. Our selected containment rule counts reference
+occurrences. Featherweight OCL formalizes an
+OCL core with null and invalid \cite{brucker_wolff_2012}; our resolved finite
+predicates do not adopt that expression semantics. NEREUS provides formal
+metamodeling with a translation to CASL \cite{favre_duarte_2016}; KM3,
+Emfatic, and Xcore address concise textual authoring and tool integration
+\cite{jouault_bezivin_2006,emfatic_docs,xcore_docs}. CoqTL addresses proof
+automation for model transformations \cite{cohen_tisi_douence_2024}. These
+works establish that executable semantics, textual notation, and mechanized
+preservation are established concerns; the contribution here is the particular
+source-to-decision connection in Figure~\ref{fig:semantics}.
 
-Equation~\ref{eq:adequacy} supplies the source/target semantic connection that
-must be distinguished from conservativity of generated prover commands. Its
-only premise is lexical admissibility; occurrence sensitivity is part of the
-predicate, not an additional assumption. The fixed-result theorem also assumes
-the exhibited successful elaboration. Featherweight OCL instead addresses a
-mechanized OCL core with null and invalid~\cite{brucker_wolff_2012}; our static
-Boolean predicates over resolved finite records do not implement that semantics.
+\subsection{Limits and next steps}
+The standards connection rests on the documented source audit. Mechanization
+establishes consequences of the selected predicates, while alternate readings
+remain possible for static repeated references, nonnavigable incidence, and the
+stronger occurrence-based containment choice. Extending the profile with
+defaults, derived features, or richer datatypes will require revisiting absence,
+observability, and value equality.
 
-NEREUS offers textual formal metamodeling with a constructive translation to
-CASL \cite{favre_duarte_2016}; KM3 provides a compact metamodel specification
-language \cite{jouault_bezivin_2006}. Emfatic and Xcore provide practical Ecore
-syntax and tool integration \cite{emfatic_docs,xcore_docs}. These works already
-address authoring and translation. We do not infer the absence of additional
-formal guarantees from a documentation page or the sections inspected here.
-CoqTL proof tactics likewise demonstrate model-transformation proof automation
-\cite{cohen_tisi_douence_2024}; their transformation properties should not be
-confused with our source-binding and checker contract.
+Equation~\ref{eq:adequacy} starts at a source AST. The parser, JSON decoder, EMF
+runtime, datatype adaptation, and URI map production are executable trust
+boundaries. The six public files all use one metamodel and adapted inputs, so
+they show feasibility for that route rather than broad EMF compatibility.
 
-\subsection{Threats to validity and remaining obligations}
-The strongest internal evidence is kernel checking of the Lean proofs. A proof
-of our predicate does not prove that it faithfully captures every normative
-clause. The source audit therefore remains a separate argument, especially for
-creation-valid bounds, repeated references, nonnavigable incidence and the
-relationship between static snapshots and reflective operations. Deferred
-features can interact with retained ones: defaults affect absence, derived
-features affect observability, and richer datatypes affect value equality.
-Extending the domain requires revisiting those interactions, not merely adding
-record fields.
-
-The source theorem begins at an AST. Parsing, lexical conventions, JSON decoding,
-EMF loading, datatype adaptation and identity-map production remain trusted
-code. Native URI mappings are location dependent and producer supplied. A
-successful round trip establishes agreement under that recorded mapping for
-that run; it is not a universal serializer theorem or evidence of unchanged
-original-file meaning after adaptation. The public-case modifications are
-therefore listed explicitly and their originals retained.
-
-Case selection is narrow. The six Train files share one metamodel and are not
-six independent language designs. Their names \emph{inject} and \emph{repair}
-do not determine validity under our chosen structural fragment. EMF Compare
-exercises rejection of a richer metamodel; it is not a successful compatibility
-case. Authored tests target particular distinctions and do not estimate the
-frequency of bridge errors in unknown models. Runtime observations on one host
-cannot support cross-tool superiority claims.
+A useful next step is to formalize one native decoding relation and prove it
+preserves the same Core observations used here. A broader metadata account would
+also need packages, associations, inheritance, and reflection before it could
+support an EMOF self-description claim.

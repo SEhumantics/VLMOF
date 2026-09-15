@@ -1,101 +1,105 @@
 \section{Tool Support}
-\subsection{Interfaces and trust boundaries}
-The library builds with pinned Lean 4.33.1 and no external Lean mathematics
-library. The CLI accepts the symbolic notation through \texttt{check-dsl} and a
-versioned interchange through \texttt{check-json}. Both call the same Core checker.
-Each invocation emits one JSON report. Acceptance exits with code 0, invalid
-represented models with 1, malformed input or binding failure with 2, unsupported
-wire versions with 3, and file errors with 4. Phase-specific reports distinguish
-parsing and binding from semantic checking.
+\subsection{One checker, three input routes}
+The Lean library has no external mathematics dependency. Its command-line tool
+accepts the symbolic language and a versioned JSON representation; both routes
+end at the same Core checker. Reports distinguish accepted models, rejected
+represented models, binding or decoding errors, unsupported interchange
+versions, and file errors. The catalog listing supplied with the paper is
+accepted through the symbolic route.
 
-Figure~\ref{fig:boundary} separates the proved relation from its trusted input
-routes. The JSON decoder represents raw records for subsequent semantic checking. It ignores unknown object fields, and the Lean JSON parser
-normalizes duplicate JSON member keys; provenance is producer metadata. These
-parser policies are distinct from the checker theorem about already decoded
-records.
+Figure~\ref{fig:boundary} locates the proved and tested connections. Parsing is
+outside Equation~\ref{eq:adequacy}, which begins at the source AST. The JSON
+decoder can represent malformed Core records so that the complete checker, not
+the decoder, decides conformance. Unknown object fields are ignored and duplicate
+JSON keys follow the parser's normalization policy; these are documented wire
+policies rather than consequences of Equation~\ref{eq:checker}.
+
 \begin{figure}[t]
 \centering
-\small
-\resizebox{.9\linewidth}{!}{\begin{tabular}{rcl}
-Source text & $\xrightarrow{\text{trusted parser}}$ & Source AST $d$ \\
-Source AST $d$ & $\xrightarrow{\text{elaboration }E}$ & Core $(S,M)$ \\
-Ecore/XMI & $\xrightarrow{\text{trusted adapter and decoder}}$ & Core $(S,M)$ \\
-Core $(S,M)$ & $\xrightarrow{\text{verified checker}}$ & Decision \\
-$\mathcal S(d)$ & $\Longrightarrow$ & $C(S,M)\iff\mathrm{accept}$
-\end{tabular}}
-\caption{The formal claim begins at represented inputs. Text and native resource
-fidelity require separate testing and source audit. The native-input arrow denotes
-interchange production, not a verified translation.}
+\begin{tikzpicture}[x=1cm,y=1cm,
+  font=\scriptsize,
+  route/.style={draw,rounded corners=1pt,minimum width=21mm,minimum height=8mm,align=center},
+  core/.style={draw,line width=.8pt,rounded corners=1pt,minimum width=23mm,minimum height=10mm,align=center,fill=black!5},
+  arr/.style={-{Stealth[length=1.6mm]},line width=.5pt},
+  lab/.style={font=\scriptsize,align=center}
+]
+\node[route] (text) at (-4.7,0) {source text};
+\node[route] (ast) at (-2,0) {source AST};
+\node[core] (core) at (1,0) {Core schema\\and snapshot};
+\node[route] (decision) at (4,0) {decision};
+\node[route] (json) at (-2,-1.5) {Core JSON};
+\node[route] (native) at (-4.3,-3) {Ecore/XMI};
+\node[route] (adapter) at (-1.3,-3) {EMF adapter};
+\node[route,minimum width=27mm] (reload) at (3.6,-3) {fresh resources\\+ identity sidecar};
+\node[route] (compare) at (1,-3) {reload +\\compare};
+\draw[arr] (text) -- node[above]{parser} (ast);
+\draw[arr,double,double distance=.6pt] (ast) -- node[above]{proved $E$} (core);
+\draw[arr,double,double distance=.6pt] (core) -- node[above]{proved} (decision);
+\draw[arr] (json) -- node[above,sloped]{decoder} (core.south west);
+\draw[arr] (native) -- node[above]{load} (adapter);
+\draw[arr] (adapter) -- node[above,sloped]{import} (core.south west);
+\draw[arr] (core.south east) -- node[above,sloped]{export} (reload.north west);
+\draw[arr] (reload) -- (compare);
+\draw[arr] (compare) -- node[above,sloped]{mapped Core} (core.south);
+\begin{scope}[on background layer]
+\node[draw=black!35,dashed,rounded corners=2pt,fit=(ast)(core)(decision),inner sep=4pt,
+ label={[lab]above:machine-checked relations start at represented inputs}] {};
+\node[draw=black!35,dotted,rounded corners=2pt,fit=(native)(adapter)(compare)(reload),inner sep=4pt,
+ label={[lab]below:tested native boundary}] {};
+\end{scope}
+\end{tikzpicture}
+\caption{Implementation and evidence boundary. The two top double arrows are
+covered by formal results. The native loop is executable evidence and compares
+the reloaded Core result under a recorded identity bijection.}
 \label{fig:boundary}
 \end{figure}
 
-\subsection{A restricted real EMF bridge}
-The Java bridge uses EMF \texttt{ResourceSet} loading and dynamic EObjects. Its
-manifest identifies the allowed Ecore and XMI resources. Unsupported annotations,
-operations, generic constructs, defaults, derived/transient/volatile/read-only
-or unsettable features, custom datatypes and unresolved references are rejected.
-Native reference ends are class-owned; the broader Core representation of an
-association-owned end is outside this Ecore export domain. Native Integer values
-are restricted to EInt's signed 32-bit range, although the Core Integer domain is
-unbounded. Native names and a representable package structure are also required.
+\subsection{Restricted EMF realization}
+The Java bridge loads real Ecore and XMI resources with EMF dynamic objects. It
+accepts only the native subset it can translate without discarding meaning.
+Unsupported annotations, operations, generics, defaults, derived or unsettable
+features, custom datatypes, and unresolved references are rejected. Ecore export
+also requires class-owned association ends, representable package structure and
+names, and signed 32-bit integers, a smaller domain than Core's integers.
 
-Import allocates declarations by metamodel containment and objects by instance
-containment preorder. A structural XML presence pass distinguishes omitted
-attributes from explicitly serialized default values and ties each XML element
-to its loaded EObject. It validates root/child correspondence and typed element
-identity rather than assuming that arbitrary XML preorder equals object order.
-The emitter creates a row for every applicable feature, including absence.
+Import allocates declaration identities from metamodel containment and object
+identities from instance containment. A structural XML pass records whether a
+scalar was written, so an omitted optional value remains different from an
+explicit default value. It validates the correspondence between XML elements and
+loaded objects before producing one observation row for each applicable
+property.
 
-Export reconstructs fresh packages, classifiers, features and objects from Core
-JSON. It establishes both EOpposite pointers, allocates objects before references,
-and compares the resulting occurrence observations against the requested rows.
-This last check prevents inverse maintenance from silently repairing inconsistent
-input. Ordered ends are reconciled independently after reciprocal counts agree.
-Explicit scalar defaults are serialized while the emitted metamodel retains its
-ordinary feature flags. Regression tests exercise both opposite pointers, independent inverse ordering
-and repeated reference pairs.
+Export constructs fresh metamodel and instance resources. It sets both opposite
+pointers, allocates all objects before references, and compares the resulting
+observations with the requested Core snapshot before serialization. A sidecar
+relates Core identities to native URIs. On reload, the comparator requires this
+map to be a bijection over declarations and objects, remaps references, and
+compares each sequence or multiset according to the property's ordering flag.
+This experiment tests a concrete realization of the formal observations; the
+adapter and EMF runtime remain outside the Lean proof.
 
-Generated native URIs are recorded alongside original Core IDs in an identity
-sidecar. On reimport, the comparator joins those URIs to the new Core IDs and
-requires a bijection covering every declaration and object. It remaps foreign
-IDs, checks declaration metadata and object classifiers, and compares every
-observation by sequence or multiset according to ordering. It rejects duplicate
-map entries and observation keys. Arbitrary numeric IDs and changed containment
-traversal are exercised by regression tests. This is an executable comparison
-under recorded identity evidence, not a formal proof of EMF serialization.
-
-\subsection{Metadata through the ordinary conformance path}
-The fixed metadata vocabulary has class/attribute descriptions, eight ordinary
-properties and a three-literal scalar-type enumeration. The common checker
-validates descriptions before interpretation into a Core schema. The fixture
-describes \emph{Person.active : Boolean [0..1]} and checks a Person instance.
-A dangling owner fails metadata conformance; reversed bounds can pass metadata
-typing yet fail interpreted schema validity. Checked outputs satisfy the ordinary
-schema predicate. The pilot is neither full self-description nor a proof that
-all conforming metadata denotes valid schemas.
+\subsection{Reuse for bounded metadata}
+A fixed metadata vocabulary represents class and scalar-attribute descriptions
+as ordinary objects and properties. The common checker validates a description
+before an interpreter produces a Core schema. The example describes an optional
+Boolean property and then checks an instance of the resulting class. A dangling
+owner is rejected as metadata; reversed bounds can be well-typed metadata yet
+produce an invalid interpreted schema. This separates validity of the
+description graph from validity of what it denotes.
 
 \begin{table}[t]
-\caption{Delivered semantic coverage and explicit limits. Evidence names refer
-to library modules or the stated bridge regressions.}
+\caption{Scope of the connected implementation.}
 \label{tab:coverage}\centering\small
-\begin{tabular}{>{\raggedright\arraybackslash}p{.29\textwidth}>{\raggedright\arraybackslash}p{.60\textwidth}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{.28\textwidth}>{\raggedright\arraybackslash}p{.61\textwidth}}
 \hline
-Area & Delivered evidence and boundary \\
+Area & Established relation and boundary \\
 \hline
-Identity and inheritance & Typed IDs, resolved closure, diamond declaration identity;
-\texttt{FiniteClosure}, \texttt{ClosureSaturation}. \\
-Occurrences and opposites & Counts, order/permutation and pair reciprocity;
-\texttt{OccurrenceBindingCorrect}, \texttt{SnapshotContainmentCorrect}. \\
-Executable conformance & Unconditional acceptance and failed-field correspondence;
-\texttt{CheckAcceptance}. \\
-Symbolic translation & Independent satisfaction and conformance equivalence under explicit lexical
-conditions; \texttt{SourceAdequacy}. \\
-Native interchange & Fresh EMF export/reload under explicit URI identity mapping;
-behavioral regression evidence within a narrower native domain. \\
-Metadata & Fixed scalar-description vocabulary and checked interpretation;
-\texttt{MetadataPilot}; no full self-description. \\
-Deferred EMOF & Operations/parameters, remaining datatypes, behavioral defaults and
-unset history, reflective services, comments/tags and general derived behavior. \\
+Finite conformance & Identity-based structural predicate; complete Boolean decision and finite reachability. \\
+Symbolic source & Independent satisfaction is equivalent to actual elaboration and acceptance under lexical admissibility. \\
+Observations & Multiplicity, types, order/permutation, duplicate counts, opposites and occurrence-sensitive containment are transported. \\
+Native interchange & Fresh EMF export and reload are compared under a URI identity bijection in a smaller accepted domain. \\
+Metadata & A fixed scalar-description vocabulary uses the ordinary conformance path; full EMOF self-description is not represented. \\
+Deferred EMOF & Operations and parameters, richer datatypes, defaults and unset history, general derived behavior, comments and reflection. \\
 \hline
 \end{tabular}
 \end{table}
