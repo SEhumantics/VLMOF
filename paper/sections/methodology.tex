@@ -85,9 +85,9 @@ obligations include
 Each member must match the declared type; bounds, uniqueness and typing are
 separate obligations.
 
-For an association with opposite properties $p$ and $q$, let $L_M(o,p)$
-be the occurrences observed for object $o$ at $p$. For every object pair
-$x,y$, conformance requires
+CMOF Reflection's rationale (MOF~13.2.5) corroborates repeated nonunique links.
+For our EMOF snapshot interpretation, opposite observations share occurrences:
+for opposite properties $p,q$ and objects $x,y$, conformance requires
 \begin{equation}
  \#_{\operatorname{ref}(y)}L_M(x,p)
  = \#_{\operatorname{ref}(x)}L_M(y,q).
@@ -107,8 +107,8 @@ explicit opposite of a composite end. The implemented pairwise obligations are
  \end{gathered}\right\}
    &\Rightarrow a.p=b.p.
 \end{align*}
-Both quantify over stored rows: the first constrains parent identities and the
-second active reverse-property identities. Acyclicity forbids a nonempty
+These implement MOF~12.5.5's separate one-container and one-non-null-container-property
+requirements over stored rows. Acyclicity forbids a nonempty
 composite path back to its source. Thus repeated unpaired occurrences can have
 one parent, while two active reverse roles can fail the second rule.
 
@@ -197,6 +197,8 @@ outside these equivalences.}
 \label{fig:semantics}
 \end{figure}
 
+This lets authors reason with qualified names and transfer conformance to
+allocated Core identities without reconstructing the binding argument.
 The theorem begins at the AST, not bytes. Consecutive IDs and required display
 names mean it is not universal Core representability; the conditional reifier
 requires aliases, source satisfaction and round-trip equalities.

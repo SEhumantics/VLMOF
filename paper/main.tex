@@ -16,23 +16,27 @@
 \pagestyle{empty}
 \thispagestyle{empty}
 \begin{abstract}
-Metamodel declarations need precise conformance rules that validation and model
-reasoning can share. Deriving these rules from EMOF requires reconciling its
-restrictions, adopted UML definitions and reflective-operation contexts. We
-formalize a structural subset of EMOF 2.5.1 in Lean, covering inheritance,
-properties, occurrence multiplicity, opposites and containment. A source audit
-distinguishes creation prerequisites from structural bounds and parent identity
-from active container-property identity. We prove that an executable checker
-decides the defined conformance relation and that symbolic declarations preserve
-and reflect conformance through elaboration under explicit lexical conditions.
-A reusable opposite-count consequence rules out repeated-link edits across
-candidate snapshots, even for a nonunique forward property. A railway projection,
-structural witnesses and native EMF comparisons expose useful behavior, schema
-and validator differences, and default-presence limits. The resulting library
-supports reasoning over represented metamodels and finite snapshots; reflective
-execution, general default/unset state and full EMOF self-description remain
-unsupported. Parser and native-adapter correctness are outside the proved boundary.
-\keywords{EMOF \and Metamodeling \and Lean \and Model conformance}
+A reusable account of model-driven software engineering requires an explicit
+meaning for metamodel declarations and their instances. We formalize a finite
+structural fragment of EMOF 2.5.1 in Lean, separating source interpretation from
+proof of implementation correctness. The account distinguishes structural
+multiplicity from class-creation prerequisites, repeated occurrences from distinct
+container objects, and parent uniqueness from active container-role uniqueness.
+It retains inherited declaration identity, opposite incidence, ordering and
+duplicate values. We prove that a finite executable checker decides the defined
+conformance relation for every represented schema and snapshot. A conditional
+correspondence theorem connects independently defined symbolic satisfaction to
+actual elaboration under explicit lexical premises. A reusable opposite-count
+consequence excludes repeated-link edits without assuming forward uniqueness.
+An attributed Train metamodel projection illustrates structural constraints;
+native EMF comparisons distinguish agreement from schema restrictions, validator
+differences and changes to loaded state. Controlled workloads expose size- and
+shape-dependent costs, including whole-process timeouts on the deepest containment
+chains. The resulting library supports reasoning about structural metamodels and
+finite snapshots. Reflective execution, defaults/unset history and full EMOF
+self-description remain outside the fragment; parser and native-adapter correctness
+are outside the proved boundary.
+\keywords{EMOF \and Metamodeling \and Formal semantics \and Model conformance \and Mechanized verification}
 \end{abstract}
 \input{sections/introduction}
 \input{sections/motivation}

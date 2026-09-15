@@ -1,13 +1,12 @@
 \section{Conclusion}
 VL-MOF connects a source-audited structural EMOF interpretation to a proved
-finite checker and conditional symbolic correspondence. The opposite-count
-consequence rules out repeated-link edits across candidate snapshots without
-assuming forward uniqueness. Native comparisons demonstrate why acceptance and
-loaded-state alignment must remain separate; scaling exposes practical limits
-of the present implementation.
+finite checker and conditional symbolic correspondence. Its opposite-count
+consequence excludes repeated-link edits without assuming forward uniqueness.
+Native comparisons separate acceptance from loaded-state alignment; controlled
+workloads expose size and shape limits of this implementation.
 
-Further work has concrete dependencies: reflective operations need transition
-and preservation results; defaults/unset history need richer observation states;
-full metadata interpretation needs packages, inheritance, references and
-materialized ownership. The delivered static definitions and proofs support
-that work without establishing those additional capabilities.
+Further work requires additional contracts: transition and preservation results
+for reflection, richer observation states for defaults/unset history, and
+packages, inheritance, references and materialized ownership for full metadata
+interpretation. The static results provide a basis for these extensions without
+establishing them.

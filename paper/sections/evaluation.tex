@@ -19,7 +19,8 @@ The Lean build checks the decision and source results. A client applies the oppo
 theorem to a metamodel with a nonunique forward end: for \emph{any} candidate
 snapshot containing the two specified objects, two occurrences of the target
 imply nonconformance. A duplicated-link edit instantiates this exclusion.
-This rules out a class of models rather than checking a batch. The metadata
+Schema facts are discharged once; the exclusion then applies to future
+snapshots, while other obligations still require checking. The metadata
 pilot separately checks interpretation in addition to metadata typing.
 
 \subsection{Native outcomes and state alignment}
@@ -34,7 +35,8 @@ of the schema/instance pair.
 \begin{table}[t]
 \centering\small
 \caption{Selected correctness outcomes. A: accept; R: reject. Alignment concerns
-mapped identities, classifiers and observations, not general schema equivalence.}
+mapped identities, classifiers and observations. S: schema call; I: instance-root
+call. An accepted I call does not override a rejected schema.}
 \label{tab:correctness}
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{p{40mm}cccp{31mm}}
@@ -99,7 +101,8 @@ would not measure the latter.
 \input{sections/validation-times}
 
 \paragraph{RQ3: Achieved evidence and limitations.}
-Two timed families provide size/shape evidence, not industrial breadth or
+Two metamodel families, with stars and chains as containment shapes, provide
+size/shape evidence, not industrial breadth or
 universal validator agreement. Early runs with scheduling, inventory and worker
 defects remain retained and excluded; complete raw samples and explicit timeout
 records support the reported costs.

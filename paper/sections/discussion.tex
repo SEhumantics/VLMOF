@@ -3,10 +3,8 @@
 Executable MOF semantics is established. Boronat and Meseguer interpret
 metamodels as membership-equational theories with conformance, reflective
 execution and EMF integration \cite{boronat_meseguer_2010}. Their bags and
-sequences already support duplicate-sensitive collections. Our narrower result is
-a clause-audited EMOF 2.5.1 structural profile with identity- and
-occurrence-sensitive predicates, a checked finite decision procedure, and
-conditional source-to-Core correspondence.
+sequences already support duplicate-sensitive collections. Our account adds
+a clause-audited EMOF 2.5.1 profile and conditional source-to-Core correspondence.
 
 Thirioux et al. define a typed-graph EMOF subset and validate its
 metacircularity by promoting an EMOF model to its reference model
@@ -37,9 +35,8 @@ substitute for the other.
 NEREUS, KM3, Emfatic and Xcore also show that textual metamodeling is not new
 \cite{favre_duarte_2016,jouault_bezivin_2006,emfatic_docs,xcore_docs}; CoqTL
 supplies reusable transformation-proof infrastructure
-\cite{cohen_tisi_douence_2024}. The contribution is neither a new syntax nor the
-choice of Lean. These targeted comparisons do not support a claim that equivalent
-formalization is absent from the literature.
+\cite{cohen_tisi_douence_2024}. These comparisons establish
+precedents, not literature-wide novelty.
 
 \subsection{Threats to Validity}
 \paragraph{Construct validity.}
@@ -52,20 +49,14 @@ rather than a stored reflective ownership graph.
 
 \paragraph{Internal validity.}
 The parser, JSON codec, Java bridge and measurement harness are outside the Lean
-correspondence proofs. Native default handling, inverse maintenance and
-containment reparenting may alter a loaded state before validation. Accordingly,
-the evaluation retains inputs, loaded observations, normalization records and
-diagnostics; matching acceptance booleans is insufficient. Schema and instance
-validation, loading and normalization are reported as separate phases.
+proofs. Native defaults, inverse maintenance and reparenting may change loaded
+state. Retained observations and normalization diagnostics therefore supplement
+acceptance decisions; validation and loading costs remain distinct.
 
 \paragraph{External and conclusion validity.}
-Train is the only public positive family; the unchanged EMF Compare case is a
-public unsupported boundary, not positive transfer evidence. Controlled stars,
-chains and repeated railway groups explore selected shapes and sizes, not
-industrial representativeness, author productivity, domain queries or generated
-code behavior. Independent processes and counterbalanced order characterize the
-declared environment and workload only. Repetitions are not additional models,
-and separate startup, parsing, conversion and serialization costs support neither
-a general performance ranking nor an asymptotic claim. Native validators impose
-Ecore-specific rules, so disagreement and state-alignment failures remain results
-to explain rather than noise to remove.
+Train is the only public positive family; EMF Compare is an unsupported boundary.
+Controlled stars, chains and railway groups establish neither industrial breadth,
+author productivity, domain-query correctness nor generated-code behavior.
+Repeated measurements characterize the declared environment, not additional
+models, asymptotic complexity or a general speed ranking. Ecore-specific validator
+rules also limit transfer: disagreements and alignment failures require explanation.
