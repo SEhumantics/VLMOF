@@ -68,7 +68,7 @@ def main():
     revision = command(['git', 'rev-parse', 'HEAD'])
     dirty = command(['git', 'status', '--porcelain'])
     report = {
-        'scope': 'Authored CLI cases and proof-client; public EMF evaluation pending.',
+        'scope': 'Authored CLI cases and proof-client; public EMF evaluation is recorded separately.',
         'commit': revision.get('stdout', '').strip(),
         'dirty': bool(dirty.get('stdout', '').strip()),
         'platform': platform.platform(), 'python': sys.version,
@@ -77,7 +77,7 @@ def main():
         'runner_sha256': digest(Path(__file__)),
         'source_manifest_sha256': digest(ROOT / 'sources/manifest.json'),
         'expectation_basis_sha256': {str(p.relative_to(ROOT)): digest(p) for p in
-            [ROOT / 'sources/PROFILE.md', ROOT / 'VLMOF/DSL.md']},
+            [ROOT / 'sources/PROFILE.md', ROOT / 'docs/source-language.md']},
         'binary_sha256': digest(binary) if binary.exists() else None,
         'source_verification': command([sys.executable, 'scripts/sources.py', 'verify']),
         'timing_policy': 'Single invocations; durations are execution records, not benchmark claims.',
@@ -91,7 +91,7 @@ def main():
         path.write_text(payload if isinstance(payload, str) else json.dumps(payload, indent=2), encoding='utf-8')
         row = {'id': name, 'origin': 'authored', 'input': str(path), 'input_sha256': digest(path),
                'expected': {'exit': code, 'status': status, 'reason': reason},
-               'basis': 'sources/PROFILE.md and VLMOF/DSL.md', 'result': 'not-run'}
+               'basis': 'sources/PROFILE.md and docs/source-language.md', 'result': 'not-run'}
         if binary.exists():
             run = command([str(binary), mode, str(path)])
             row['execution'] = run

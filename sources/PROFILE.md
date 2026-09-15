@@ -135,7 +135,7 @@ The scope has a fresh identity, fixed nonempty display name `Model`, and no sour
 alias or stored package ID. This reconciles top-level DSL declarations with adopted
 UML `Element::has_owner`; it does not permit nested classifiers. The exact encoding
 and the excluded reflective/root-materialization claims are in
-[REPRESENTATION.md](../docs/model.md).
+[model representation](../docs/model.md).
 
 The occurrence-based incoming-composite bound is also deliberately stronger than
 counting distinct `(parent, property)` containers. For an unpaired nonunique
