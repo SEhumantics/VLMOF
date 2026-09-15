@@ -14,7 +14,8 @@ not change which cardinalities the lower and upper bounds admit.
 The separation and the lower-bound witness used below adapt the semantic style of
 the archived multiplicity prototype at commit `16182c7`. The names and record
 shape here retain the established VL-MOF API and its stricter finite-upper policy.
-Source relationship: MOF 2.5.1, clauses 12.4[32] and 12.5; see
+Source relationship: MOF 2.5.1, clauses 12.4[32] (literal domains), 9.3.3[4–5]
+(creation-valid bounds, printed page 13) and 12.5; see
 `sources/PROFILE.md` for the selected subset and exact locators.
 -/
 

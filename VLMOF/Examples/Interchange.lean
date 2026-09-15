@@ -1,4 +1,5 @@
 import VLMOF.Interchange.Json
+import VLMOF.Examples.Model
 
 /-!
 # JSON codec examples

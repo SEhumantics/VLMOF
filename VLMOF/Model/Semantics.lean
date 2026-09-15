@@ -18,7 +18,8 @@ namespace VLMOF
 /-! ## Lexical domains and finite-key discipline -/
 
 /-- XML 1.0 character admissibility used by the profile's string and name checks.
-The numeric ranges follow XML 1.0 Fifth Edition, production [2] `Char`. -/
+The numeric ranges follow XML 1.0 Second Edition, production [2] `Char`, as
+identified by the adopted datatype source; see `sources/PROFILE.md`. -/
 def xmlChar (c : Char) : Prop :=
   let n := c.toNat
   n = 0x9 ∨ n = 0xA ∨ n = 0xD ∨

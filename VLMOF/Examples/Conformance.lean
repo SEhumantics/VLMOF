@@ -1,5 +1,6 @@
 import VLMOF.Model.Properties
 import VLMOF.Checker.Correctness.Acceptance
+import VLMOF.Examples.Model
 
 /-!
 # Semantic examples

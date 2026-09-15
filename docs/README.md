@@ -7,9 +7,10 @@ to understand the semantic definitions.
 
 ## Suggested reading order
 
-1. **Multiplicity:** `VLMOF/Model/Multiplicity.lean` explains upper bounds and
+1. **Multiplicity:** [Model.Multiplicity](../VLMOF/Model/Multiplicity.lean) explains upper bounds and
    admitted cardinalities. Interval consistency and the selected profile's
-   positive-upper rule are distinct questions.
+   positive-upper rule are distinct questions. The [worked explanation](multiplicity.md)
+   distinguishes interval feasibility from existence of a conforming model.
 2. **Models:** [Model.Basic](../VLMOF/Model/Basic.lean) defines declaration and
    object identities, values and raw records.
    [Model.Semantics](../VLMOF/Model/Semantics.lean) defines schema validity and

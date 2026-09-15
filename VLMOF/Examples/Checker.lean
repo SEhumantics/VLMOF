@@ -1,4 +1,5 @@
 import VLMOF.Checker.Correctness.Diagnostics
+import VLMOF.Examples.Model
 
 /-! Source-derived separating cases. These cases hold unrelated fixture rows fixed:
 MOF multiplicity absence, identity uniqueness, type domains, and reciprocal counts. -/
