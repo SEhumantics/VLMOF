@@ -1,8 +1,7 @@
 # Actual EMF validation fixtures
 
-These fixtures are deliberately small isolating states for the W5/W6 protocol.
-They are not a substitute for the selected Train route-switch-position case or
-the retained public Train inputs. Each `*.fixture.json` names a schema/XMI
+These fixtures contain small isolating states, the selected Train
+route-switch-position projection, and no full Train public-input claim. Each `*.fixture.json` names a schema/XMI
 manifest, expected result only where its semantics have been reviewed, and a
 state relation. The runner hashes the original bytes before and after execution.
 
@@ -22,12 +21,20 @@ is misreported as a harness defect.
 
 The two `unpaired-*-containment` fixtures make raw XMI name the same contained
 object twice: first in one nonunique feature, then in two unpaired features of
-one root. They deliberately have no expected validation result. The retained
-normalization output establishes whether native EMF represented, rejected, or
-reparented each source before it can be discussed against VL-MOF's corrected
-containment semantics.
+one root. EcoreValidator rejects this schema family with its `ConsistentUnique`
+rule (diagnostic code 50: a containment/bidirectional reference needs uniqueness
+unless its upper bound is one). That is a schema-domain difference, not evidence
+that EMF's loaded instance violates a one-container rule. The fixtures have no
+expected score; their retained loaded observations show any representation or
+reparenting separately.
 
 Fixtures excluded by the E1 default contract, and direct/static containment
 separators, are added only with their loaded-state observations and reviewed
 semantic mapping. Never turn one into a matched rejection by modifying it during
 normalization.
+
+`train-route-switch` is the dynamic Ecore/XMI realization of the selected,
+authored Train projection in [`examples/train/route-switch.dsl`](../../../examples/train/route-switch.dsl)
+and [`docs/train-case.md`](../../../docs/train-case.md). It is a positive
+published-case structural workload eligible for paired timing. It is not an
+upstream generated Train XMI and it does not include Train queries or repair.

@@ -42,8 +42,12 @@ states that need a change to represent are boundaries, not matched rejections.
 
 The local corpus includes aligned positives/negatives and explicit separators.
 VL-MOF structurally accepts `0..0`, whereas Ecore 2.39.0 rejects an upper bound
-of zero; Factory creation has a separate positive-upper premise. Containment and
-duplicate-source separators retain loaded observations before comparison.
+of zero; Factory creation has a separate positive-upper premise. Ecore's
+`ConsistentUnique` diagnostic code 50 rejects the unpaired nonunique containment
+schema separators, so those are schema-domain observations rather than evidence
+about EMF instance-container behavior. The unique lexical duplicate fixture
+retains two loaded values while generic EObjectValidator accepts it; it is an
+unscored validator/predicate difference, not presumed normalization loss.
 
 ## Reproduction and evidence
 

@@ -21,6 +21,8 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EValidator;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EEnumLiteral;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.EcorePackage;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.Diagnostician;
@@ -128,6 +130,35 @@ public final class EmfValidationHarness {
   private static String uri(EObject object) {
     try { return EcoreUtil.getURI(object).toString(); }
     catch (RuntimeException ignored) { return "unavailable"; }
+  }
+
+  private static String renderedValue(Object value) {
+    if (value instanceof EObject object) return uri(object);
+    if (value instanceof EEnumLiteral literal) return literal.getName();
+    return String.valueOf(value);
+  }
+
+  /** Retain the loaded feature lists before validation can be used to infer a source state. */
+  private static ArrayNode loadedObservations(Loaded loaded) {
+    ArrayNode rows = JSON.createArrayNode();
+    for (Resource resource : loaded.instanceResources()) for (EObject root : resource.getContents()) {
+      List<EObject> objects = new ArrayList<>();
+      objects.add(root);
+      var iterator = root.eAllContents();
+      while (iterator.hasNext()) objects.add(iterator.next());
+      for (EObject object : objects) for (EStructuralFeature feature : object.eClass().getEAllStructuralFeatures()) {
+        ObjectNode row = rows.addObject();
+        row.put("object_uri", uri(object));
+        row.put("feature_uri", uri(feature));
+        row.put("feature", feature.getName());
+        row.put("is_set", object.eIsSet(feature));
+        ArrayNode values = row.putArray("values");
+        Object raw = object.eGet(feature, false);
+        if (raw instanceof List<?> list) for (Object value : list) values.add(renderedValue(value));
+        else if (raw != null) values.add(renderedValue(raw));
+      }
+    }
+    return rows;
   }
 
   private static boolean containsError(Diagnostic diagnostic) {
@@ -241,6 +272,7 @@ public final class EmfValidationHarness {
       for (Path path : loaded.fixture().xmis()) inputs.put(path.toString(), sha256(path));
     } catch (Exception error) { throw new IllegalStateException("cannot hash fixture input", error); }
     output.set("validators", registryInventory(loaded));
+    output.set("loaded_observations", loadedObservations(loaded));
     if (diagnosticPass) output.putArray("diagnostics");
     boolean schemas = validateRoots(loaded, roots(loaded.schemaResources()), diagnosticPass, "schema", output);
     boolean instances = validateRoots(loaded, roots(loaded.instanceResources()), diagnosticPass, "instance", output);

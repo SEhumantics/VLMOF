@@ -1,0 +1,11 @@
+{
+  "id": "train-route-switch",
+  "condition": "dynamic-ecore-default-validator",
+  "ecore": ["train-route-switch.ecore"],
+  "xmi": ["train-route-switch.xmi"],
+  "obligation": "published Train route-switch-position projection: inheritance, enum values, lower-two requires, containment and two opposite pairs",
+  "state_relation": "lossless-e1-normalized",
+  "source_projection": "examples/train/route-switch.dsl and docs/train-case.md; authored dynamic-Ecore/XMI realization of the disclosed projection",
+  "expected": {"emf": "accepted", "vlmof": "accepted"},
+  "timing_eligible": true
+}

@@ -125,6 +125,24 @@ def main():
     for key, cmd in {"commit": ["git", "rev-parse", "HEAD"], "dirty": ["git", "status", "--porcelain"]}.items():
         row, stdout = command(f"git-{key}", cmd, output)
         report["repository"][key] = {"record": row, "value": stdout.strip()}
+    report["tooling"] = {}
+    for key, cmd in {
+            "java-version": ["java", "-version"],
+            "maven-version": ["mvn", "--version"],
+            "maven-dependency-tree": ["mvn", "-f", str(BRIDGE_POM), "dependency:tree"],
+    }.items():
+        row, _ = command(key, cmd, output)
+        report["tooling"][key] = row
+    hash_paths = {
+        "bridge_pom": BRIDGE_POM,
+        "emf_validation_harness": ROOT / "bridge" / "src" / "main" / "java" / "org" / "vlmof" / "bridge" / "EmfValidationHarness.java",
+        "runner": Path(__file__),
+        "vlmof_binary": ROOT / ".lake" / "build" / "bin" / "vlmof",
+        "validation_bench_binary": ROOT / ".lake" / "build" / "bin" / "validationBench",
+        "ecore_2_39_jar": Path.home() / ".m2" / "repository" / "org" / "eclipse" / "emf" / "org.eclipse.emf.ecore" / "2.39.0" / "org.eclipse.emf.ecore-2.39.0.jar",
+        "ecore_2_39_sources": Path.home() / ".m2" / "repository" / "org" / "eclipse" / "emf" / "org.eclipse.emf.ecore" / "2.39.0" / "org.eclipse.emf.ecore-2.39.0-sources.jar",
+    }
+    report["artifact_hashes"] = {name: digest(path) if path.is_file() else None for name, path in hash_paths.items()}
 
     source_before = {}
     for manifest_path in manifest_paths:
