@@ -148,11 +148,39 @@ inductive SourceCompositeReachable (m : Model) (i : Instance) : Name → Name �
       sourceCompositeEdge m i mid dst → SourceCompositeReachable m i src dst
 
 /-- Count composite references to `target`, including duplicate occurrences and
-rows.  The single-container rule bounds this number by one. -/
+rows. This arithmetic helper is not the single-container condition. -/
 def incomingCompositeCount (m : Model) (i : Instance) (target : Name) : Nat :=
   (i.observations.flatMap fun o =>
     if m.properties.any (fun p => p.alias = o.property && p.aggregation = .composite)
     then o.occurrences.filter (· = .reference target) else []).length
+
+/-- Source-level composite incidence retains the symbolic parent identity but
+ignores repeated occurrences when deciding which container object is present. -/
+def compositeObservation (m : Model) (o : Observation) (target : Name) : Bool :=
+  o.occurrences.contains (.reference target) &&
+    m.properties.any (fun p => p.alias == o.property && p.aggregation == .composite)
+
+/-- Symbolic counterpart of container-end metadata: an explicit opposite of a
+composite association end. Unpaired composite features introduce no such end. -/
+def containerProperty (m : Model) (name : Name) : Bool :=
+  m.properties.any fun p => p.aggregation == .composite &&
+    m.associations.any fun a =>
+      (a.ends == [p.alias, name]) || (a.ends == [name, p.alias])
+
+/-- A child has at most one symbolic container object, independently of how many
+occurrences of that child appear in the parent's nonunique feature. -/
+def SingleContainer (m : Model) (i : Instance) (target : Name) : Prop :=
+  ∀ a ∈ i.observations, ∀ b ∈ i.observations,
+    compositeObservation m a target = true →
+    compositeObservation m b target = true → a.object = b.object
+
+/-- Distinct active opposite container properties are forbidden even if their
+values name the same parent. This is separate from container-object uniqueness. -/
+def SingleContainerProperty (m : Model) (i : Instance) (target : Name) : Prop :=
+  ∀ a ∈ i.observations, ∀ b ∈ i.observations,
+    a.object = target → b.object = target →
+    containerProperty m a.property = true → containerProperty m b.property = true →
+    a.occurrences ≠ [] → b.occurrences ≠ [] → a.property = b.property
 
 /-! ## Local association invariants -/
 
@@ -266,7 +294,9 @@ structure SourceSatisfies (d : Document) : Prop where
     a.ends = [p, q] → ∀ x ∈ d.snapshot.objects, ∀ y ∈ d.snapshot.objects,
       (sourceOccurrences d.snapshot x.alias p).count (.reference y.alias) =
       (sourceOccurrences d.snapshot y.alias q).count (.reference x.alias)
-  oneIncomingComposite : ∀ o ∈ d.snapshot.objects, incomingCompositeCount d.model d.snapshot o.alias ≤ 1
+  oneIncomingComposite : ∀ o ∈ d.snapshot.objects,
+    SingleContainer d.model d.snapshot o.alias ∧
+    SingleContainerProperty d.model d.snapshot o.alias
   containmentAcyclic : ∀ o ∈ d.snapshot.objects, ∀ child,
     sourceCompositeEdge d.model d.snapshot o.alias child →
       ¬ SourceCompositeReachable d.model d.snapshot child o.alias

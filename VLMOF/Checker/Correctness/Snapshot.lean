@@ -57,7 +57,7 @@ theorem checkSnapshot_iff_of_schema (s : Schema) (m : Snapshot)
     (hschema : checkSchema s = true ↔ SchemaWellFormed s) :
     checkSnapshot s m = true ↔ SnapshotConforms s m := by
   classical
-  simp only [checkSnapshot, snapshotFieldChecks, oppositeCountsForB_eq, List.all_cons, List.all_nil,
+  simp only [checkSnapshot, snapshotFieldChecks, singleContainerB_iff, singleContainerPropertyB_iff, oppositeCountsForB_eq, List.all_cons, List.all_nil,
     Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq,
     List.all_eq_true, bool_eq_decide, List.any_eq_true,
     valueMatchesB_eq_true, containmentForB_eq_true, hschema, and_true, guard_iff]

@@ -51,7 +51,8 @@ The static semantics additionally uses MOF 12.5 identity/absence/opposite/contai
 consequences, MOF 9.4 and 10.5–10.6 equality/collection discussion, and adopted
 UML classifier inheritance. It does not implement update atomicity or prove
 reachability through reflective APIs. Repeated nonunique raw occurrences count
-at both opposite ends and in incoming composition; optional clause 15 uniqueness
+at both opposite ends; containment separately limits parent identities and active
+container-property identities. Optional clause 15 uniqueness
 compatibility is not imposed. The whole-EMOF self-description claim is deferred.
 
 The machine-readable auxiliaries retain historical discrepancies and repeated

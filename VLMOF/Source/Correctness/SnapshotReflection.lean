@@ -19,8 +19,9 @@ property and observation. Injective resolution reflects observation-key
 uniqueness; applicability correspondence then identifies exactly the required
 rows. Value binding reflects typing, list length and duplicate-freedom. The
 remaining arguments preserve more than membership: opposite counts are compared
-per endpoint pair, incoming composite occurrences are summed over rows, and a
-source containment path translates to a target path contradicting acyclicity.
+per endpoint pair, the two container clauses transport parent and active-role
+identity separately, and a source containment path translates to a target path
+contradicting acyclicity.
 
 Read the public `source_*` lemmas as the individual fields of `SourceSatisfies`.
 Private helpers invert successful computations or establish the local counting
@@ -844,20 +845,83 @@ private theorem incomingCompositeCount_reflect_eq {model : Model} {source : Inst
   unfold Source.incomingCompositeCount VLMOF.incomingCompositeCount
   exact incomingCompositeCount_mapM hwell hmodel (bindInstance_ok_mapM hinstance).2 hid
 
-/-- Reflect the selected profile's bound of one incoming composite occurrence.
-The preceding counting lemmas sum matching references across bound observations;
-they preserve repeated occurrences, including repeats within one source row. -/
+/-- Reflect both MOF single-container clauses through the actual observation and
+schema allocations. Parent identity uses composite-reference membership;
+container-role identity additionally preserves nonempty occurrence lists. -/
 theorem source_oneIncomingComposite_of_snapshotConforms
     {model : Model} {source : Instance} {schema : Schema} {target : Snapshot}
     (hwell : ModelWellFormed model) (hmodel : bindModel model = .ok schema)
     (hinstance : bindInstance model source = .ok target)
     (hconforms : SnapshotConforms schema target) :
-    ∀ object ∈ source.objects, incomingCompositeCount model source object.alias ≤ 1 := by
+    ∀ object ∈ source.objects,
+      Source.SingleContainer model source object.alias ∧
+        Source.SingleContainerProperty model source object.alias := by
   intro object hobject
   obtain ⟨targetObject, htargetObject, hobjectId, _⟩ :=
     sourceObject_target hinstance hobject
-  rw [incomingCompositeCount_reflect_eq hwell hmodel hinstance hobjectId]
-  exact hconforms.oneIncomingComposite targetObject htargetObject
+  have htargetConstraint := hconforms.oneIncomingComposite targetObject htargetObject
+  constructor
+  · intro first hfirst second hsecond hfirstComposite hsecondComposite
+    obtain ⟨targetFirst, htargetFirst, hfirstObject, hfirstProperty, hfirstOccurrences⟩ :=
+      sourceObservation_target hinstance hfirst
+    obtain ⟨targetSecond, htargetSecond, hsecondObject, hsecondProperty,
+        hsecondOccurrences⟩ := sourceObservation_target hinstance hsecond
+    have hfirstTargetComposite :
+        VLMOF.compositeObservation schema targetFirst targetObject.id = true := by
+      rw [← compositeObservation_eq hwell hmodel
+        ((bindObservationAllocation_ok_iff model source first targetFirst).mpr
+          ⟨hfirstObject, hfirstProperty, hfirstOccurrences⟩) hobjectId]
+      exact hfirstComposite
+    have hsecondTargetComposite :
+        VLMOF.compositeObservation schema targetSecond targetObject.id = true := by
+      rw [← compositeObservation_eq hwell hmodel
+        ((bindObservationAllocation_ok_iff model source second targetSecond).mpr
+          ⟨hsecondObject, hsecondProperty, hsecondOccurrences⟩) hobjectId]
+      exact hsecondComposite
+    have htargetObjects := htargetConstraint.1 targetFirst htargetFirst
+      targetSecond htargetSecond hfirstTargetComposite hsecondTargetComposite
+    exact objectId_source_injective hfirstObject (by simpa [htargetObjects] using hsecondObject)
+  · intro first hfirst second hsecond hfirstObjectEq hsecondObjectEq
+      hfirstContainer hsecondContainer hfirstNonempty hsecondNonempty
+    obtain ⟨targetFirst, htargetFirst, hfirstObject, hfirstProperty, hfirstOccurrences⟩ :=
+      sourceObservation_target hinstance hfirst
+    obtain ⟨targetSecond, htargetSecond, hsecondObject, hsecondProperty,
+        hsecondOccurrences⟩ := sourceObservation_target hinstance hsecond
+    have hfirstTargetObject : targetFirst.object = targetObject.id := by
+      apply Except.ok.inj
+      exact hfirstObject.symm.trans (hfirstObjectEq ▸ hobjectId)
+    have hsecondTargetObject : targetSecond.object = targetObject.id := by
+      apply Except.ok.inj
+      exact hsecondObject.symm.trans (hsecondObjectEq ▸ hobjectId)
+    have hfirstTargetContainer :
+        VLMOF.containerProperty schema targetFirst.property = true := by
+      rw [← containerProperty_eq hwell hmodel hfirstProperty]
+      exact hfirstContainer
+    have hsecondTargetContainer :
+        VLMOF.containerProperty schema targetSecond.property = true := by
+      rw [← containerProperty_eq hwell hmodel hsecondProperty]
+      exact hsecondContainer
+    have hfirstTargetNonempty : targetFirst.occurrences ≠ [] := by
+      intro hempty
+      apply hfirstNonempty
+      have hlength := hfirstOccurrences.length_eq
+      rw [hempty] at hlength
+      cases hsourceOccurrences : first.occurrences with
+      | nil => rfl
+      | cons value rest => simp [hsourceOccurrences] at hlength
+    have hsecondTargetNonempty : targetSecond.occurrences ≠ [] := by
+      intro hempty
+      apply hsecondNonempty
+      have hlength := hsecondOccurrences.length_eq
+      rw [hempty] at hlength
+      cases hsourceOccurrences : second.occurrences with
+      | nil => rfl
+      | cons value rest => simp [hsourceOccurrences] at hlength
+    have htargetProperties := htargetConstraint.2 targetFirst htargetFirst
+      targetSecond htargetSecond hfirstTargetObject hsecondTargetObject
+      hfirstTargetContainer hsecondTargetContainer hfirstTargetNonempty hsecondTargetNonempty
+    exact propertyId_source_injective hfirstProperty
+      (by simpa [htargetProperties] using hsecondProperty)
 
 /-!
 ## Containment paths

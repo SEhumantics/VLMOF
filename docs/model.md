@@ -71,3 +71,26 @@ standard. The native Ecore exporter currently requires explicit package records;
 it does not synthesize this outer scope. That narrower native domain is documented
 separately. A future bridge that materializes the scope must give its own fresh
 identity/name mapping and preservation argument.
+
+## Container objects and container properties
+
+MOF 2.5.1 12.5.5 imposes both one-container-object and one-non-null-container-property
+rules. `SingleContainer` therefore compares the parent identities in incoming
+composite observations. `SingleContainerProperty` separately compares nonempty
+opposite container-end identities. Same parent values cannot merge distinct roles.
+The existing opposite upper-one and acyclicity constraints remain in force.
+
+The conformance examples provide four separating models:
+
+- One unpaired nonunique slot containing the child twice conforms; its multiplicity
+  is two but it has one parent.
+- Two distinct parents fail ownership, even with no opposite properties.
+- Two unpaired forward slots from the same parent conform; no reverse role is
+  silently invented for either. This is broader than EMF's containment-feature policy.
+- Two paired composite slots from the same parent fail because their two reverse
+  container properties are both active, although the container object is unique.
+
+`incomingCompositeCount` retains the old occurrence arithmetic for comparison, but
+`SnapshotConforms.oneIncomingComposite` now contains the conjunction of the two
+identity-based obligations. Clients must use its two components; the old field name
+is retained for migration, not as a claim that ownership counts occurrences.

@@ -42,9 +42,11 @@ for diagnostic testing; their representability must not imply acceptance.
   primitive equality is value equality; literals retain their enumeration.
 - Paired association ends have matching opposite occurrence counts. This
   prevents membership-only checking from losing a repeated relationship.
-- Each child has at most one incoming composite occurrence, globally, and
-  containment is acyclic. This also rules out two different composite features
-  from the same parent. Opposite container ends have upper bound one.
+- Each child has at most one distinct container object, and at most one
+  nonempty opposite container property (MOF 12.5.5). Containment is acyclic.
+  Repeated occurrences within one unpaired nonunique feature do not create
+  extra parents. Two active opposite container properties are rejected even
+  when both name the same parent. Opposite container ends have upper bound one.
 - Count `isID` attributes over inherited declaration identities. Do not infer
   globally unique ID values or an identifier/URI service from that count.
 
@@ -55,9 +57,9 @@ reflective operation and does not settle raw snapshot validity or unordered
 reference behavior. This profile admits raw non-unique occurrences and makes
 no claim that every admitted snapshot is reachable through that API.
 
-Occurrence-sensitive opposite matching and containment are coherent together:
-repeated links consume multiplicity at both ends, including an upper-one
-container end. They are stronger than a relationship-only abstraction. CMOF
+Occurrence-sensitive opposite matching and container-role bounds interact:
+repeated paired links consume multiplicity at both ends, including an upper-one
+container end. Distinct-parent containment itself counts identities, not occurrences. CMOF
 13.2's repeatable Link rationale and optional Clause 15 corroborate this reading;
 neither is silently imposed as a mandatory EMOF capability. This interpretation
 must be named in any theorem's claimed standards correspondence.
@@ -141,10 +143,18 @@ UML `Element::has_owner`; it does not permit nested classifiers. The exact encod
 and the excluded reflective/root-materialization claims are in
 [model representation](../docs/model.md).
 
-The occurrence-based incoming-composite bound is also deliberately stronger than
-counting distinct `(parent, property)` containers. For an unpaired nonunique
-composite feature, one parent and one slot containing the same child twice is
-rejected by this profile even though a distinct-container reading admits it.
-We do not claim that the standard requires this stronger restriction; it selects
-the occurrence-sensitive snapshot domain formalized here. If an opposite upper-one
-container end exists, pair-count reciprocity already rules out that repetition.
+Containment has two independent obligations in MOF 12.5.5: one container
+object and one non-null container property. `SingleContainer` compares parent
+identities of composite observations; `SingleContainerProperty` compares the
+identities of nonempty reverse container roles. A role is an explicitly represented
+opposite of a composite association end. Unpaired features introduce no implicit
+opposite. The standard-facing static account therefore admits two unpaired
+features from the same parent, subject to all other constraints. An EMF-style
+unique containment-feature policy is a stronger runtime restriction; our
+compatibility experiment must report that difference rather than normalize it away.
+
+The former raw incoming occurrence count remains an arithmetic helper for comparing
+interpretations; it is no longer a conformance condition. The executable filter
+checks key agreement with one representative instead of comparing every pair;
+`singleContainerB_iff` and `singleContainerPropertyB_iff` prove equivalence on raw
+inputs. No state-reachability or reflective mutation theorem is claimed.

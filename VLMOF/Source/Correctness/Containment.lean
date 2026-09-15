@@ -9,12 +9,13 @@ This module transports the graph-sensitive snapshot obligations.  Object aliases
 are related to target IDs by their source-list position.  Successful model and
 instance allocation then makes composite edges correspond, which lets target
 closure paths be reflected into the unbounded declarative source reachability
-relation.  Separate counting arguments preserve the one-container and
-opposite-end occurrence constraints.
+relation.  Observation-membership and association-incidence arguments preserve
+the two single-container clauses; counting preserves opposite-end occurrences.
 
 The path proofs deliberately run from the finite Core closure back to source
-reachability: source acyclicity can then reject every target cycle.  Counting
-proofs use the exact occurrence correspondence and retain duplicates.
+reachability: source acyclicity can then reject every target cycle. Occurrence
+proofs use the exact pointwise correspondence, retaining duplicates and list
+emptiness where the respective contract observes them.
 -/
 namespace VLMOF.Source
 
@@ -295,6 +296,34 @@ private theorem compositeTest_eq
     refine ⟨x.1, hsource, ?_⟩
     exact ⟨halias, (propertyBinding_aggregation hb).symm.trans haggregation⟩
 
+private theorem compositeBeqTest_eq
+    (hwf : ModelWellFormed model) (hm : bindModel model = .ok schema)
+    {sourceObservation : Source.Observation} {targetObservation : VLMOF.Observation}
+    (hp : propertyId model sourceObservation.property = .ok targetObservation.property) :
+    (model.properties.any (fun p =>
+      p.alias == sourceObservation.property && p.aggregation == .composite)) =
+    (schema.properties.any (fun p =>
+      p.id == targetObservation.property && p.aggregation == .composite)) := by
+  apply Bool.eq_iff_iff.mpr
+  simp only [List.any_eq_true, Bool.and_eq_true_iff, beq_iff_eq]
+  constructor
+  · rintro ⟨property, hproperty, halias, haggregation⟩
+    rcases (modelAllocation_of_bindModel hm).propertyForSource hproperty with
+      ⟨index, translated, hz, ht, hb⟩
+    have hid := propertyBinding_resolves_id hwf hz hb
+    exact ⟨translated, ht, Except.ok.inj (hid.symm.trans (halias ▸ hp)),
+      (propertyBinding_aggregation hb).trans haggregation⟩
+  · rintro ⟨translated, ht, hid, haggregation⟩
+    rcases (mapM_ok_mem_iff (modelAllocation_of_bindModel hm).properties).mp ht with
+      ⟨x, hx, hb⟩
+    have hsource := List.fst_mem_of_mem_zipIdx hx
+    have hresolved := propertyBinding_resolves_id hwf hx hb
+    have halias : x.1.alias = sourceObservation.property := by
+      apply propertyId_source_injective hresolved
+      simpa [hid] using hp
+    exact ⟨x.1, hsource, halias,
+      (propertyBinding_aggregation hb).symm.trans haggregation⟩
+
 private theorem referenceFilter_length_eq
     {sourceValues : List Source.Value} {targetValues : List VLMOF.Value}
     (hocc : OccurrencesBind model source sourceValues targetValues)
@@ -333,6 +362,68 @@ private theorem referenceFilter_length_eq
                 apply hn
                 exact objectId_source_injective hsourceId (by simpa [heq] using hid)
               simp [hn, ht, htail]
+
+/-- Membership of a resolved object reference is preserved exactly by the
+pointwise occurrence binder.  This is the set-level fact used by containment;
+the preceding length theorem remains available for multiplicity-sensitive
+constraints. -/
+theorem referenceContains_eq
+    {sourceValues : List Source.Value} {targetValues : List VLMOF.Value}
+    (hocc : OccurrencesBind model source sourceValues targetValues)
+    {name : Name} {id : ObjectId} (hid : objectId source name = .ok id) :
+    sourceValues.contains (.reference name) =
+      targetValues.contains (.reference id) := by
+  apply Bool.eq_iff_iff.mpr
+  simp only [List.contains_iff_mem]
+  constructor
+  · intro hmem
+    rcases hocc.source_covered (.reference name) hmem with
+      ⟨targetValue, htarget, hvalue⟩
+    cases targetValue with
+    | reference targetId =>
+        have htargetId : objectId source name = .ok targetId := by
+          unfold objectId
+          rw [(resolveIndex_iff_uniqueAliasAt _ _ _ _).mpr hvalue]
+          simp [Except.map]
+        have : targetId = id := Except.ok.inj (htargetId.symm.trans hid)
+        simpa [this] using htarget
+    | boolean => simp [ValueBinds] at hvalue
+    | integer => simp [ValueBinds] at hvalue
+    | string => simp [ValueBinds] at hvalue
+    | enumeration => simp [ValueBinds] at hvalue
+  · intro hmem
+    rcases hocc.target_covered (.reference id) hmem with
+      ⟨sourceValue, hsource, hvalue⟩
+    cases sourceValue with
+    | reference sourceName =>
+        have hsourceId : objectId source sourceName = .ok id := by
+          unfold objectId
+          rw [(resolveIndex_iff_uniqueAliasAt _ _ _ _).mpr hvalue]
+          simp [Except.map]
+        have : sourceName = name := objectId_source_injective hsourceId hid
+        simpa [this] using hsource
+    | boolean => simp [ValueBinds] at hvalue
+    | integer => simp [ValueBinds] at hvalue
+    | string => simp [ValueBinds] at hvalue
+    | enumeration => simp [ValueBinds] at hvalue
+
+/-- The Boolean test selecting a composite observation is invariant under a
+successful row binding.  Reference membership is transported without counting
+duplicates, while the property test uses the allocated declaration row. -/
+theorem compositeObservation_eq
+    (hwf : ModelWellFormed model) (hm : bindModel model = .ok schema)
+    {sourceObservation : Source.Observation} {targetObservation : VLMOF.Observation}
+    (hb : bindObservationAllocation model source sourceObservation = .ok targetObservation)
+    {targetName : Name} {targetId : ObjectId}
+    (hid : objectId source targetName = .ok targetId) :
+    Source.compositeObservation model sourceObservation targetName =
+      VLMOF.compositeObservation schema targetObservation targetId := by
+  have hfacts :=
+    (bindObservationAllocation_ok_iff model source sourceObservation targetObservation).mp hb
+  unfold Source.compositeObservation VLMOF.compositeObservation
+  rw [referenceContains_eq hfacts.2.2 hid]
+  exact congrArg (Bool.and (targetObservation.occurrences.contains (.reference targetId)))
+    (compositeBeqTest_eq hwf hm hfacts.2.1)
 
 private theorem incomingCompositeCount_mapM
     (hwf : ModelWellFormed model) (hm : bindModel model = .ok schema)
@@ -387,19 +478,6 @@ theorem incomingCompositeCount_eq
   unfold Source.incomingCompositeCount VLMOF.incomingCompositeCount
   exact incomingCompositeCount_mapM h.model hm (bindInstance_ok_mapM hi).2 hid
 
-/-- Transport the source single-container bound to every allocated target object
-through exact incoming-count equality. -/
-theorem oneIncomingComposite_of_sourceSatisfies
-    (h : SourceSatisfies { model, snapshot := source })
-    (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot) :
-    ∀ object ∈ snapshot.objects,
-      VLMOF.incomingCompositeCount schema snapshot object.id ≤ 1 := by
-  intro object ho
-  rcases targetObjectSource hi ho with ⟨sourceObject, hsourceObject, halias⟩
-  have hid := objectId_of_aliasAt h halias
-  rw [← incomingCompositeCount_eq h hm hi hid]
-  exact h.oneIncomingComposite sourceObject hsourceObject
-
 /-! The final private helpers recover the exact ordered association ends and turn
 resolved object aliases into related reference values.  They reduce reciprocity
 to the occurrence-count preservation theorem. -/
@@ -430,6 +508,166 @@ private theorem associationBinding_ends {x : Association × Nat} {a : Associatio
               simp [hq, hp, hend, hf, hs, Bind.bind, Except.bind, pure, Except.pure] at hb
               all_goals try subst a
               all_goals exact ⟨first, second, firstId, secondId, rfl, hf, hs, rfl⟩
+
+/-- A symbolic property is an explicit container end exactly when its resolved
+Core property is.  The proof transports both the composite property witness and
+the ordered association-end witness through the actual model allocations. -/
+theorem containerProperty_eq
+    (hwf : ModelWellFormed model) (hm : bindModel model = .ok schema)
+    {name : Name} {id : PropertyId} (hid : propertyId model name = .ok id) :
+    Source.containerProperty model name = VLMOF.containerProperty schema id := by
+  apply Bool.eq_iff_iff.mpr
+  unfold Source.containerProperty VLMOF.containerProperty
+  simp only [List.any_eq_true, Bool.and_eq_true_iff, Bool.or_eq_true,
+    beq_iff_eq]
+  let allocation := modelAllocation_of_bindModel hm
+  constructor
+  · rintro ⟨property, hproperty, hcomposite, association, hassociation, hends⟩
+    rcases allocation.propertyForSource hproperty with
+      ⟨propertyIndex, targetProperty, hpropertyZip, htargetProperty, hpropertyBind⟩
+    have hpropertyId := propertyBinding_resolves_id hwf hpropertyZip hpropertyBind
+    obtain ⟨associationIndex, hassociationGet⟩ := List.mem_iff_getElem?.mp hassociation
+    have hassociationZip : (association, associationIndex) ∈ model.associations.zipIdx :=
+      List.mk_mem_zipIdx_iff_getElem?.mpr hassociationGet
+    rcases mapM_ok_source allocation.associations hassociationZip with
+      ⟨targetAssociation, htargetAssociation, hassociationBind⟩
+    rcases associationBinding_ends hassociationBind with
+      ⟨first, second, firstId, secondId, hsourceEnds, hfirstId, hsecondId, htargetEnds⟩
+    have hcomposite' : property.aggregation = .composite := by simpa using hcomposite
+    refine ⟨targetProperty, htargetProperty,
+      (propertyBinding_aggregation hpropertyBind).trans hcomposite',
+      targetAssociation, htargetAssociation, ?_⟩
+    rcases hends with hends | hends
+    · have hnames : first = property.alias ∧ second = name := by
+        have hends' : association.ends = [property.alias, name] := by simpa using hends
+        have := hsourceEnds.symm.trans hends'
+        simpa using this
+      rcases hnames with ⟨rfl, rfl⟩
+      left
+      rw [htargetEnds]
+      apply Prod.ext
+      · exact Except.ok.inj (hfirstId.symm.trans hpropertyId)
+      · exact Except.ok.inj (hsecondId.symm.trans hid)
+    · have hnames : first = name ∧ second = property.alias := by
+        have hends' : association.ends = [name, property.alias] := by simpa using hends
+        have := hsourceEnds.symm.trans hends'
+        simpa using this
+      rcases hnames with ⟨rfl, rfl⟩
+      right
+      rw [htargetEnds]
+      apply Prod.ext
+      · exact Except.ok.inj (hfirstId.symm.trans hid)
+      · exact Except.ok.inj (hsecondId.symm.trans hpropertyId)
+  · rintro ⟨targetProperty, htargetProperty, hcomposite,
+      targetAssociation, htargetAssociation, hends⟩
+    rcases (mapM_ok_mem_iff allocation.properties).mp htargetProperty with
+      ⟨propertyEntry, hpropertyEntry, hpropertyBind⟩
+    have hproperty := List.fst_mem_of_mem_zipIdx hpropertyEntry
+    have hpropertyId := propertyBinding_resolves_id hwf hpropertyEntry hpropertyBind
+    rcases (mapM_ok_mem_iff allocation.associations).mp htargetAssociation with
+      ⟨associationEntry, hassociationEntry, hassociationBind⟩
+    have hassociation := List.fst_mem_of_mem_zipIdx hassociationEntry
+    rcases associationBinding_ends hassociationBind with
+      ⟨first, second, firstId, secondId, hsourceEnds, hfirstId, hsecondId, htargetEnds⟩
+    have hcomposite' : targetProperty.aggregation = .composite := by simpa using hcomposite
+    refine ⟨propertyEntry.1, hproperty,
+      (propertyBinding_aggregation hpropertyBind).symm.trans hcomposite',
+      associationEntry.1, hassociation, ?_⟩
+    rcases hends with hends | hends
+    · have hids : firstId = targetProperty.id ∧ secondId = id := by
+        have hends' : targetAssociation.ends = (targetProperty.id, id) := by simpa using hends
+        have := htargetEnds.symm.trans hends'
+        simpa using this
+      have hfirst : first = propertyEntry.1.alias :=
+        propertyId_source_injective hfirstId (by simpa [hids.1] using hpropertyId)
+      have hsecond : second = name :=
+        propertyId_source_injective hsecondId (by simpa [hids.2] using hid)
+      left
+      simpa [hfirst, hsecond] using hsourceEnds
+    · have hids : firstId = id ∧ secondId = targetProperty.id := by
+        have hends' : targetAssociation.ends = (id, targetProperty.id) := by simpa using hends
+        have := htargetEnds.symm.trans hends'
+        simpa using this
+      have hfirst : first = name :=
+        propertyId_source_injective hfirstId (by simpa [hids.1] using hid)
+      have hsecond : second = propertyEntry.1.alias :=
+        propertyId_source_injective hsecondId (by simpa [hids.2] using hpropertyId)
+      right
+      simpa [hfirst, hsecond] using hsourceEnds
+
+/-- Transport both MOF single-container clauses to every allocated target
+object.  Parent identity uses composite-observation correspondence; container
+role identity additionally uses explicit opposite-end metadata and preservation
+of occurrence-list emptiness. -/
+theorem oneIncomingComposite_of_sourceSatisfies
+    (h : SourceSatisfies { model, snapshot := source })
+    (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot) :
+    ∀ object ∈ snapshot.objects,
+      VLMOF.SingleContainer schema snapshot object.id ∧
+        VLMOF.SingleContainerProperty schema snapshot object.id := by
+  intro object ho
+  rcases targetObjectSource hi ho with ⟨sourceObject, hsourceObject, halias⟩
+  have htargetId := objectId_of_aliasAt h halias
+  have hsourceConstraint := h.oneIncomingComposite sourceObject hsourceObject
+  constructor
+  · intro first hfirst second hsecond hfirstComposite hsecondComposite
+    rcases boundObservation_source hi hfirst with
+      ⟨sourceFirst, hsourceFirst, hfirstObject, hfirstProperty, hfirstOccurrences⟩
+    rcases boundObservation_source hi hsecond with
+      ⟨sourceSecond, hsourceSecond, hsecondObject, hsecondProperty, hsecondOccurrences⟩
+    have hfirstSourceComposite :
+        Source.compositeObservation model sourceFirst sourceObject.alias = true := by
+      rw [compositeObservation_eq h.model hm
+        ((bindObservationAllocation_ok_iff model source sourceFirst first).mpr
+          ⟨hfirstObject, hfirstProperty, hfirstOccurrences⟩) htargetId]
+      exact hfirstComposite
+    have hsecondSourceComposite :
+        Source.compositeObservation model sourceSecond sourceObject.alias = true := by
+      rw [compositeObservation_eq h.model hm
+        ((bindObservationAllocation_ok_iff model source sourceSecond second).mpr
+          ⟨hsecondObject, hsecondProperty, hsecondOccurrences⟩) htargetId]
+      exact hsecondComposite
+    have hsourceObjects := hsourceConstraint.1 sourceFirst hsourceFirst sourceSecond hsourceSecond
+      hfirstSourceComposite hsecondSourceComposite
+    apply Except.ok.inj
+    exact hfirstObject.symm.trans (hsourceObjects ▸ hsecondObject)
+  · intro first hfirst second hsecond hfirstObjectEq hsecondObjectEq
+      hfirstContainer hsecondContainer hfirstNonempty hsecondNonempty
+    rcases boundObservation_source hi hfirst with
+      ⟨sourceFirst, hsourceFirst, hfirstObject, hfirstProperty, hfirstOccurrences⟩
+    rcases boundObservation_source hi hsecond with
+      ⟨sourceSecond, hsourceSecond, hsecondObject, hsecondProperty, hsecondOccurrences⟩
+    have hfirstSourceObject : sourceFirst.object = sourceObject.alias :=
+      objectId_source_injective hfirstObject (by simpa [hfirstObjectEq] using htargetId)
+    have hsecondSourceObject : sourceSecond.object = sourceObject.alias :=
+      objectId_source_injective hsecondObject (by simpa [hsecondObjectEq] using htargetId)
+    have hfirstSourceContainer : Source.containerProperty model sourceFirst.property = true := by
+      rw [containerProperty_eq h.model hm hfirstProperty]
+      exact hfirstContainer
+    have hsecondSourceContainer : Source.containerProperty model sourceSecond.property = true := by
+      rw [containerProperty_eq h.model hm hsecondProperty]
+      exact hsecondContainer
+    have hfirstSourceNonempty : sourceFirst.occurrences ≠ [] := by
+      intro hempty
+      apply hfirstNonempty
+      have hlength := hfirstOccurrences.length_eq
+      rw [hempty] at hlength
+      cases htarget : first.occurrences with
+      | nil => rfl
+      | cons value rest => simp [htarget] at hlength
+    have hsecondSourceNonempty : sourceSecond.occurrences ≠ [] := by
+      intro hempty
+      apply hsecondNonempty
+      have hlength := hsecondOccurrences.length_eq
+      rw [hempty] at hlength
+      cases htarget : second.occurrences with
+      | nil => rfl
+      | cons value rest => simp [htarget] at hlength
+    have hsourceProperties := hsourceConstraint.2 sourceFirst hsourceFirst sourceSecond hsourceSecond
+      hfirstSourceObject hsecondSourceObject hfirstSourceContainer hsecondSourceContainer
+      hfirstSourceNonempty hsecondSourceNonempty
+    apply Except.ok.inj
+    exact hfirstProperty.symm.trans (hsourceProperties ▸ hsecondProperty)
 
 private theorem referenceValueBinds {name : Name} {id : ObjectId}
     (hid : objectId source name = .ok id) :

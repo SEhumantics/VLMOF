@@ -281,11 +281,43 @@ def compositeReachable (s : Schema) (m : Snapshot) (src dst : ObjectId) : Prop :
   dst ∈ iterateClosure (outgoingComposite s m) m.objects.length [src]
 
 /-- Number of raw composite reference occurrences that target one object. Occurrence
-counting, rather than distinct-source counting, supports the single-container rule. -/
+counting is useful to distinguish multiplicity from container identity. This helper
+is not the ownership condition in `SnapshotConforms`. -/
 def incomingCompositeCount (s : Schema) (m : Snapshot) (target : ObjectId) : Nat :=
   (m.observations.flatMap fun o =>
     if s.properties.any (fun p => p.id = o.property ∧ p.aggregation = .composite)
     then o.occurrences.filter (· = .reference target) else []).length
+
+/-- A composite observation names a possible container of `target`. Repetition
+within the row does not create another container (MOF 2.5.1, 12.5.5). -/
+def compositeObservation (s : Schema) (o : Observation) (target : ObjectId) : Bool :=
+  o.occurrences.contains (.reference target) &&
+    s.properties.any (fun p => p.id == o.property && p.aggregation == .composite)
+
+/-- A container end is opposite a composite end of a represented association.
+This is incidence metadata, including nonnavigable ends; it does not invent an
+opposite property for an unpaired composite feature. -/
+def containerProperty (s : Schema) (id : PropertyId) : Bool :=
+  s.properties.any fun p => p.aggregation == .composite &&
+    s.associations.any fun a =>
+      (a.ends == (p.id, id)) || (a.ends == (id, p.id))
+
+/-- All composite rows containing this child must name the same parent object.
+The pairwise formulation is equivalent to having at most one distinct parent;
+it deliberately does not count repeated occurrences or distinct forward slots. -/
+def SingleContainer (s : Schema) (m : Snapshot) (target : ObjectId) : Prop :=
+  ∀ a ∈ m.observations, ∀ b ∈ m.observations,
+    compositeObservation s a target = true →
+    compositeObservation s b target = true → a.object = b.object
+
+/-- MOF 12.5.5 separately permits only one non-null container property. Empty
+lists denote null/absence in this snapshot representation. Different container
+roles remain distinct even when they refer to the same parent object. -/
+def SingleContainerProperty (s : Schema) (m : Snapshot) (target : ObjectId) : Prop :=
+  ∀ a ∈ m.observations, ∀ b ∈ m.observations,
+    a.object = target → b.object = target →
+    containerProperty s a.property = true → containerProperty s b.property = true →
+    a.occurrences ≠ [] → b.occurrences ≠ [] → a.property = b.property
 
 /-- Static snapshot conformance.  Multiplicity counts raw occurrences, uniqueness uses
 `Value` equality (object identity for references), and opposite matching compares the
@@ -317,7 +349,8 @@ structure SnapshotConforms (s : Schema) (m : Snapshot) : Prop where
     a.ends = (p, q) → ∀ x ∈ m.objects, ∀ y ∈ m.objects,
       (m.occurrences x.id p).count (.reference y.id) =
       (m.occurrences y.id q).count (.reference x.id)
-  oneIncomingComposite : ∀ o ∈ m.objects, incomingCompositeCount s m o.id ≤ 1
+  oneIncomingComposite : ∀ o ∈ m.objects,
+    SingleContainer s m o.id ∧ SingleContainerProperty s m o.id
   containmentAcyclic : ∀ o ∈ m.objects, ∀ child,
     compositeEdge s m o.id child → ¬ compositeReachable s m child o.id
 

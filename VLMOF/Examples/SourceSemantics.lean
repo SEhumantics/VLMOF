@@ -31,7 +31,7 @@ theorem accepted_satisfies : SourceSatisfies accepted := by
   all_goals
     simp [accepted, NameValid, VLMOF.validString, VLMOF.xmlChar,
       resolvesClass, classEntries, propertyApplies, sourceOccurrences,
-      sourceCompositeEdge, incomingCompositeCount]
+      sourceCompositeEdge, SingleContainer, SingleContainerProperty]
   all_goals native_decide
 
 /-- Two class declarations share an alias; their separate records must not hide

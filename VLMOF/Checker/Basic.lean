@@ -15,6 +15,20 @@ namespace VLMOF
 
 /-! ## Decidable semantic predicates -/
 
+/-- Both ownership obligations quantify over the finite raw observation store.
+Repeated rows remain visible; other conformance fields reject duplicate keys. -/
+instance (s : Schema) (m : Snapshot) (o : ObjectId) :
+    Decidable (SingleContainer s m o) := by
+  unfold SingleContainer
+  infer_instance
+
+/-- Decidability of the separate active-container-role obligation. -/
+instance (s : Schema) (m : Snapshot) (o : ObjectId) :
+    Decidable (SingleContainerProperty s m o) := by
+  unfold SingleContainerProperty
+  infer_instance
+
+
 /-- Decidability bridge for XML character validity used by `decide` in the checker. -/
 instance (c : Char) : Decidable (xmlChar c) := by unfold xmlChar; infer_instance
 /-- Decidability bridge for finite string validity. -/
@@ -146,6 +160,24 @@ def containmentForB (s : Schema) (m : Snapshot) (source : ObjectId) : Bool :=
 
 /-! ## Snapshot checks -/
 
+/-- Linear agreement check: every retained row has the first row's key. Empty
+and singleton lists satisfy uniqueness without choosing a distinguished identity. -/
+def keysAgree {α κ : Type} [BEq κ] (key : α → κ) (xs : List α) : Bool :=
+  match xs with
+  | [] => true
+  | first :: rest => rest.all (fun row => key first == key row)
+
+/-- Select actual incoming composite rows before checking parent agreement.
+This avoids a quadratic comparison over unrelated raw observations. -/
+def singleContainerB (s : Schema) (m : Snapshot) (target : ObjectId) : Bool :=
+  keysAgree Observation.object (m.observations.filter (fun o => compositeObservation s o target))
+
+/-- Select nonempty container-end rows on this object, then compare property
+identities. Opposite roles cannot collapse merely because their values agree. -/
+def singleContainerPropertyB (s : Schema) (m : Snapshot) (target : ObjectId) : Bool :=
+  keysAgree Observation.property (m.observations.filter fun o =>
+    o.object == target && containerProperty s o.property && !o.occurrences.isEmpty)
+
 /-- Named Boolean checks corresponding one-for-one to the fields of
 `SnapshotConforms`, including schema validity as the first field. -/
 def snapshotFieldChecks (s : Schema) (m : Snapshot) : List (String × Bool) :=
@@ -171,7 +203,8 @@ def snapshotFieldChecks (s : Schema) (m : Snapshot) : List (String × Bool) :=
       decide (¬ s.applicableProperty o.classifier p.id) || decide (p.multiplicity.isUnique ≠ true) ||
         decide ((m.occurrences o.id p.id).Nodup)),
    ("opposite counts", s.associations.all fun a => oppositeCountsForB m a.ends.1 a.ends.2),
-   ("one incoming composite", m.objects.all fun o => decide (incomingCompositeCount s m o.id ≤ 1)),
+   ("one container and active container property", m.objects.all fun o =>
+     singleContainerB s m o.id && singleContainerPropertyB s m o.id),
    ("containment acyclic", m.objects.all fun o => containmentForB s m o.id)]
 
 /-- Accept a snapshot exactly when every named conformance field check succeeds. -/

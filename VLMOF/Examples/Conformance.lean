@@ -181,4 +181,105 @@ theorem zeroBound_not_creation_ready : ¬ zeroBoundSchema.classCreationBounds A 
       Multiplicity.creationBounds, Upper.allows]
   exact impossible bound
 
+/-- One unpaired composite feature is nonunique and has unlimited upper bound.
+No opposite container property is manufactured for this declaration. -/
+def unpairedContainmentSchema : Schema :=
+  { interactionSchema with
+    properties := [{ interactionSchema.properties[0] with aggregation := .composite }]
+    associations := [] }
+
+/-- One parent mentions one child twice in the same nonunique composite slot. -/
+def repeatedContainedChild : Snapshot :=
+  { objects := oneLink.objects
+    observations := [{ object := x, property := forward, occurrences := [.reference y, .reference y] }] }
+
+/-- Occurrence multiplicity two is compatible with one container object. This
+separates the source-supported rule from the former incoming-occurrence bound. -/
+theorem repeated_unpaired_child_conforms :
+    SnapshotConforms unpairedContainmentSchema repeatedContainedChild := by
+  apply (checkSnapshot_iff _ _).mp
+  decide
+
+/-- The old aggregate count would have rejected the preceding conforming state. -/
+theorem repeated_child_has_two_incoming_occurrences :
+    incomingCompositeCount unpairedContainmentSchema repeatedContainedChild y = 2 := by
+  decide
+
+/-- A different parent creates an ownership conflict even without opposites. -/
+def twoContainers : Snapshot :=
+  { repeatedContainedChild with
+    objects := oneLink.objects ++ [{ id := ⟨202⟩, classifier := A }]
+    observations := repeatedContainedChild.observations ++
+      [{ object := ⟨202⟩, property := forward, occurrences := [.reference y] }] }
+
+/-- Distinct container identities violate conformance. -/
+theorem two_containers_rejected : ¬ SnapshotConforms unpairedContainmentSchema twoContainers := by
+  intro h
+  have hc := (checkSnapshot_iff _ _).mpr h
+  have hn : checkSnapshot unpairedContainmentSchema twoContainers = false := by decide
+  rw [hn] at hc
+  contradiction
+
+/-- Two unpaired forward features may name the same container object. The
+mandatory source does not supply an implicit opposite for either feature. -/
+def twoUnpairedFeatures : Schema :=
+  { unpairedContainmentSchema with properties := unpairedContainmentSchema.properties ++
+      [{ unpairedContainmentSchema.properties[0] with id := ⟨202⟩, name := some "other" }] }
+
+/-- Both unpaired forward slots use one parent identity and one child identity. -/
+def sameParentTwoFeatures : Snapshot :=
+  { repeatedContainedChild with observations := repeatedContainedChild.observations ++
+      [{ object := x, property := ⟨202⟩, occurrences := [.reference y] }] }
+
+/-- One-parent ownership differs from the stronger unique-forward-slot policy
+used by some runtimes. This witness makes that boundary explicit. -/
+theorem same_parent_two_unpaired_features_conform :
+    SnapshotConforms twoUnpairedFeatures sameParentTwoFeatures := by
+  apply (checkSnapshot_iff _ _).mp
+  decide
+
+/-- Two separate paired composite roles have two separate reverse properties. -/
+def twoPairedRoles : Schema :=
+  { interactionSchema with
+    properties :=
+      [{ interactionSchema.properties[0] with aggregation := .composite },
+       interactionSchema.properties[1],
+       { interactionSchema.properties[0] with id := ⟨202⟩, name := some "otherForward", aggregation := .composite },
+       { interactionSchema.properties[1] with id := ⟨203⟩, name := some "otherReverse" }]
+    associations := interactionSchema.associations ++
+      [{ id := ⟨201⟩, name := some "OtherAB", package := some ⟨200⟩,
+         ends := (⟨202⟩, ⟨203⟩) }] }
+
+/-- Both inverse pairs are reciprocal and within their bounds, but their reverse
+container roles are simultaneously nonempty. -/
+def sameParentTwoRoles : Snapshot :=
+  { oneLink with observations := oneLink.observations ++
+      [{ object := x, property := ⟨202⟩, occurrences := [.reference y] },
+       { object := y, property := ⟨203⟩, occurrences := [.reference x] }] }
+
+/-- The counterexample's schema itself is well formed: the defect is in the
+instance having two active container roles, not invalid association metadata. -/
+theorem two_paired_roles_schema_valid : SchemaWellFormed twoPairedRoles := by
+  apply (checkSchema_iff _).mp
+  decide
+
+/-- One container object alone does not establish containment validity. -/
+theorem same_parent_two_roles_one_object : SingleContainer twoPairedRoles sameParentTwoRoles y := by
+  decide
+
+/-- Two nonempty reverse container roles violate the second source obligation. -/
+theorem same_parent_two_roles_rejected : ¬ SnapshotConforms twoPairedRoles sameParentTwoRoles := by
+  intro h
+  have hc := (checkSnapshot_iff _ _).mpr h
+  have hn : checkSnapshot twoPairedRoles sameParentTwoRoles = false := by decide
+  rw [hn] at hc
+  contradiction
+
+/-- The two-role counterexample fails only the ownership category: typing,
+multiplicity, opposite counts and all other snapshot checks pass. -/
+theorem two_roles_fail_only_ownership :
+    snapshotDiagnostics twoPairedRoles sameParentTwoRoles =
+      [.snapshot "one container and active container property"] := by
+  decide
+
 end VLMOF.SemanticExample
