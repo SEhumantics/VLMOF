@@ -10,6 +10,11 @@ target edge.  The target superclass expansion stays inside the finite allocated
 class carrier because all stored direct supers are resolved.  Generic finite
 closure therefore contains every translated symbolic ancestor path, without a
 `SchemaWellFormed` premise.
+
+After two generic closure lemmas, the private allocation helpers recover target
+edges from source class rows.  The public bridge then translates an inductive
+`ClassAncestor` derivation into a stored target path and finally into Core
+subtyping.  This direction is the one needed to preserve reference-value typing.
 -/
 namespace VLMOF.Source
 
@@ -18,6 +23,8 @@ def ClassDirectSuperEdge (schema : Schema) (sub super : ClassId) : Prop :=
   ∃ declaration ∈ schema.classes,
     declaration.id = sub ∧ super ∈ declaration.directSupers
 
+/-- One `classSupers` expansion discovers exactly the stored direct-super edges
+whose source class is in the current frontier. -/
 theorem classSupers_iff_directSuperEdge (schema : Schema) (seen : List ClassId)
     (super : ClassId) :
     super ∈ classSupers schema seen ↔

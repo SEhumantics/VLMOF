@@ -8,6 +8,11 @@ The source and core occurrence lookups both concatenate every matching row.  A
 successful instance binding preserves this aggregation in list order, while
 source observation-key uniqueness prevents two allocated rows from sharing a
 numeric key.
+
+The first private group establishes injectivity of resolved object/property
+aliases.  Key uniqueness is then transported through the observation allocation.
+The second private group proves an accumulator invariant for filtered `flatMap`;
+it yields the aggregate occurrence correspondence used by all final corollaries.
 -/
 namespace VLMOF.Source
 
@@ -43,7 +48,8 @@ private theorem propertyId_source_injective {model : Model} {first second : Name
   exact resolveIndex_injective ((propertyId_ok_iff model first id).mp hf)
     ((propertyId_ok_iff model second id).mp hs)
 
-/-- Concatenating corresponding bound occurrence lists preserves their binding. -/
+/-- Pointwise occurrence binding is closed under appending corresponding source
+and target segments. -/
 theorem OccurrencesBind.append {model : Model} {snapshot : Instance}
     {source₁ source₂ : List Source.Value} {target₁ target₂ : List VLMOF.Value}
     (h₁ : OccurrencesBind model snapshot source₁ target₁)
@@ -108,8 +114,8 @@ theorem bindInstance_uniqueObservationKeys_of_nodup {model : Model} {snapshot : 
   exact mapM_observation_keys_nodup hsource
     (bindInstance_ok_mapM hbind).2
 
-/-- `SourceSatisfies` supplies the source key uniqueness needed by
-`bindInstance_uniqueObservationKeys_of_nodup`. -/
+/-- Source satisfaction supplies source-key uniqueness, so successful binding
+produces duplicate-free numeric observation keys. -/
 theorem bindInstance_uniqueObservationKeys {model : Model} {snapshot : Instance}
     {target : Snapshot} (hsource : SourceSatisfies { model, snapshot })
     (hbind : bindInstance model snapshot = .ok target) :
@@ -161,8 +167,9 @@ private theorem observationMapM_occurrencesBind {model : Model} {snapshot : Inst
           exact fun hmt => hm (hkey.mpr hmt)
         simpa [hm, hmtn] using ih htail
 
-/-- Successful binding transports the complete source occurrence lookup to the
-core lookup, including ordered concatenation of every row with the resolved key. -/
+/-- Aggregate source and Core occurrence lookups for a successfully resolved key
+are pointwise related.  The proof keeps every matching row and appends its bound
+occurrences in list order. -/
 theorem bindInstance_occurrencesBind {model : Model} {snapshot : Instance}
     {target : Snapshot} (hbind : bindInstance model snapshot = .ok target)
     {object property : Name} {objectId' : ObjectId} {propertyId' : PropertyId}
@@ -172,6 +179,7 @@ theorem bindInstance_occurrencesBind {model : Model} {snapshot : Instance}
       (target.occurrences objectId' propertyId') := by
   exact observationMapM_occurrencesBind (bindInstance_ok_mapM hbind).2 ho hp
 
+/-- Aggregate occurrence count is unchanged by successful instance binding. -/
 theorem bindInstance_occurrences_length_eq {model : Model} {snapshot : Instance}
     {target : Snapshot} (hbind : bindInstance model snapshot = .ok target)
     {object property : Name} {objectId' : ObjectId} {propertyId' : PropertyId}
@@ -181,6 +189,8 @@ theorem bindInstance_occurrences_length_eq {model : Model} {snapshot : Instance}
       (target.occurrences objectId' propertyId').length :=
   (bindInstance_occurrencesBind hbind ho hp).length_eq
 
+/-- Aggregate occurrences are duplicate-free in the source exactly when their
+bound Core occurrences are duplicate-free. -/
 theorem bindInstance_occurrences_nodup_iff {model : Model} {snapshot : Instance}
     {target : Snapshot} (hbind : bindInstance model snapshot = .ok target)
     {object property : Name} {objectId' : ObjectId} {propertyId' : PropertyId}
@@ -190,6 +200,8 @@ theorem bindInstance_occurrences_nodup_iff {model : Model} {snapshot : Instance}
       (target.occurrences objectId' propertyId').Nodup :=
   (bindInstance_occurrencesBind hbind ho hp).nodup_iff
 
+/-- A related source/Core value occurs under a symbolic key exactly when the Core
+value occurs under the resolved numeric key. -/
 theorem bindInstance_occurrences_mem_iff {model : Model} {snapshot : Instance}
     {target : Snapshot} (hbind : bindInstance model snapshot = .ok target)
     {object property : Name} {objectId' : ObjectId} {propertyId' : PropertyId}
@@ -201,6 +213,8 @@ theorem bindInstance_occurrences_mem_iff {model : Model} {snapshot : Instance}
       targetValue ∈ target.occurrences objectId' propertyId' :=
   (bindInstance_occurrencesBind hbind ho hp).mem_iff hv
 
+/-- Multiplicity of a related value under an observation key is preserved exactly,
+which is later used for opposite-end reciprocity. -/
 theorem bindInstance_occurrences_count_eq {model : Model} {snapshot : Instance}
     {target : Snapshot} (hbind : bindInstance model snapshot = .ok target)
     {object property : Name} {objectId' : ObjectId} {propertyId' : PropertyId}
@@ -212,8 +226,8 @@ theorem bindInstance_occurrences_count_eq {model : Model} {snapshot : Instance}
       (target.occurrences objectId' propertyId').count targetValue :=
   (bindInstance_occurrencesBind hbind ho hp).count_eq hv
 
-/-- Observable ordered or unordered equality can be checked on either side of
-binding after resolving each lookup key. -/
+/-- Ordered equality and unordered permutation of aggregate occurrence lists are
+both preserved and reflected by instance binding. -/
 theorem bindInstance_occurrences_equivalent_iff {model : Model} {snapshot : Instance}
     {target : Snapshot} (hbind : bindInstance model snapshot = .ok target)
     {leftObject leftProperty rightObject rightProperty : Name}

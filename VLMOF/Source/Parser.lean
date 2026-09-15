@@ -2,9 +2,23 @@ import VLMOF.Source.Syntax
 
 namespace VLMOF.Source
 
-/-! A small, lossless parser for the concrete declarative source language.
-    Binding, lookup, and conformance deliberately remain outside this module. -/
+/-!
+# Concrete source parser
 
+This is a small, lossless parser for the declarative source language.  It records
+qualified aliases, display names, declaration order, occurrence order, and
+duplicates exactly in the symbolic AST.  Binding, lookup, and conformance remain
+outside this module: parsing an unresolved or semantically invalid document is
+therefore expected to succeed when its concrete syntax is well formed.
+
+The file follows the implementation pipeline: tokenization, parser state and
+token consumers, model declarations, then instance objects and the public
+`parse` entry point.  Character offsets are retained in tokens solely
+to locate diagnostics.
+-/
+
+/-- Tokens distinguished by their grammatical role and starting character
+offset.  Words include keywords and aliases; quoted display strings remain text. -/
 inductive Tok where
   | word (s : String) (pos : Nat)
   | text (s : String) (pos : Nat)
@@ -17,6 +31,8 @@ private def isSpace (c : Char) : Bool := c == ' ' || c == '\n' || c == '\r' || c
 private def isAlpha (c : Char) : Bool := c.isAlpha || c == '_'
 private def isDigit (c : Char) : Bool := c.isDigit
 
+/-- Consume the inside of a quoted string, decoding the supported escapes and
+returning the unconsumed characters and next source position. -/
 partial def lexString : List Char → Nat → String → Except String (String × List Char × Nat)
   | [], p, _ => .error s!"unterminated string at {p}"
   | '"' :: cs, p, acc => .ok (acc, cs, p + 1)
@@ -31,6 +47,8 @@ partial def lexString : List Char → Nat → String → Except String (String �
       | _ => .error s!"unsupported escape \\{c} at {p}"
   | c :: cs, p, acc => lexString cs (p + 1) (acc.push c)
 
+/-- Tokenize source characters from a position, appending to a reverse accumulator.
+The result always ends with one explicit end-of-input token. -/
 partial def lex : List Char → Nat → List Tok → Except String (List Tok)
   | [], p, out => .ok (out.reverse ++ [.eof p])
   | c :: cs, p, out =>
@@ -50,6 +68,8 @@ partial def lex : List Char → Nat → List Tok → Except String (List Tok)
       else if "{}()[],;:*:@.=".contains c then
         lex cs (p + 1) (.punct (String.singleton c) p :: out)
       else .error s!"unexpected character '{c}' at {p}"
+
+/-! ## Stateful token parser -/
 
 private structure St where
   toks : Array Tok
@@ -113,6 +133,8 @@ private def takeString : M String := do
   | .text s _ => pure s
   | t => fail s!"expected quoted display name, found {repr t}"
 
+/-- Continue a qualified alias after its first component, consuming repeated
+`:: component` suffixes. -/
 partial def qgo (xs : Name) : M Name := do
   let t ← peek
   match t with
@@ -187,6 +209,10 @@ private structure Acc where
   model : Model
   snapshot : Instance
 
+/-! ## Model declarations -/
+
+/-- Parse a class and its class-owned properties in package context `ctx`.
+Superclass and type aliases remain unresolved in the returned AST. -/
 partial def parseClass (ctx : Name) (abstract : Bool) : M (Class × List Property) := do
   let a ← takeWord
   let name ← optionalAs a
@@ -210,6 +236,7 @@ partial def parseClass (ctx : Name) (abstract : Bool) : M (Class × List Propert
   pure ({ alias := full ctx a, name, package := if ctx = [] then none else some ctx,
           isAbstract := abstract, directSupers := supers }, ps)
 
+/-- Parse an enumeration and qualify each literal below its enumeration alias. -/
 partial def parseEnum (ctx : Name) : M (Enumeration × List Literal) := do
   let a ← takeWord
   let name ← optionalAs a
@@ -224,6 +251,9 @@ partial def parseEnum (ctx : Name) : M (Enumeration × List Literal) := do
     | _ => fail s!"expected enumeration literal or '}}', found {repr t}"
   pure ({ alias := full ctx a, name, package := if ctx = [] then none else some ctx }, ← lits [])
 
+/-- Parse an association, its association-owned end declarations, and the
+explicit ordered pair of end aliases.  Semantic binary-end conditions are left
+to `ModelWellFormed`. -/
 partial def parseAssociation (ctx : Name) : M (Association × List Property) := do
   let a ← takeWord
   let name ← optionalAs a
@@ -260,6 +290,8 @@ private def appendAcc (x y : Acc) : Acc :=
                enumerations := x.model.enumerations ++ y.model.enumerations, literals := x.model.literals ++ y.model.literals },
     snapshot := { objects := x.snapshot.objects ++ y.snapshot.objects, observations := x.snapshot.observations ++ y.snapshot.observations } }
 
+/-- Parse a nested package recursively, flattening its declarations into the
+ordered model environments while retaining qualified ownership paths. -/
 partial def parsePackage (parent : Name) : M Acc := do
   let a ← takeWord; let name ← optionalAs a; expectP "{"; let path := full parent a
   let rec body (acc : Acc) := do
@@ -286,6 +318,10 @@ private def parseValue : M Value := do
       | [] => fail "malformed enumeration value"
   | t => fail s!"expected value, found {repr t}"
 
+/-! ## Instances and the public entry point -/
+
+/-- Parse one object and its observation rows, extending the snapshot accumulated
+from preceding top-level objects. -/
 partial def parseObject (snapshot : Instance) : M Instance := do
   let a ← takeWord; expectP ":"; let c ← qualified; expectP "{"
   let rec obs (xs : List Observation) := do
@@ -311,6 +347,8 @@ partial def parseObject (snapshot : Instance) : M Instance := do
   let os ← obs []
   pure { snapshot with objects := snapshot.objects.concat { alias := [a], classifier := c }, observations := snapshot.observations ++ os.reverse }
 
+/-- Parse packages, model declarations, and objects until the explicit EOF token,
+preserving their order within each AST declaration category. -/
 partial def parseTop : M Document := do
   let rec loop (acc : Acc) : M Acc := do
     match (← peek) with
@@ -322,6 +360,8 @@ partial def parseTop : M Document := do
   let a ← loop { model := { packages := [], classes := [], properties := [], associations := [], enumerations := [], literals := [] }, snapshot := { objects := [], observations := [] } }
   pure { model := a.model, snapshot := a.snapshot }
 
+/-- Tokenize and parse a complete source document.  Success promises concrete
+syntax only; callers use `elaborate` and the source semantics for later checks. -/
 def parse (input : String) : Except String Document := do
   let ts ← lex input.toList 0 []
   let st := { toks := ts.toArray, ix := 0 }
@@ -330,16 +370,28 @@ def parse (input : String) : Except String Document := do
 
 namespace Examples
 
+/-! Executable parser examples cover nested qualification and lossless retention
+of duplicate and negative occurrences.  The boolean projections below are kept
+small so `native_decide` or an evaluator can inspect individual parser promises. -/
+
+/-- A compact nested-package example used to exercise contextual qualification. -/
 def nested : Except String Document := parse "package pets { package domestic { class Animal { name : String [0..1] unordered unique (id); } enum Mood { happy; } } class Person { pets : Pet [0..*] ordered nonunique; } association Ownership { end pet : Pet [0..1] unordered unique; end owner : Person [1..1] unordered unique composite; ends pets::pet, Ownership::owner; } }"
 
+/-- A broader parser fixture containing classes, associations, an enumeration,
+objects, duplicates, references, and negative integers. -/
 def decoded : Except String Document := parse
   "package p { enum Color { red; blue; } class A { first : Integer [0..2] ordered nonunique; second : String [0..1] unordered unique; link : B [0..*] unordered nonunique; } class B { back : A [0..1] unordered unique; } association R { end owned : B [0..*] ordered nonunique; end host : A [1..1] unordered unique composite; ends p::A::link, p::R::owned; } } object obj : p::A { observe p::A::first = [1, -2, 1]; observe p::A::link = [@obj, @obj]; observe p::A::second = [p::Color::red]; }"
 
 example : nested.isOk := by native_decide
 example : decoded.isOk := by native_decide
+/-- Checks that package context qualifies class aliases while retaining source order. -/
 def decodedClasses : Bool := match decoded with | .ok d => decide (d.model.classes.map Class.alias = [["p", "A"], ["p", "B"]]) | .error _ => false
+/-- Checks qualification of both class-owned and association-owned properties. -/
 def decodedProperties : Bool := match decoded with | .ok d => decide (d.model.properties.map Property.alias = [["p", "A", "first"], ["p", "A", "second"], ["p", "A", "link"], ["p", "B", "back"], ["p", "R", "owned"], ["p", "R", "host"]]) | .error _ => false
+/-- Checks that explicit association-end aliases are retained in their given order. -/
 def decodedEnds : Bool := match decoded with | .ok d => decide (d.model.associations.map Association.ends = [[ ["p", "A", "link"], ["p", "R", "owned"] ]]) | .error _ => false
+/-- Checks lossless value decoding, including duplicates, a negative integer,
+object references, and a qualified enumeration literal. -/
 def decodedValues : Bool := match decoded with | .ok d => decide (d.snapshot.observations.map Observation.occurrences = [[.integer 1, .integer (-2), .integer 1], [.reference ["obj"], .reference ["obj"]], [.enumeration ["p", "Color"] ["p", "Color", "red"]]]) | .error _ => false
 example : decodedClasses := by native_decide
 example : decodedProperties := by native_decide
@@ -352,4 +404,3 @@ example : (parse "abstract enum Bad { x; }").isOk = false := by native_decide
 
 end Examples
 end VLMOF.Source
-

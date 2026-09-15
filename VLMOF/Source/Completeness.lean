@@ -13,6 +13,9 @@ namespace VLMOF.Source
 
 variable {α β ε : Type} {model : Model} {snapshot : Instance} {name : Name}
 
+/-- Source lexical validity implies the binder's weaker nonempty-component test.
+The converse is intentionally unavailable because `validAlias` omits the Core
+valid-string restriction. -/
 theorem validAlias_of_nameValid {name : Name} (h : NameValid name) :
     validAlias name = true := by
   rcases h with ⟨hne, hcomponents⟩
@@ -24,6 +27,8 @@ theorem validAlias_of_nameValid {name : Name} (h : NameValid name) :
       intro component hm
       simpa using (hcomponents component hm).1
 
+/-- Membership in a duplicate-free alias list supplies a successful resolver
+index.  This is the common existence argument for every typed ID resolver. -/
 theorem exists_resolveIndex_of_mem_of_nodup {kind : String} {names : List Name}
     (hn : names.Nodup) {name : Name} (hm : name ∈ names) :
     ∃ index, resolveIndex kind names name = .ok index := by
@@ -31,12 +36,16 @@ theorem exists_resolveIndex_of_mem_of_nodup {kind : String} {names : List Name}
   exact ⟨index, (resolveIndex_iff_uniqueAliasAt kind names name index).mpr
     (uniqueAliasAt_of_nodup hn hi)⟩
 
+/-- Declarative nonempty lookup yields membership of the alias in the mapped
+environment used by `resolveIndex`. -/
 theorem mem_of_lookupAll_ne_nil {key : α → Name} {entries : List α} {name : Name}
     (h : lookupAll key entries name ≠ []) : name ∈ entries.map key := by
   obtain ⟨entry, he⟩ := List.exists_mem_of_ne_nil _ h
   have he' := (mem_lookupAll key entries name entry).mp he
   exact List.mem_map.mpr ⟨entry, he'.1, he'.2⟩
 
+/-- If every input has some successful image, sequencing the computations with
+`mapM` also has a successful output list. -/
 theorem mapM_exists_ok {f : α → Except ε β} {xs : List α}
     (h : ∀ x ∈ xs, ∃ y, f x = .ok y) : ∃ ys, xs.mapM f = .ok ys := by
   induction xs with
@@ -46,6 +55,11 @@ theorem mapM_exists_ok {f : α → Except ε β} {xs : List α}
       obtain ⟨ys, hys⟩ := ih (fun z hz => h z (by simp [hz]))
       exact ⟨y :: ys, by simp [List.mapM_cons, hy, hys, Bind.bind, Except.bind,
         pure, Except.pure]⟩
+
+/-! The private resolver-existence block projects global alias uniqueness to each
+typed environment, then discharges every optional package, owner, and type lookup
+performed by model binding.  These lemmas are deliberately one-way: their role is
+to prove that semantic well-formedness prevents executable binding failure. -/
 
 private theorem kind_nodup (h : ModelWellFormed model) :
     (model.packages.map Package.alias).Nodup ∧
@@ -313,6 +327,11 @@ theorem bindModel_complete {model : Model} (h : ModelWellFormed model) :
     exact congrArg (fun result : BindingResult (List AssociationDecl) =>
       result.bind fun boundAssociations => Except.ok
         (Schema.mk packages classes properties boundAssociations enumerations literals)) hassociations⟩
+
+/-! Instance completeness repeats the same pattern for snapshot-local object
+aliases, then proves that declaratively typed references and enumeration values
+supply all IDs consumed by `bindValue`.  Exact observation-key coverage finally
+provides the property and object witnesses needed by `bindInstance`. -/
 
 private theorem objectId_exists (hn : (snapshot.objects.map Object.alias).Nodup)
     (hm : ∃ o ∈ snapshot.objects, o.alias = name) :

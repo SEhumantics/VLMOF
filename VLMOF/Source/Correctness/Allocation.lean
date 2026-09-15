@@ -7,6 +7,11 @@ Successful instance binding allocates one core object at every source-object
 position and binds every source observation without changing its position.  The
 proofs below invert the actual `bindInstance` computation; none assumes target
 conformance or repeats the desired allocation properties as a premise.
+
+Generic `mapM` inversion comes first.  Two named allocation functions then expose
+the computations previously nested inside `bindInstance`.  The remaining lemmas
+recover source/target rows in both directions and finish with uniqueness of the
+position-based object IDs.
 -/
 namespace VLMOF.Source
 
@@ -44,8 +49,8 @@ theorem mapM_ok_getElem? {f : α → Except ε β} {xs : List α} {ys : List β}
       | succ index =>
           exact ih hrest hx
 
-/-- The converse positional view: an output at an index exposes the input and
-successful mapped computation at the same index. -/
+/-- The reverse indexed form of `mapM_ok_getElem?`: every target position comes
+from a source at the same position and a successful element computation. -/
 theorem mapM_ok_getElem?_target {f : α → Except ε β} {xs : List α} {ys : List β}
     (h : xs.mapM f = .ok ys) {index : Nat} {y : β}
     (hy : ys[index]? = some y) :
@@ -66,8 +71,8 @@ theorem mapM_ok_getElem?_target {f : α → Except ε β} {xs : List α} {ys : L
       | succ index =>
           exact ih hrest hy
 
-/-- Every target element produced by a successful `mapM` comes from a source
-element on which the mapped computation succeeded. -/
+/-- Every member of a successful `mapM` output has a source member whose element
+computation produced it. -/
 theorem mapM_ok_target_mem {f : α → Except ε β} {xs : List α} {ys : List β}
     (h : xs.mapM f = .ok ys) {y : β} (hy : y ∈ ys) :
     ∃ x ∈ xs, f x = .ok y := by
@@ -84,12 +89,16 @@ theorem mapM_ok_target_mem {f : α → Except ε β} {xs : List α} {ys : List �
       · obtain ⟨source, hsource, hs⟩ := ih hrest hy
         exact ⟨source, List.mem_cons_of_mem first hsource, hs⟩
 
-/-- The object-allocation step used for each indexed source object. -/
+/-! ## Named instance-allocation steps -/
+
+/-- Allocate one source object at its zipped list index after resolving its
+classifier.  Naming this computation lets proofs reason about the actual binder. -/
 def bindObjectAllocation (model : Model) (entry : Object × Nat) : BindingResult ObjectDecl := do
   let classifier ← classId model entry.1.classifier
   pure { id := ⟨entry.2⟩, classifier }
 
-/-- The observation-allocation step used for each source observation. -/
+/-- Bind one observation key and its occurrence list; the operation preserves the
+row's position and all occurrence multiplicities. -/
 def bindObservationAllocation (model : Model) (snapshot : Instance)
     (entry : Source.Observation) : BindingResult VLMOF.Observation := do
   let object ← objectId snapshot entry.object
@@ -97,8 +106,8 @@ def bindObservationAllocation (model : Model) (snapshot : Instance)
   let occurrences ← entry.occurrences.mapM (bindValue model snapshot)
   pure { object, property, occurrences }
 
-/-- Inversion of successful instance binding into the alias check and the two
-ordered allocation computations used by `bindInstance`. -/
+/-- A successful `bindInstance` result is exactly successful object and
+observation allocations after the object-alias environment check. -/
 theorem bindInstance_ok_iff (model : Model) (snapshot : Instance) (target : Snapshot) :
     bindInstance model snapshot = .ok target ↔
       checkAliases "object" (snapshot.objects.map Object.alias) = .ok () ∧
@@ -116,8 +125,8 @@ theorem bindInstance_ok_iff (model : Model) (snapshot : Instance) (target : Snap
     cases target <;>
     simp [Bind.bind, Except.bind, pure, Except.pure]
 
-/-- Convenient one-way form of `bindInstance_ok_iff`: successful binding exposes
-both allocation `mapM` equalities directly. -/
+/-- Project the two successful allocation-list equations from a successful
+instance binding. -/
 theorem bindInstance_ok_mapM {model : Model} {snapshot : Instance} {target : Snapshot}
     (h : bindInstance model snapshot = .ok target) :
     snapshot.objects.zipIdx.mapM (bindObjectAllocation model) = .ok target.objects ∧
@@ -133,8 +142,8 @@ private theorem bindObjectAllocation_ok_iff (model : Model) (entry : Object × N
   cases hc : classId model entry.1.classifier <;> cases target <;>
     simp [bindObjectAllocation, hc, Bind.bind, Except.bind, pure, Except.pure, eq_comm]
 
-/-- A single observation allocation succeeds exactly when its object and property
-aliases resolve and all of its occurrences bind to the produced row. -/
+/-- Relational characterization of one bound observation: its object and property
+IDs resolve, and its occurrence list is pointwise bound. -/
 theorem bindObservationAllocation_ok_iff (model : Model) (snapshot : Instance)
     (source : Source.Observation) (target : VLMOF.Observation) :
     bindObservationAllocation model snapshot source = .ok target ↔
@@ -148,8 +157,8 @@ theorem bindObservationAllocation_ok_iff (model : Model) (snapshot : Instance)
     cases target <;>
     simp [bindObservationAllocation, ho, hp, hv, Bind.bind, Except.bind, pure, Except.pure]
 
-/-- Every bound observation is backed by an original source observation and by
-the successful object, property, and occurrence binding operations that created it. -/
+/-- Every target observation produced by binding has a source row related by the
+three observation-binding components. -/
 theorem boundObservation_source {model : Model} {snapshot : Instance} {target : Snapshot}
     (h : bindInstance model snapshot = .ok target)
     {observation : VLMOF.Observation} (hm : observation ∈ target.observations) :
@@ -162,8 +171,8 @@ theorem boundObservation_source {model : Model} {snapshot : Instance} {target : 
   exact ⟨source, hsource,
     (bindObservationAllocation_ok_iff model snapshot source observation).mp hs⟩
 
-/-- At each source-object index, successful binding creates exactly the core
-object whose identifier is that index and whose classifier is the resolved alias. -/
+/-- A source object at a given index yields a target object at that same index,
+with its classifier obtained by source class resolution. -/
 theorem boundObject_at_index {model : Model} {snapshot : Instance} {target : Snapshot}
     (h : bindInstance model snapshot = .ok target) {index : Nat} {source : Object}
     (hs : snapshot.objects[index]? = some source) :
@@ -177,7 +186,8 @@ theorem boundObject_at_index {model : Model} {snapshot : Instance} {target : Sna
     (bindObjectAllocation_ok_iff model (source, index) object).mp hb
   exact ⟨classifier, hc, ho⟩
 
-/-- The identifier stored in any allocated object is exactly its list position. -/
+/-- The ID stored in every bound target object equals its position in the source
+and target object lists. -/
 theorem boundObject_id_eq_index {model : Model} {snapshot : Instance} {target : Snapshot}
     (h : bindInstance model snapshot = .ok target) {index : Nat} {object : ObjectDecl}
     (ho : target.objects[index]? = some object) : object.id = ⟨index⟩ := by
@@ -192,7 +202,8 @@ theorem boundObject_id_eq_index {model : Model} {snapshot : Instance} {target : 
         (bindObjectAllocation_ok_iff model (source, index) object).mp hb
       simp [ht]
 
-/-- Allocated object identifiers are unique within the bound snapshot. -/
+/-- Two target objects produced by one successful binding cannot share an ID
+unless they are the same allocated row. -/
 theorem boundObject_id_injective {model : Model} {snapshot : Instance} {target : Snapshot}
     (h : bindInstance model snapshot = .ok target)
     {first second : ObjectDecl} (hf : first ∈ target.objects) (hs : second ∈ target.objects)
@@ -205,7 +216,7 @@ theorem boundObject_id_injective {model : Model} {snapshot : Instance} {target :
   subst j
   exact Option.some.inj (hi.symm.trans hj)
 
-/-- Equivalently, the list of allocated object identifiers has no duplicates. -/
+/-- Position allocation gives the target snapshot duplicate-free object IDs. -/
 theorem boundObject_ids_nodup {model : Model} {snapshot : Instance} {target : Snapshot}
     (h : bindInstance model snapshot = .ok target) :
     (target.objects.map ObjectDecl.id).Nodup := by

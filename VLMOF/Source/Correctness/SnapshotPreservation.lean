@@ -9,8 +9,18 @@ The remaining row-level fields are transported through the actual object,
 property, and observation allocations.  In particular, multiplicity and
 uniqueness use the aggregate occurrence correspondence, which retains every
 matching source row in order.
+
+Private allocation helpers first identify the source object/property behind each
+target row.  Four row-level preservation theorems then establish applicability,
+exact coverage, bounds, and uniqueness.  The final assembly theorem combines
+those results with typing and graph preservation, followed by elaboration and
+checker-facing corollaries.
 -/
 namespace VLMOF.Source
+
+/-! The local inversion lemmas recover source aliases and rows from allocated
+target IDs.  Alias uniqueness is used only to identify the actual row selected by
+binding; semantic snapshot facts still come from `SourceSatisfies`. -/
 
 private theorem objectId_ok_iff (snapshot : Instance) (name : Name) (id : ObjectId) :
     objectId snapshot name = .ok id ↔
@@ -166,6 +176,8 @@ private theorem boundObservation_exists_iff {model : Model} {snapshot : Instance
     · exact objectId_source_injective hsourceObject (by simpa [ho] using hobject)
     · exact propertyId_source_injective hsourceProperty (by simpa [hp] using hproperty)
 
+/-- Exact source observation coverage becomes exact Core coverage for every
+allocated object and property.  Applicability is translated in both directions. -/
 theorem bindInstance_observationsExact {model : Model} {snapshot : Instance}
     {schema : Schema} {target : Snapshot}
     (hsource : SourceSatisfies { model, snapshot })
@@ -184,6 +196,8 @@ theorem bindInstance_observationsExact {model : Model} {snapshot : Instance}
   rw [hsource.observationsExact sourceObject hsourceObject sourceProperty hsourceProperty]
   exact propertyApplies_iff_applicableProperty hsource.model hmodel hclassifier hpropertyId
 
+/-- Every allocated observation is applicable to its object's target classifier,
+by reflecting the row to its source key and preserving source applicability. -/
 theorem bindInstance_observationApplicable {model : Model} {snapshot : Instance}
     {schema : Schema} {target : Snapshot}
     (hsource : SourceSatisfies { model, snapshot })
@@ -204,6 +218,8 @@ theorem bindInstance_observationApplicable {model : Model} {snapshot : Instance}
   exact (propertyApplies_iff_applicableProperty hsource.model hmodel
     hclassifier hsourcePropertyId).mp happlies
 
+/-- Source multiplicity bounds are preserved because property multiplicities are
+copied and aggregate occurrence-list lengths are equal after binding. -/
 theorem bindInstance_bounds {model : Model} {snapshot : Instance}
     {schema : Schema} {target : Snapshot}
     (hsource : SourceSatisfies { model, snapshot })
@@ -226,6 +242,8 @@ theorem bindInstance_bounds {model : Model} {snapshot : Instance}
   rw [← bindInstance_occurrences_length_eq hinstance hobjectId hpropertyId]
   exact hbound
 
+/-- A source unique property has duplicate-free target occurrences; property flags
+are copied and occurrence `Nodup` is preserved and reflected. -/
 theorem bindInstance_uniqueness {model : Model} {snapshot : Instance}
     {schema : Schema} {target : Snapshot}
     (hsource : SourceSatisfies { model, snapshot })
@@ -248,7 +266,9 @@ theorem bindInstance_uniqueness {model : Model} {snapshot : Instance}
   exact hsource.uniqueness sourceObject hsourceObject sourceProperty hsourceProperty
     hsourceApplies hsourceUnique
 
-/-- All schema and snapshot fields are preserved by the two successful binders. -/
+/-- Assemble all schema, allocation, typing, observation, multiplicity, reciprocity,
+and containment fields into `SnapshotConforms` from source satisfaction and the
+two successful binding equations. -/
 theorem snapshotConforms_of_sourceSatisfies_of_bindings
     {model : Model} {snapshot : Instance} {schema : Schema} {target : Snapshot}
     (hsource : SourceSatisfies { model, snapshot })
@@ -292,6 +312,8 @@ private theorem elaborate_ok_bindings {document : Document} {schema : Schema}
       rw [← hschema, ← hsnapshot]
       exact ⟨rfl, rfl⟩
 
+/-- Preservation for a concrete elaboration result, obtained by inverting
+`elaborate` and applying the binding-level assembly theorem. -/
 theorem snapshotConforms_of_sourceSatisfies_of_elaborate
     {document : Document} {schema : Schema} {snapshot : Snapshot}
     (hsource : SourceSatisfies document)
@@ -300,8 +322,9 @@ theorem snapshotConforms_of_sourceSatisfies_of_elaborate
   obtain ⟨hmodel, hinstance⟩ := elaborate_ok_bindings h
   exact snapshotConforms_of_sourceSatisfies_of_bindings hsource hmodel hinstance
 
-/-- Every satisfying symbolic document elaborates to a snapshot accepted by the
-executable checker. -/
+/-- A satisfying source document both elaborates and is accepted by the executable
+snapshot checker.  Binding completeness supplies the pair; preservation and
+checker correctness supply acceptance. -/
 theorem elaborate_complete_and_snapshot_accepted {document : Document}
     (hsource : SourceSatisfies document) :
     ∃ schema snapshot, elaborate document = .ok (schema, snapshot) ∧

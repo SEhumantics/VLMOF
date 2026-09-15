@@ -1,5 +1,14 @@
 import VLMOF.Source.Binding.Resolution
 
+/-!
+# Values and occurrence lists across binding
+
+`ValueBinds` is the relational, diagnostic-free meaning of `bindValue`.
+`OccurrencesBind` lifts it pointwise to lists while preserving positions and
+duplicates.  The remaining theorems establish that this correspondence is a
+bijection on successfully bound values, so membership, uniqueness, and counts
+can be transported without treating observations as sets.
+-/
 namespace VLMOF.Source
 
 /-- Meaning of a symbolic value under the declaration environments, independent
@@ -16,6 +25,9 @@ def ValueBinds (model : Model) (snapshot : Instance) : Source.Value → VLMOF.Va
       UniqueAliasAt (snapshot.objects.map Object.alias) object oid.val
   | _, _ => False
 
+/-- Executable value binding succeeds with a target value exactly when the
+relational `ValueBinds` interpretation holds.  The proof analyzes primitive,
+enumeration, and object-reference resolution separately. -/
 theorem bindValue_iff (model : Model) (snapshot : Instance)
     (source : Source.Value) (target : VLMOF.Value) :
     bindValue model snapshot source = .ok target ↔ ValueBinds model snapshot source target := by
@@ -59,6 +71,8 @@ def OccurrencesBind (model : Model) (snapshot : Instance) :
       ValueBinds model snapshot source target ∧ OccurrencesBind model snapshot sources targets
   | _, _ => False
 
+/-- `mapM bindValue` succeeds with a target list exactly when values correspond
+pointwise under `OccurrencesBind`. -/
 theorem bindOccurrences_iff (model : Model) (snapshot : Instance)
     (sources : List Source.Value) (targets : List VLMOF.Value) :
     sources.mapM (bindValue model snapshot) = .ok targets ↔
@@ -76,6 +90,8 @@ theorem bindOccurrences_iff (model : Model) (snapshot : Instance)
       simp [List.mapM_cons, OccurrencesBind, hv, ht, hs, hss,
         Bind.bind, Except.bind, pure, Except.pure]
 
+/-- Pointwise binding preserves list length, hence neither inserts nor drops
+occurrences. -/
 theorem OccurrencesBind.length_eq {model : Model} {snapshot : Instance}
     {sources : List Source.Value} {targets : List VLMOF.Value}
     (h : OccurrencesBind model snapshot sources targets) : sources.length = targets.length := by
@@ -165,7 +181,6 @@ theorem OccurrencesBind.count_eq {model : Model} {snapshot : Instance}
           exact eq (hv.source_unique h.1)
         simpa [List.count_cons_of_ne (Ne.symm eq), List.count_cons_of_ne neqt] using ht
 end VLMOF.Source
-
 
 
 

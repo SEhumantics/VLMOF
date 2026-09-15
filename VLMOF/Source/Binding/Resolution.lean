@@ -9,9 +9,16 @@ A successful numeric resolution refers to exactly the source alias stored at
 that index. Consequently assigning one numeric ID to two successfully resolved
 aliases cannot collapse distinct declarations. These are binding guarantees;
 they are not yet the source-conformance correspondence theorem.
+
+The first group characterizes one call to `resolveIndex`.  The second packages
+that characterization as `UniqueAliasAt`, which later value and allocation proofs
+can use without unfolding error-producing code.  The final group characterizes
+whole alias-environment validation.
 -/
 namespace VLMOF.Source
 
+/-- An index occurs in the resolver's candidate list exactly when indexing the
+original environment returns the requested alias. -/
 theorem mem_matchingIndices (names : List Name) (name : Name) (index : Nat) :
     index ∈ matchingIndices names name ↔ names[index]? = some name := by
   simp only [matchingIndices, List.mem_map, List.mem_filter, decide_eq_true_eq]
@@ -24,6 +31,7 @@ theorem mem_matchingIndices (names : List Name) (name : Name) (index : Nat) :
   · intro h
     exact ⟨(name, index), ⟨List.mk_mem_zipIdx_iff_getElem?.mpr h, rfl⟩, rfl⟩
 
+/-- Executable resolution returns `index` exactly when it is the sole candidate. -/
 theorem resolveIndex_ok_iff (kind : String) (names : List Name) (name : Name) (index : Nat) :
     resolveIndex kind names name = .ok index ↔ matchingIndices names name = [index] := by
   unfold resolveIndex
@@ -52,6 +60,8 @@ theorem resolveIndex_injective {kind : String} {names : List Name}
 def UniqueAliasAt (names : List Name) (name : Name) (index : Nat) : Prop :=
   names[index]? = some name ∧ ∀ other, names[other]? = some name → other = index
 
+/-- Candidate positions never repeat, even when the alias itself occurs at several
+distinct positions. -/
 theorem matchingIndices_nodup (names : List Name) (name : Name) :
     (matchingIndices names name).Nodup := by
   have h : (names.zipIdx.map Prod.snd).Nodup := by
@@ -95,6 +105,8 @@ any entry it contains. This condition is independent of executing the checker. -
 def AliasEnvironment (names : List Name) : Prop :=
   ∀ name ∈ names, validAlias name = true ∧ ∃ index, UniqueAliasAt names name index
 
+/-- Characterize recursive validation of `entries` against a fixed complete
+environment.  Each checked alias must be lexically usable and uniquely located. -/
 theorem checkAliasEntries_iff (kind : String) (environment entries : List Name) :
     checkAliasEntries kind environment entries = .ok () ↔
       ∀ name ∈ entries, validAlias name = true ∧ ∃ index, UniqueAliasAt environment name index := by
@@ -108,6 +120,7 @@ theorem checkAliasEntries_iff (kind : String) (environment entries : List Name) 
       cases hr : resolveIndex kind environment name <;>
       simp [checkAliasEntries, hv, hu, hr, ih, Bind.bind, Except.bind]
 
+/-- The executable whole-environment alias check implements `AliasEnvironment`. -/
 theorem checkAliases_iff (kind : String) (names : List Name) :
     checkAliases kind names = .ok () ↔ AliasEnvironment names :=
   checkAliasEntries_iff kind names names
@@ -115,6 +128,8 @@ theorem checkAliases_iff (kind : String) (names : List Name) :
 theorem checkQualification_iff (name : Name) (owner : Option Name) :
     checkQualification name owner = .ok () ↔ name.dropLast = owner.getD [] := by
   simp [checkQualification, pure, Except.pure]
+/-- In a duplicate-free list, any successful indexed lookup is automatically a
+unique alias binding at that index. -/
 theorem uniqueAliasAt_of_nodup {names : List Name} (hn : names.Nodup)
     {name : Name} {index : Nat} (hi : names[index]? = some name) :
     UniqueAliasAt names name index := by
@@ -146,7 +161,6 @@ theorem aliasEnvironment_iff (names : List Name) :
     obtain ⟨index, hi⟩ := List.mem_iff_getElem?.mp hm
     exact ⟨hv name hm, index, uniqueAliasAt_of_nodup hn hi⟩
 end VLMOF.Source
-
 
 
 

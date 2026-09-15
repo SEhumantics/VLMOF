@@ -8,23 +8,38 @@ import VLMOF.Model.Reachability.Packages
 The executable binder allocates each declaration at its source-list index.  The
 lemmas below first expose that allocation from a successful `bindModel` run and
 then transport every source well-formedness obligation to the resulting schema.
+
+The proof is organized by responsibility.  Named entry binders and generic
+`mapM` lemmas establish allocation facts.  Field projections then preserve names,
+flags, resolution, and types.  Separate graph-reflection sections handle
+inheritance and package cycles.  The final sections transport association and ID
+constraints before assembling `SchemaWellFormed`.  Private lemmas within each
+section invert only the binding fields needed by the following public result.
 -/
 namespace VLMOF.Source
 
 variable {α β γ ε : Type} {model : Model} {target : Schema}
 variable {name : Name}
 
+/-! ## Per-declaration allocation -/
+
+/-- Bind one package at its source-list index, checking lexical ownership and
+resolving an optional parent package. -/
 def bindPackageEntry (model : Model) (x : Package × Nat) : BindingResult PackageDecl := do
   checkQualification x.1.alias x.1.parent
   let parent ← optionalPackage model x.1.parent
   pure { id := ⟨x.2⟩, name := some x.1.name, parent }
 
+/-- Bind one class at its source-list index, preserving metadata and flags while
+resolving its package and every direct superclass. -/
 def bindClassEntry (model : Model) (x : Class × Nat) : BindingResult ClassDecl := do
   checkQualification x.1.alias x.1.package
   let package ← optionalPackage model x.1.package
   let directSupers ← x.1.directSupers.mapM (classId model)
   pure (ClassDecl.mk ⟨x.2⟩ (some x.1.name) package x.1.isAbstract directSupers)
 
+/-- Bind one property at its source-list index, resolving its typed owner and type
+and copying multiplicity, aggregation, and ID status. -/
 def bindPropertyEntry (model : Model) (x : Property × Nat) : BindingResult PropertyDecl := do
   checkQualification x.1.alias (some (ownerName x.1.owner))
   let owner ← bindOwner model x.1.owner
@@ -32,6 +47,8 @@ def bindPropertyEntry (model : Model) (x : Property × Nat) : BindingResult Prop
   pure (PropertyDecl.mk ⟨x.2⟩ (some x.1.name) owner type x.1.multiplicity
     x.1.aggregation x.1.isId)
 
+/-- Bind one association and its ordered pair of end property IDs.  Non-binary
+source arity is rejected here rather than normalized. -/
 def bindAssociationEntry (model : Model) (x : Association × Nat) : BindingResult AssociationDecl := do
   checkQualification x.1.alias x.1.package
   let package ← optionalPackage model x.1.package
@@ -40,16 +57,21 @@ def bindAssociationEntry (model : Model) (x : Association × Nat) : BindingResul
     | _ => throw ("association requires exactly two ends: " ++ showName x.1.alias)
   pure (AssociationDecl.mk ⟨x.2⟩ (some x.1.name) package ends)
 
+/-- Bind one enumeration at its source position and resolve its optional package. -/
 def bindEnumerationEntry (model : Model) (x : Enumeration × Nat) : BindingResult EnumerationDecl := do
   checkQualification x.1.alias x.1.package
   let package ← optionalPackage model x.1.package
   pure (EnumerationDecl.mk ⟨x.2⟩ (some x.1.name) package)
 
+/-- Bind one literal at its source position and resolve its owning enumeration. -/
 def bindLiteralEntry (model : Model) (x : Literal × Nat) : BindingResult LiteralDecl := do
   checkQualification x.1.alias (some x.1.enumeration)
   let enumeration ← enumerationId model x.1.enumeration
   pure { id := ⟨x.2⟩, name := some x.1.name, enumeration }
 
+/-- The six successful list-allocation equations exposed by a successful
+`bindModel`.  This record contains computation evidence only and assumes neither
+source nor target well-formedness. -/
 structure ModelAllocation (model : Model) (target : Schema) : Prop where
   packages : model.packages.zipIdx.mapM (bindPackageEntry model) = .ok target.packages
   classes : model.classes.zipIdx.mapM (bindClassEntry model) = .ok target.classes
@@ -88,6 +110,10 @@ theorem modelAllocation_of_bindModel (h : bindModel model = .ok target) :
   subst target
   exact ⟨hp, hc, hpr, ha, he, hl⟩
 
+/-! ## Generic consequences of successful list allocation -/
+
+/-- Output membership under a successful `mapM` is equivalent to having a source
+member whose element computation produced that output. -/
 theorem mapM_ok_mem_iff {f : α → Except ε β} {xs : List α} {ys : List β}
     (h : xs.mapM f = .ok ys) {y : β} :
     y ∈ ys ↔ ∃ x ∈ xs, f x = .ok y := by
@@ -111,6 +137,7 @@ theorem mapM_ok_mem_iff {f : α → Except ε β} {xs : List α} {ys : List β}
         · exact Or.inl (Except.ok.inj (hx.symm.trans hf)).symm
         · exact Or.inr ⟨z, hz, hf⟩
 
+/-- A successful `mapM` preserves list length. -/
 theorem mapM_ok_length {f : α → Except ε β} {xs : List α} {ys : List β}
     (h : xs.mapM f = .ok ys) : ys.length = xs.length := by
   induction xs generalizing ys with
@@ -124,6 +151,7 @@ theorem mapM_ok_length {f : α → Except ε β} {xs : List α} {ys : List β}
       subst ys
       simp [ih ht]
 
+/-- Every source member of a successful `mapM` has a produced target member. -/
 theorem mapM_ok_source {f : α → Except ε β} {xs : List α} {ys : List β}
     (h : xs.mapM f = .ok ys) {x : α} (hx : x ∈ xs) :
     ∃ y ∈ ys, f x = .ok y := by
@@ -138,6 +166,8 @@ theorem mapM_ok_source {f : α → Except ε β} {xs : List α} {ys : List β}
       · rcases ih ht hx with ⟨y, hy, hfy⟩
         exact ⟨y, by simp [hy], hfy⟩
 
+/-- If each successful element computation preserves a chosen key, successful
+`mapM` preserves the complete mapped key list. -/
 theorem mapM_ok_map_eq {f : α → Except ε β} {xs : List α} {ys : List β}
     {keySource : α → γ} {keyTarget : β → γ}
     (h : xs.mapM f = .ok ys)
@@ -153,6 +183,10 @@ theorem mapM_ok_map_eq {f : α → Except ε β} {xs : List α} {ys : List β}
         simp [List.mapM_cons, hx, ht, Bind.bind, Except.bind, pure, Except.pure] at h
       subst ys
       simp [hkey _ _ hx, ih ht]
+
+/-! The private identity projections below unfold each entry binder to show that
+the target ID is exactly the zipped source index.  Combined with duplicate-free
+indices, they establish allocation uniqueness without any source semantic premise. -/
 
 private theorem uniqueBy_eq_of_mem_local {κ δ : Type} [DecidableEq κ] (key : δ → κ)
     {xs : List δ} (h : uniqueBy key xs) {left right : δ}
@@ -307,6 +341,7 @@ theorem ModelAllocation.uniqueIds (a : ModelAllocation model target) :
             rw [hl]
             exact zipIdx_snd_nodup _
 
+/-- Allocation preserves the number of declarations in every typed list. -/
 theorem ModelAllocation.lengths (a : ModelAllocation model target) :
     target.packages.length = model.packages.length ∧
     target.classes.length = model.classes.length ∧
@@ -401,6 +436,7 @@ theorem ModelAllocation.packageNames (a : ModelAllocation model target)
   rw [packageEntry_name hb]
   simpa [validName, validDisplayName] using h.displayNames.1 x.1 hs
 
+/-- Every allocated class has the valid display name copied from its source row. -/
 theorem ModelAllocation.classNames (a : ModelAllocation model target)
     (h : ModelWellFormed model) : ∀ d ∈ target.classes, validName d.name := by
   intro d hd
@@ -409,6 +445,8 @@ theorem ModelAllocation.classNames (a : ModelAllocation model target)
   rw [classEntry_name hb]
   simpa [validName, validDisplayName] using h.displayNames.2.1 x.1 hs
 
+/-- Properties, associations, enumerations, and literals likewise preserve their
+valid source display metadata. -/
 theorem ModelAllocation.otherNames (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     (∀ d ∈ target.associations, validName d.name) ∧
@@ -429,6 +467,8 @@ theorem ModelAllocation.otherNames (a : ModelAllocation model target)
       rw [literalEntry_name hb]
       exact h.displayNames.2.2.2.2.2 x.1 (List.fst_mem_of_mem_zipIdx hx)
 
+/-- Multiplicity validity and the rule that composites are references survive
+property allocation because the relevant fields are copied after type resolution. -/
 theorem ModelAllocation.propertyFacts (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     (∀ d ∈ target.properties, validName d.name) ∧
@@ -521,6 +561,10 @@ private theorem literalId_resolve {name : Name} {id : LiteralId}
   subst id
   rfl
 
+/-! ## Resolution and allocated-row witnesses -/
+
+/-- A successfully resolved package ID identifies both its unique source row and
+the target row produced from that same indexed entry. -/
 theorem ModelAllocation.packageForId (a : ModelAllocation model target)
     {id : PackageId}
     (h : packageId model name = .ok id) :
@@ -536,6 +580,8 @@ theorem ModelAllocation.packageForId (a : ModelAllocation model target)
       _ = id := by cases id; rfl
   exact ⟨source, translated, hs, hn, ht, hid, hb⟩
 
+/-- A successfully resolved class ID identifies the corresponding source and
+allocated target class rows. -/
 theorem ModelAllocation.classForId (a : ModelAllocation model target)
     {id : ClassId}
     (h : classId model name = .ok id) :
@@ -551,6 +597,8 @@ theorem ModelAllocation.classForId (a : ModelAllocation model target)
       _ = id := by cases id; rfl
   exact ⟨source, translated, hs, hn, ht, hid, hb⟩
 
+/-- A successfully resolved property ID identifies the corresponding source and
+allocated target property rows. -/
 theorem ModelAllocation.propertyForId (a : ModelAllocation model target)
     {id : PropertyId}
     (h : propertyId model name = .ok id) :
@@ -566,6 +614,8 @@ theorem ModelAllocation.propertyForId (a : ModelAllocation model target)
       _ = id := by cases id; rfl
   exact ⟨source, translated, hs, hn, ht, hid, hb⟩
 
+/-- A successfully resolved association ID identifies corresponding source and
+target association rows. -/
 theorem ModelAllocation.associationForId (a : ModelAllocation model target)
     {id : AssociationId}
     (h : associationId model name = .ok id) :
@@ -581,6 +631,8 @@ theorem ModelAllocation.associationForId (a : ModelAllocation model target)
       _ = id := by cases id; rfl
   exact ⟨source, translated, hs, hn, ht, hid, hb⟩
 
+/-- A successfully resolved enumeration ID identifies corresponding source and
+target enumeration rows. -/
 theorem ModelAllocation.enumerationForId (a : ModelAllocation model target)
     {id : EnumerationId}
     (h : enumerationId model name = .ok id) :
@@ -596,6 +648,8 @@ theorem ModelAllocation.enumerationForId (a : ModelAllocation model target)
       _ = id := by cases id; rfl
   exact ⟨source, translated, hs, hn, ht, hid, hb⟩
 
+/-- A successfully resolved literal ID identifies corresponding source and target
+literal rows. -/
 theorem ModelAllocation.literalForId (a : ModelAllocation model target)
     {id : LiteralId}
     (h : literalId model name = .ok id) :
@@ -611,6 +665,7 @@ theorem ModelAllocation.literalForId (a : ModelAllocation model target)
       _ = id := by cases id; rfl
   exact ⟨source, translated, hs, hn, ht, hid, hb⟩
 
+/-- Successful source package resolution yields a nonempty target package lookup. -/
 theorem ModelAllocation.packageResolved (a : ModelAllocation model target)
     {id : PackageId}
     (h : packageId model name = .ok id) : target.packageDecls id ≠ [] := by
@@ -619,6 +674,7 @@ theorem ModelAllocation.packageResolved (a : ModelAllocation model target)
   have : d ∈ target.packageDecls id := by simp [Schema.packageDecls, hd, hid]
   simpa [hempty] using this
 
+/-- Successful source class resolution yields a nonempty target class lookup. -/
 theorem ModelAllocation.classResolved (a : ModelAllocation model target)
     {id : ClassId}
     (h : classId model name = .ok id) : target.classDecls id ≠ [] := by
@@ -627,6 +683,7 @@ theorem ModelAllocation.classResolved (a : ModelAllocation model target)
   have : d ∈ target.classDecls id := by simp [Schema.classDecls, hd, hid]
   simpa [hempty] using this
 
+/-- Successful source property resolution yields an allocated target property. -/
 theorem ModelAllocation.propertyResolved (a : ModelAllocation model target)
     {id : PropertyId}
     (h : propertyId model name = .ok id) :
@@ -634,6 +691,7 @@ theorem ModelAllocation.propertyResolved (a : ModelAllocation model target)
   rcases a.propertyForId h with ⟨_, d, _, _, hd, hid, _⟩
   exact ⟨d, hd, hid⟩
 
+/-- Successful source association resolution yields an allocated target association. -/
 theorem ModelAllocation.associationResolved (a : ModelAllocation model target)
     {id : AssociationId}
     (h : associationId model name = .ok id) :
@@ -641,6 +699,7 @@ theorem ModelAllocation.associationResolved (a : ModelAllocation model target)
   rcases a.associationForId h with ⟨_, d, _, _, hd, hid, _⟩
   exact ⟨d, hd, hid⟩
 
+/-- Successful source enumeration resolution yields a nonempty target lookup. -/
 theorem ModelAllocation.enumerationResolved (a : ModelAllocation model target)
     {id : EnumerationId}
     (h : enumerationId model name = .ok id) : target.enumerationDecls id ≠ [] := by
@@ -649,6 +708,7 @@ theorem ModelAllocation.enumerationResolved (a : ModelAllocation model target)
   have : d ∈ target.enumerationDecls id := by simp [Schema.enumerationDecls, hd, hid]
   simpa [hempty] using this
 
+/-- Successful source literal resolution yields an allocated target literal. -/
 theorem ModelAllocation.literalResolved (a : ModelAllocation model target)
     {id : LiteralId}
     (h : literalId model name = .ok id) : target.literalDecls id ≠ [] := by
@@ -677,6 +737,10 @@ private theorem optionalPackage_target_resolved (a : ModelAllocation model targe
           subst id
           exact a.packageResolved hp
 
+/-! ## Ownership and type resolution -/
+
+/-- Every stored package parent resolves because it comes from a successfully
+resolved source parent alias. -/
 theorem ModelAllocation.packageParentsResolved (a : ModelAllocation model target) :
     ∀ d ∈ target.packages, ∀ id, d.parent = some id → target.packageDecls id ≠ [] := by
   intro d hd id hid
@@ -688,6 +752,7 @@ theorem ModelAllocation.packageParentsResolved (a : ModelAllocation model target
   subst d
   exact optionalPackage_target_resolved a hp hid
 
+/-- Every explicit class package resolves in the allocated target schema. -/
 theorem ModelAllocation.classPackagesResolved (a : ModelAllocation model target) :
     ∀ d ∈ target.classes, ∀ id, d.package = some id → target.packageDecls id ≠ [] := by
   intro d hd id hid
@@ -700,6 +765,7 @@ theorem ModelAllocation.classPackagesResolved (a : ModelAllocation model target)
   subst d
   exact optionalPackage_target_resolved a hp hid
 
+/-- Every explicit enumeration package resolves in the allocated target schema. -/
 theorem ModelAllocation.enumPackagesResolved (a : ModelAllocation model target) :
     ∀ d ∈ target.enumerations, ∀ id, d.package = some id → target.packageDecls id ≠ [] := by
   intro d hd id hid
@@ -711,6 +777,7 @@ theorem ModelAllocation.enumPackagesResolved (a : ModelAllocation model target) 
   subst d
   exact optionalPackage_target_resolved a hp hid
 
+/-- Every explicit association package resolves in the allocated target schema. -/
 theorem ModelAllocation.associationPackagesResolved (a : ModelAllocation model target) :
     ∀ d ∈ target.associations, ∀ id, d.package = some id → target.packageDecls id ≠ [] := by
   intro d hd id hid
@@ -732,6 +799,8 @@ theorem ModelAllocation.associationPackagesResolved (a : ModelAllocation model t
           all_goals subst d
           all_goals exact optionalPackage_target_resolved a hp hid
 
+/-- Every stored direct superclass resolves because `bindClassEntry` obtained it
+from a successful class-alias resolution. -/
 theorem ModelAllocation.supersResolved (a : ModelAllocation model target) :
     ∀ d ∈ target.classes, ∀ id ∈ d.directSupers, target.classDecls id ≠ [] := by
   intro d hd id hid
@@ -872,6 +941,8 @@ private theorem associationEntry_resolves_id (h : ModelWellFormed model)
       subst value
       rfl
 
+/-- Every source property row has an allocated target row at the same source-list
+index, exposing its successful entry-binding equation. -/
 theorem ModelAllocation.propertyForSource (a : ModelAllocation model target)
     {source : Property} (hs : source ∈ model.properties) :
     ∃ index translated, (source, index) ∈ model.properties.zipIdx ∧
@@ -940,6 +1011,8 @@ private theorem atMostOneOwner_translated {sp sq : Property} {tp tq : PropertyDe
   all_goals rw [← hp, ← hq]
   all_goals trivial
 
+/-- Every nonprimitive target property type resolves to its allocated class or
+enumeration declaration. -/
 theorem ModelAllocation.propertyTypesResolved (a : ModelAllocation model target) :
     ∀ d ∈ target.properties, match d.type with
       | .reference id => target.classDecls id ≠ []
@@ -955,6 +1028,7 @@ theorem ModelAllocation.propertyTypesResolved (a : ModelAllocation model target)
   | enumeration id => exact bindType_enumeration_resolved a (htype ▸ ht)
   | reference id => exact bindType_reference_resolved a (htype ▸ ht)
 
+/-- Every allocated literal refers to an allocated enumeration. -/
 theorem ModelAllocation.literalsResolved (a : ModelAllocation model target) :
     ∀ d ∈ target.literals, target.enumerationDecls d.enumeration ≠ [] := by
   intro d hd
@@ -966,6 +1040,8 @@ theorem ModelAllocation.literalsResolved (a : ModelAllocation model target) :
   subst d
   exact a.enumerationResolved he
 
+/-- Source well-formedness ensures every allocated composite property has a Core
+reference type. -/
 theorem ModelAllocation.compositeReferences (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     ∀ d ∈ target.properties, d.aggregation = .composite →
@@ -987,9 +1063,15 @@ theorem ModelAllocation.compositeReferences (a : ModelAllocation model target)
         simpa [hid, Functor.map, Except.map] using ht.symm
       exact ⟨id, this⟩
 
+/-! ## Reflection of stored inheritance and package paths -/
+
+/-- Relate a target class ID to the symbolic alias at the same source allocation
+position. -/
 def ClassAliasAt (model : Model) (id : ClassId) (name : Name) : Prop :=
   (model.classes.map Class.alias)[id.val]? = some name
 
+/-- Relate a target package ID to the symbolic alias at the same source allocation
+position. -/
 def PackageAliasAt (model : Model) (id : PackageId) (name : Name) : Prop :=
   (model.packages.map Package.alias)[id.val]? = some name
 
@@ -1026,6 +1108,8 @@ theorem ModelAllocation.classEdgeSource (a : ModelAllocation model target)
     rcases (mapM_ok_mem_iff hs).mp hsuper with ⟨name, hn, hr⟩
     exact ⟨name, hn, resolveIndex_getElem (classId_resolve hr)⟩
 
+/-- Reflect a stored target superclass path into a symbolic `ClassAncestor` path.
+Global alias uniqueness identifies adjacent source aliases during induction. -/
 theorem superPath_to_classAncestor (h : ModelWellFormed model)
     (a : ModelAllocation model target) {start finish : ClassId} {n : Nat}
     (path : SuperPath target start finish n)
@@ -1048,6 +1132,8 @@ theorem superPath_to_classAncestor (h : ModelWellFormed model)
       rw [classAliasAt_unique h hnextAlias hf] at suffix
       exact suffix
 
+/-- Reflect computed Core subtyping into source ancestry by extracting a stored
+path from the finite closure and applying path reflection. -/
 theorem isSubtype_to_classAncestor (h : ModelWellFormed model)
     (a : ModelAllocation model target) {start finish : ClassId}
     {sourceStart sourceFinish : Name}
@@ -1092,6 +1178,8 @@ theorem ModelAllocation.packageEdgeSource (a : ModelAllocation model target)
             subst parent
             exact ⟨name, rfl, resolveIndex_getElem (packageId_resolve hr)⟩
 
+/-- Reflect a stored target package-parent path into declarative source package
+ancestry. -/
 theorem packagePath_to_packageAncestor (h : ModelWellFormed model)
     (a : ModelAllocation model target) {start finish : PackageId}
     (path : StoredPath (PackageParentEdge target) start finish)
@@ -1114,6 +1202,8 @@ theorem packagePath_to_packageAncestor (h : ModelWellFormed model)
       rw [packageAliasAt_unique h hparentAlias hf] at hsuffix
       exact hsuffix
 
+/-- Reflect membership in the computed target package closure into source package
+ancestry through closure soundness. -/
 theorem packageAncestors_to_packageAncestor (h : ModelWellFormed model)
     (a : ModelAllocation model target) {start finish : PackageId}
     {sourceStart sourceFinish : Name}
@@ -1125,6 +1215,7 @@ theorem packageAncestors_to_packageAncestor (h : ModelWellFormed model)
   rw [List.mem_eraseDups] at path
   exact packagePath_to_packageAncestor h a (packageClosure_sound target path) hs hf
 
+/-- Source inheritance acyclicity rules out target subtype cycles after allocation. -/
 theorem ModelAllocation.inheritanceAcyclic (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     ∀ d ∈ target.classes, ∀ super ∈ d.directSupers,
@@ -1136,6 +1227,7 @@ theorem ModelAllocation.inheritanceAcyclic (a : ModelAllocation model target)
     isSubtype_to_classAncestor h a hcycle hsuperAlias hclass
   exact h.inheritanceAcyclic source hsource superName hsuperName sourceCycle
 
+/-- Source package acyclicity rules out cycles in the target package closure. -/
 theorem ModelAllocation.packageAcyclic (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     ∀ d ∈ target.packages, ∀ parent, d.parent = some parent →
@@ -1147,6 +1239,10 @@ theorem ModelAllocation.packageAcyclic (a : ModelAllocation model target)
     packageAncestors_to_packageAncestor h a hcycle hparentAlias hpackage
   exact h.packageAcyclic source hsource parentName hparentName sourceCycle
 
+/-! ## Association, containment, and inherited-ID constraints -/
+
+/-- Every allocated property owner resolves in the corresponding target class or
+association environment. -/
 theorem ModelAllocation.propertyOwnersResolved (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     ∀ p ∈ target.properties, match p.owner with
@@ -1198,6 +1294,8 @@ theorem ModelAllocation.propertyOwnersResolved (a : ModelAllocation model target
             have : secondId = p.id := Except.ok.inj (hsecond.symm.trans (heq ▸ hpid))
             exact this
 
+/-- Every allocated association preserves its valid binary source ends and the
+owner/type compatibility facts required by Core well-formedness. -/
 theorem ModelAllocation.associationEnds (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     ∀ association ∈ target.associations, ∃ p q,
@@ -1256,6 +1354,8 @@ theorem ModelAllocation.associationEnds (a : ModelAllocation model target)
     exact ⟨(propertyEntry_data hpb).2.2.1.symm.trans hc.1,
       (propertyEntry_data hqb).2.2.1.symm.trans hc.2⟩
 
+/-- The source rule limiting the opposite multiplicity of a composite end is
+preserved for the corresponding allocated property pair. -/
 theorem ModelAllocation.containerUpperOne (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     ∀ association ∈ target.associations, ∀ p q,
@@ -1342,6 +1442,8 @@ private theorem associationEndHit_translated
     · simp [hfirstEq, hsecondEq, hf, hsnd]
     · simp [hfirstEq, hsecondEq, hf, hsnd, Ne.symm hfirstEq, Ne.symm hsecondEq]
 
+/-- A target property ID occurs in at most one allocated association's end pair.
+The proof translates target membership back to the source alias-count invariant. -/
 theorem ModelAllocation.endMembershipUnique (a : ModelAllocation model target)
     (h : ModelWellFormed model) :
     ∀ p ∈ target.properties, (target.oppositeCandidates p.id).length ≤ 1 := by
@@ -1438,6 +1540,9 @@ private theorem ModelAllocation.inheritedPropertySource (a : ModelAllocation mod
             ⟨ownerName, hsourceOwner, hancestor⟩, propertyEntry_resolves_id h hx hb⟩
           exact (propertyEntry_data hb).2.2.2.symm.trans hid
 
+/-- Each target class has at most one inherited ID property.  Target applicability
+is reflected to source ancestry, where the source pairwise uniqueness premise
+identifies the property aliases and allocation injectivity identifies their IDs. -/
 theorem ModelAllocation.inheritedIdCount (a : ModelAllocation model target)
     (h : ModelWellFormed model) : ∀ c ∈ target.classes,
     (target.properties.filter (fun p => p.isId && match p.owner with

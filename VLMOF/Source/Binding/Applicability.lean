@@ -7,6 +7,12 @@ The source predicate and target computation both distinguish class-owned
 properties from association-owned ends.  This module exposes the proposition
 computed by the target booleans, then transports both branches through the actual
 schema allocation in both directions.
+
+The two opening lemmas isolate the Core computation from source allocation.  The
+private proof block then recovers uniquely allocated properties, classes,
+associations, owners, and opposite ends.  The final theorem uses those witnesses
+to prove the source and Core applicability predicates equivalent for successfully
+resolved identities.
 -/
 namespace VLMOF.Source
 
@@ -38,6 +44,8 @@ private theorem referenceTest_eq_true_iff (schema : Schema) (classId : ClassId)
   cases property.type <;>
     simp [Schema.isSubtype, List.contains_eq_mem, decide_eq_true_eq]
 
+/-- `TargetPropertyApplies` is exactly the Boolean owner branch used by the Core
+applicability computation, expressed as a proposition. -/
 theorem targetPropertyApplies_iff_computed (schema : Schema) (classId : ClassId)
     (property : PropertyDecl) :
     TargetPropertyApplies schema classId property ↔
@@ -75,6 +83,11 @@ theorem applicableProperty_iff_exists (schema : Schema) (classId : ClassId)
     rw [List.mem_filter]
     exact ⟨hproperty,
       (targetPropertyApplies_iff_computed schema classId property).mp happlies⟩
+
+/-! The following allocation-inversion lemmas are the source side of the bridge.
+They use global alias uniqueness to identify the source row selected by a numeric
+ID, then expose the translated owner, type, and association-end fields required
+by the two applicability branches. -/
 
 private theorem propertyAliases_uniqueBy {model : Model} (h : ModelWellFormed model) :
     uniqueBy Property.alias model.properties := by

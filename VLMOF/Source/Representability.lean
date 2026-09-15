@@ -17,41 +17,67 @@ Core artifacts commonly carry different numeric identities.  `TypedIdRenaming` k
 the six declaration identity spaces and the object identity space distinct.  The
 `RepresentableModuloIds` predicate says precisely that a Core pair is a typed renaming
 of the canonical image of a satisfying source document.
+
+Read the module in four parts.  It first constructs and proves the exact canonical
+image of successful binding.  It then records two direct-image restrictions:
+canonical position IDs and present display-name metadata.  The reification section
+gives sufficient round-trip conditions for a Core pair to have an exact source
+preimage.  The final section states the broader and practically useful notion of
+representation modulo a bijection in each typed ID space.  No theorem claims that
+arbitrary conforming Core data satisfies these image or reification conditions.
 -/
 namespace VLMOF.Source
+
+/-! ## Canonical identities and structural translation -/
 
 /-- The numeric position selected by a uniquely resolving alias.  The default is
 irrelevant on successful binding paths, where `matchingIndices` is a singleton. -/
 def resolvedIndex (names : List Name) (name : Name) : Nat :=
   (matchingIndices names name).head?.getD 0
 
+/-- On a successful resolution path, the total canonical index agrees with the
+unique index returned by the partial resolver. -/
 theorem resolvedIndex_eq_of_resolveIndex {kind : String} {names : List Name}
     {name : Name} {index : Nat} (h : resolveIndex kind names name = .ok index) :
     resolvedIndex names name = index := by
   rw [resolvedIndex, (resolveIndex_ok_iff kind names name index).mp h]
   rfl
 
+/-- Package identity assigned from the package declaration position selected by
+the alias. -/
 def canonicalPackageId (model : Model) (name : Name) : PackageId :=
   ⟨resolvedIndex (model.packages.map Package.alias) name⟩
 
+/-- Class identity assigned from the class declaration position selected by the
+alias. -/
 def canonicalClassId (model : Model) (name : Name) : ClassId :=
   ⟨resolvedIndex (model.classes.map Class.alias) name⟩
 
+/-- Property identity assigned from the property declaration position selected
+by the alias. -/
 def canonicalPropertyId (model : Model) (name : Name) : PropertyId :=
   ⟨resolvedIndex (model.properties.map Property.alias) name⟩
 
+/-- Association identity assigned from its declaration position. -/
 def canonicalAssociationId (model : Model) (name : Name) : AssociationId :=
   ⟨resolvedIndex (model.associations.map Association.alias) name⟩
 
+/-- Enumeration identity assigned from its declaration position. -/
 def canonicalEnumerationId (model : Model) (name : Name) : EnumerationId :=
   ⟨resolvedIndex (model.enumerations.map Enumeration.alias) name⟩
 
+/-- Literal identity assigned from its declaration position, independently of
+the enumeration identity space. -/
 def canonicalLiteralId (model : Model) (name : Name) : LiteralId :=
   ⟨resolvedIndex (model.literals.map Literal.alias) name⟩
 
+/-- Object identity assigned from its position in the source snapshot. -/
 def canonicalObjectId (snapshot : Instance) (name : Name) : ObjectId :=
   ⟨resolvedIndex (snapshot.objects.map Object.alias) name⟩
 
+/-- Total structural translation of value types using canonical enumeration and
+class IDs.  For unresolved aliases, the underlying `resolvedIndex` fallback makes
+this constructor total; exact-image theorems use it only after successful binding. -/
 def canonicalType (model : Model) : Source.ValueType → VLMOF.ValueType
   | .boolean => .boolean
   | .integer => .integer
@@ -59,10 +85,14 @@ def canonicalType (model : Model) : Source.ValueType → VLMOF.ValueType
   | .enumeration name => .enumeration (canonicalEnumerationId model name)
   | .reference name => .reference (canonicalClassId model name)
 
+/-- Preserve the owner kind while replacing its symbolic alias by the canonical
+class or association ID. -/
 def canonicalOwner (model : Model) : Owner → PropertyOwner
   | .class name => .class (canonicalClassId model name)
   | .association name => .association (canonicalAssociationId model name)
 
+/-- Preserve primitive payloads and translate enumeration/literal/object aliases
+into their separate canonical identity spaces. -/
 def canonicalValue (model : Model) (snapshot : Instance) : Source.Value → VLMOF.Value
   | .boolean value => .boolean value
   | .integer value => .integer value
@@ -71,6 +101,11 @@ def canonicalValue (model : Model) (snapshot : Instance) : Source.Value → VLMO
       .enumeration (canonicalEnumerationId model enumeration)
         (canonicalLiteralId model literal)
   | .reference object => .reference (canonicalObjectId snapshot object)
+
+/-! The private entry constructors mirror the corresponding `bind*Entry`
+computations without effects.  Their arbitrary fallbacks are unreachable after
+successful binding; the equality proofs below establish that fact by inverting
+every resolver and `mapM` result. -/
 
 private def canonicalEnds (model : Model) (ends : List Name) : PropertyId × PropertyId :=
   match ends with
@@ -472,7 +507,10 @@ theorem elaborate_eq_canonical {document : Document} (h : SourceSatisfies docume
   rw [← bindModel_eq_canonical hm, ← bindInstance_eq_canonical hi]
   exact he
 
-/-- Canonical allocation means that each stored numeric identity is its list index. -/
+/-! ## Restrictions of the direct binder image -/
+
+/-- Canonical schema allocation means that each stored numeric identity is its
+position within the corresponding declaration-kind list. -/
 structure CanonicalSchemaIds (schema : Schema) : Prop where
   packages : schema.packages.map (fun d => d.id.val) = List.range schema.packages.length
   classes : schema.classes.map (fun d => d.id.val) = List.range schema.classes.length
@@ -483,6 +521,8 @@ structure CanonicalSchemaIds (schema : Schema) : Prop where
     List.range schema.enumerations.length
   literals : schema.literals.map (fun d => d.id.val) = List.range schema.literals.length
 
+/-- Canonical snapshot allocation assigns every object its position in the object
+list; observations carry references but introduce no independent identity. -/
 def CanonicalSnapshotIds (snapshot : Snapshot) : Prop :=
   snapshot.objects.map (fun d => d.id.val) = List.range snapshot.objects.length
 
@@ -497,6 +537,8 @@ private theorem mappedZipIdx_indices {α β : Type} (xs : List α)
   rw [hfun, List.zipIdx_map_snd, List.length_map, List.length_zipIdx,
     List.range_eq_range']
 
+/-- The total canonical schema constructor satisfies its position-ID invariant
+for every source model, including models that would fail binding. -/
 theorem canonicalSchema_ids (model : Model) : CanonicalSchemaIds (canonicalSchema model) := by
   refine {
     packages := ?_, classes := ?_, properties := ?_, associations := ?_,
@@ -514,27 +556,35 @@ theorem canonicalSchema_ids (model : Model) : CanonicalSchemaIds (canonicalSchem
   · exact mappedZipIdx_indices model.literals (canonicalLiteralEntry model)
       (fun d => d.id.val) (fun _ => rfl)
 
+/-- The total canonical snapshot constructor satisfies its object position-ID
+invariant for every input. -/
 theorem canonicalSnapshot_ids (model : Model) (snapshot : Instance) :
     CanonicalSnapshotIds (canonicalSnapshot model snapshot) := by
   exact mappedZipIdx_indices snapshot.objects (canonicalObjectEntry model)
     (fun d => d.id.val) (fun _ => rfl)
 
+/-- Any successful model-binding result must satisfy canonical position IDs. -/
 theorem bindModel_canonical_ids {model : Model} {target : Schema}
     (h : bindModel model = .ok target) : CanonicalSchemaIds target := by
   rw [bindModel_eq_canonical h]
   exact canonicalSchema_ids model
 
+/-- Any successful instance-binding result must satisfy canonical object IDs. -/
 theorem bindInstance_canonical_ids {model : Model} {snapshot : Instance}
     {target : Snapshot} (h : bindInstance model snapshot = .ok target) :
     CanonicalSnapshotIds target := by
   rw [bindInstance_eq_canonical h]
   exact canonicalSnapshot_ids model snapshot
 
+/-- Failure of the position-ID invariant rules out being the exact result of
+`bindModel`; representation after typed renaming is intentionally still possible. -/
 theorem noncanonicalSchema_not_directly_representable {schema : Schema}
     (h : ¬ CanonicalSchemaIds schema) : ¬ ∃ model, bindModel model = .ok schema := by
   rintro ⟨model, hb⟩
   exact h (bindModel_canonical_ids hb)
 
+/-- Failure of canonical object IDs rules out an exact `bindInstance` image for
+the given source pair, without ruling out representation modulo IDs. -/
 theorem noncanonicalSnapshot_not_directly_representable {schema : Model}
     {source : Instance} {snapshot : Snapshot} (h : ¬ CanonicalSnapshotIds snapshot) :
     ¬ bindInstance schema source = .ok snapshot := by
@@ -550,6 +600,8 @@ structure FullyNamedSchema (schema : Schema) : Prop where
   enumerations : ∀ d ∈ schema.enumerations, d.name ≠ none
   literals : ∀ d ∈ schema.literals, d.name ≠ none
 
+/-- Canonical translation copies every source display name into `some`, even
+before semantic display-name validity is known. -/
 theorem canonicalSchema_fullyNamed (model : Model) : FullyNamedSchema (canonicalSchema model) := by
   constructor
   · intro d hd
@@ -571,6 +623,8 @@ theorem canonicalSchema_fullyNamed (model : Model) : FullyNamedSchema (canonical
     rcases List.mem_map.mp hd with ⟨x, _, rfl⟩
     simp [canonicalLiteralEntry]
 
+/-- Successful model binding can produce only schemas with display metadata for
+every represented declaration. -/
 theorem bindModel_fullyNamed {model : Model} {target : Schema}
     (h : bindModel model = .ok target) : FullyNamedSchema target := by
   rw [bindModel_eq_canonical h]
@@ -608,7 +662,11 @@ structure TypedIdRenaming where
   object_injective : Function.Injective object
   object_surjective : Function.Surjective object
 
-/-- Qualified source identities supplied independently of optional Core metadata. -/
+/-! ## Conditional Core-to-source reification -/
+
+/-- Qualified source identities supplied independently of optional Core metadata.
+The assignment is raw policy: uniqueness, qualification, lexical admissibility,
+and round-trip behavior are demanded by the reification conditions below. -/
 structure CoreAliasAssignment where
   package : PackageId → Name
   classId : ClassId → Name
@@ -665,6 +723,8 @@ def reifyModel (names : CoreAliasAssignment) (schema : Schema) : Model :=
       { alias := names.literal d.id, name := sourceDisplayName d.name,
         enumeration := names.enumeration d.enumeration } }
 
+/-- Reify Core objects, observation keys, and values with the aliases supplied for
+their typed IDs, preserving list order and repeated occurrences. -/
 def reifyInstance (names : CoreAliasAssignment) (snapshot : Snapshot) : Instance :=
   { objects := snapshot.objects.map fun d =>
       { alias := names.object d.id, classifier := names.classId d.classifier }
@@ -672,6 +732,7 @@ def reifyInstance (names : CoreAliasAssignment) (snapshot : Snapshot) : Instance
       { object := names.object a.object, property := names.property a.property,
         occurrences := a.occurrences.map (reifyValue names) } }
 
+/-- Pair the total schema and snapshot reifiers into one source document. -/
 def reifyDocument (names : CoreAliasAssignment) (schema : Schema)
     (snapshot : Snapshot) : Document :=
   { model := reifyModel names schema, snapshot := reifyInstance names snapshot }
@@ -693,6 +754,8 @@ theorem model_reification_binds {names : CoreAliasAssignment} {schema : Schema}
   subst target
   exact hb
 
+/-- Schema reification conditions imply Core schema well-formedness by binding
+the reified model and applying schema preservation. -/
 theorem model_reification_target_wellFormed {names : CoreAliasAssignment}
     {schema : Schema} (h : ModelReificationConditions names schema) :
     SchemaWellFormed schema := by
@@ -719,12 +782,18 @@ theorem reification_elaborates {names : CoreAliasAssignment}
   have he := elaborate_eq_canonical h.sourceMeaning
   simpa [reifyDocument, h.schemaRoundTrip, h.snapshotRoundTrip] using he
 
+/-- Full reification conditions imply conformance of the original Core pair,
+through the exact elaboration equation and source-to-target preservation. -/
 theorem reification_target_conforms {names : CoreAliasAssignment}
     {schema : Schema} {snapshot : Snapshot}
     (h : ReificationConditions names schema snapshot) : SnapshotConforms schema snapshot := by
   exact snapshotConforms_of_sourceSatisfies_of_elaborate h.sourceMeaning
     (reification_elaborates h)
 
+/-! ## Representation modulo typed identities -/
+
+/-- Apply the object, enumeration, and literal components of a typed renaming to
+a Core value while preserving primitive payloads. -/
 def renameValue (r : TypedIdRenaming) : VLMOF.Value → VLMOF.Value
   | .boolean value => .boolean value
   | .integer value => .integer value
@@ -732,6 +801,7 @@ def renameValue (r : TypedIdRenaming) : VLMOF.Value → VLMOF.Value
   | .enumeration enumeration literal => .enumeration (r.enumeration enumeration) (r.literal literal)
   | .reference object => .reference (r.object object)
 
+/-- Rename only the class or enumeration identity referenced by a Core type. -/
 def renameType (r : TypedIdRenaming) : VLMOF.ValueType → VLMOF.ValueType
   | .boolean => .boolean
   | .integer => .integer
@@ -739,10 +809,13 @@ def renameType (r : TypedIdRenaming) : VLMOF.ValueType → VLMOF.ValueType
   | .enumeration enumeration => .enumeration (r.enumeration enumeration)
   | .reference cls => .reference (r.classId cls)
 
+/-- Preserve property-owner kind while applying its class or association renaming. -/
 def renameOwner (r : TypedIdRenaming) : PropertyOwner → PropertyOwner
   | .class cls => .class (r.classId cls)
   | .association association => .association (r.association association)
 
+/-- Rename every declaration identity and cross-reference in a schema using the
+matching typed bijection, while preserving order and non-ID data. -/
 def renameSchema (r : TypedIdRenaming) (schema : Schema) : Schema :=
   { packages := schema.packages.map fun d =>
       { id := r.package d.id, name := d.name, parent := d.parent.map r.package }
@@ -764,6 +837,8 @@ def renameSchema (r : TypedIdRenaming) (schema : Schema) : Schema :=
       { id := r.literal d.id, name := d.name,
         enumeration := r.enumeration d.enumeration } }
 
+/-- Rename object identities, classifiers, observation keys, and occurrence values
+through the same typed bijections used for the schema. -/
 def renameSnapshot (r : TypedIdRenaming) (snapshot : Snapshot) : Snapshot :=
   { objects := snapshot.objects.map fun d =>
       { id := r.object d.id, classifier := r.classId d.classifier }
@@ -779,6 +854,9 @@ def RepresentableModuloIds (schema : Schema) (snapshot : Snapshot) : Prop :=
     renameSchema ids (canonicalSchema document.model) = schema ∧
     renameSnapshot ids (canonicalSnapshot document.model document.snapshot) = snapshot
 
+/-- Every satisfying source document yields a representable Core pair after any
+typed bijective renaming.  This is the constructive inclusion result; it does not
+claim all conforming Core pairs are representable. -/
 theorem satisfying_source_representable_modulo_ids (document : Document)
     (h : SourceSatisfies document) (ids : TypedIdRenaming) :
     RepresentableModuloIds

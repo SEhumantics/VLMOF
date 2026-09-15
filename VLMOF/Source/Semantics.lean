@@ -14,10 +14,18 @@ The two reachability relations are inductive finite-path relations over aliases.
 Their declarative meaning does not depend on the numeric closure bound used by the
 elaborated representation; the bridge to that bounded computation belongs at the
 binding boundary.
+
+The development proceeds from lexical and resolution predicates, through
+inheritance and property applicability, to values and containment.  The two final
+structures then collect those local predicates into model and whole-document
+contracts.  This order is also the intended reading order for the preservation
+proofs under `Source.Correctness`.
 -/
 
 namespace VLMOF.Source
 
+/-- Lexical admissibility of a qualified alias: it has at least one component and
+every component is nonempty and valid under the Core string discipline. -/
 def NameValid (n : Name) : Prop :=
   n ≠ [] ∧ ∀ component ∈ n, component ≠ "" ∧ VLMOF.validString component
 
@@ -25,30 +33,52 @@ def NameValid (n : Name) : Prop :=
 component below its owner.  This is `checkQualification` stated as a proposition. -/
 def qualifiedBy (parent child : Name) : Prop := child.dropLast = parent
 
+/-- A declaration is root-qualified when removing its local component leaves the
+implicit outer source scope. -/
 def rootQualified (child : Name) : Prop := child.dropLast = []
 
+/-- Source display metadata uses the same nonempty valid-string condition as
+named Core declarations, while remaining independent of alias identity. -/
 def validDisplayName (s : String) : Prop := s ≠ "" ∧ VLMOF.validString s
 
+/-- All model declaration aliases in their allocation order.  Global alias
+uniqueness is checked across declaration kinds, not merely within each list. -/
 def aliases (m : Model) : List Name :=
   m.packages.map Package.alias ++ m.classes.map Class.alias ++
     m.properties.map Property.alias ++ m.associations.map Association.alias ++
     m.enumerations.map Enumeration.alias ++ m.literals.map Literal.alias
 
+/-- No two declarations in the source model share a qualified binding alias. -/
 def uniqueAliases (m : Model) : Prop := (aliases m).Nodup
 
+/-- All packages carrying a given alias.  Multiple results expose ambiguity. -/
 def packageEntries (m : Model) (n : Name) := lookupAll Package.alias m.packages n
+/-- All classes carrying a given alias. -/
 def classEntries (m : Model) (n : Name) := lookupAll Class.alias m.classes n
+/-- All properties carrying a given alias. -/
 def propertyEntries (m : Model) (n : Name) := lookupAll Property.alias m.properties n
+/-- All associations carrying a given alias. -/
 def associationEntries (m : Model) (n : Name) := lookupAll Association.alias m.associations n
+/-- All enumerations carrying a given alias. -/
 def enumerationEntries (m : Model) (n : Name) := lookupAll Enumeration.alias m.enumerations n
+/-- All literals carrying a given alias. -/
 def literalEntries (m : Model) (n : Name) := lookupAll Literal.alias m.literals n
 
+/-- A package alias has at least one declaration candidate. -/
 def resolvesPackage (m : Model) (n : Name) : Prop := packageEntries m n ≠ []
+/-- A class alias has at least one declaration candidate.  Model well-formedness
+later supplies global uniqueness, turning existence into unique resolution. -/
 def resolvesClass (m : Model) (n : Name) : Prop := classEntries m n ≠ []
+/-- A property alias has at least one declaration candidate. -/
 def resolvesProperty (m : Model) (n : Name) : Prop := propertyEntries m n ≠ []
+/-- An association alias has at least one declaration candidate. -/
 def resolvesAssociation (m : Model) (n : Name) : Prop := associationEntries m n ≠ []
+/-- An enumeration alias has at least one declaration candidate. -/
 def resolvesEnumeration (m : Model) (n : Name) : Prop := enumerationEntries m n ≠ []
+/-- A literal alias has at least one declaration candidate. -/
 def resolvesLiteral (m : Model) (n : Name) : Prop := literalEntries m n ≠ []
+
+/-! ## Inheritance and feature applicability -/
 
 /-- Reflexive transitive superclass paths over symbolic class aliases. -/
 inductive ClassAncestor (m : Model) : Name → Name → Prop where
@@ -64,8 +94,12 @@ inductive PackageAncestor (m : Model) : Name → Name → Prop where
       (∃ d ∈ m.packages, d.alias = mid ∧ d.parent = some parent) →
       PackageAncestor m child parent
 
+/-- Source subtyping is symbolic superclass reachability, including reflexivity. -/
 def sourceSubtype (m : Model) (sub super : Name) : Prop := ClassAncestor m sub super
 
+/-- A property applies to a class either through class ownership and inheritance,
+or as an association end whose opposite reference end accepts the class.  This is
+the declarative counterpart of `Schema.applicablePropertyIds`. -/
 def propertyApplies (m : Model) (classAlias propertyAlias : Name) : Prop :=
   ∃ p ∈ m.properties, p.alias = propertyAlias ∧
     match p.owner with
@@ -78,10 +112,16 @@ def propertyApplies (m : Model) (classAlias propertyAlias : Name) : Prop :=
             | .reference source => ClassAncestor m classAlias source
             | _ => False
 
+/-! ## Occurrences, values, and containment -/
+
+/-- Concatenate every row for one symbolic object/property key.  The definition
+does not assume key uniqueness, so duplicate rows remain semantically visible. -/
 def sourceOccurrences (i : Instance) (object property : Name) : List Value :=
   (i.observations.filter fun o => o.object = object ∧ o.property = property).flatMap
     Observation.occurrences
 
+/-- Declarative source value typing.  Reference values permit instances of
+subclasses; enumeration values must name a literal owned by the stated enum. -/
 def sourceValueMatches (m : Model) (i : Instance) : ValueType → Value → Prop
   | .boolean, .boolean _ => True
   | .integer, .integer _ => True
@@ -90,8 +130,12 @@ def sourceValueMatches (m : Model) (i : Instance) : ValueType → Value → Prop
   | .reference c, .reference o => ∃ d ∈ i.objects, d.alias = o ∧ ClassAncestor m d.classifier c
   | _, _ => False
 
+/-- The key used to require one observation row per applicable object/property
+pair while leaving repeated values inside a row untouched. -/
 def SourceObservation.key (o : Observation) : Name × Name := (o.object, o.property)
 
+/-- A directed containment edge contributed by a composite property occurrence.
+`src` is the observing container and `dst` is the referenced contained object. -/
 def sourceCompositeEdge (m : Model) (i : Instance) (src dst : Name) : Prop :=
   ∃ o ∈ i.observations, o.object = src ∧ .reference dst ∈ o.occurrences ∧
     ∃ p ∈ m.properties, p.alias = o.property ∧ p.aggregation = .composite
@@ -102,24 +146,37 @@ inductive SourceCompositeReachable (m : Model) (i : Instance) : Name → Name �
   | step {src mid dst} : SourceCompositeReachable m i src mid →
       sourceCompositeEdge m i mid dst → SourceCompositeReachable m i src dst
 
+/-- Count composite references to `target`, including duplicate occurrences and
+rows.  The single-container rule bounds this number by one. -/
 def incomingCompositeCount (m : Model) (i : Instance) (target : Name) : Nat :=
   (i.observations.flatMap fun o =>
     if m.properties.any (fun p => p.alias = o.property && p.aggregation = .composite)
     then o.occurrences.filter (· = .reference target) else []).length
 
+/-! ## Local association invariants -/
+
+/-- Class-owned properties may serve as navigable ends; association-owned ends
+must name the association in which they occur. -/
 def ownerMatches (a : Association) (p : Property) : Prop :=
   match p.owner with | .class _ => True | .association x => x = a.alias
 
+/-- When an end is class-owned, its owner must be the class referenced by the
+opposite end.  Association-owned ends impose no class-owner equation. -/
 def classOwnerMatchesSource (p q : Property) : Prop :=
   match p.owner, q.type with
   | .class owner, .reference source => owner = source
   | .association _, .reference _ => True
   | _, _ => False
 
+/-- A binary association cannot have both end properties owned by associations;
+at least one end is class-owned and therefore provides a navigable anchor. -/
 def atMostOneAssociationOwner (p q : Property) : Prop :=
   match p.owner, q.owner with | .association _, .association _ => False | _, _ => True
 
-/-- The declaration-side source contract, before numeric identity allocation. -/
+/-- The declaration-side source contract, before numeric identity allocation.
+Its fields separate lexical uniqueness, ownership and resolution, finite graph
+constraints, and EMOF association/ID rules so preservation proofs can transport
+each obligation independently. -/
 structure ModelWellFormed (m : Model) : Prop where
   uniqueQualifiedAliases : uniqueAliases m
   aliasesValid : ∀ n ∈ aliases m, NameValid n
@@ -176,8 +233,11 @@ structure ModelWellFormed (m : Model) : Prop where
     (∃ owner, q.owner = .class owner ∧ ClassAncestor m c.alias owner) →
     p.alias = q.alias
 
-/-- Whole-document source satisfaction.  Observation rows are exact source facts;
-order and duplicate occurrences are retained rather than canonicalised. -/
+/-- Whole-document source satisfaction.  It extends model well-formedness with
+object allocation, complete and unique observation rows, value typing,
+multiplicity and uniqueness, opposite-end counts, and containment constraints.
+Observation rows are exact source facts; order and duplicate occurrences are
+retained rather than canonicalised. -/
 structure SourceSatisfies (d : Document) : Prop where
   model : ModelWellFormed d.model
   uniqueObjectAliases : (d.snapshot.objects.map Object.alias).Nodup

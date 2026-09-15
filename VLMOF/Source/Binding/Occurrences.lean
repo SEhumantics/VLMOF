@@ -1,8 +1,17 @@
 import VLMOF.Source.Binding.Values
 
-/-! Binding respects ordered equality and unordered multiset observations. -/
+/-!
+# Observable equality of bound occurrence lists
+
+Pointwise value binding preserves and reflects the two collection observations
+used by multiplicity semantics: exact list equality for ordered properties and
+permutation for unordered properties.  Coverage lemmas first expose witnesses in
+both directions; injectivity of `ValueBinds` then transports equality and counts.
+-/
 namespace VLMOF.Source
 
+/-- Every source occurrence has a bound target occurrence in the corresponding
+target list. -/
 theorem OccurrencesBind.source_covered {model : Model} {snapshot : Instance}
     {sources : List Source.Value} {targets : List VLMOF.Value}
     (h : OccurrencesBind model snapshot sources targets) :
@@ -20,6 +29,7 @@ theorem OccurrencesBind.source_covered {model : Model} {snapshot : Instance}
       · obtain ⟨target, hm, hv⟩ := ih h.2 source ht
         exact ⟨target, List.mem_cons_of_mem second hm, hv⟩
 
+/-- Every target occurrence in a bound list comes from a source occurrence. -/
 theorem OccurrencesBind.target_covered {model : Model} {snapshot : Instance}
     {sources : List Source.Value} {targets : List VLMOF.Value}
     (h : OccurrencesBind model snapshot sources targets) :
@@ -37,6 +47,8 @@ theorem OccurrencesBind.target_covered {model : Model} {snapshot : Instance}
       · obtain ⟨source, hm, hv⟩ := ih h.2 target ht
         exact ⟨source, List.mem_cons_of_mem first hm, hv⟩
 
+/-- Exact equality of two source lists is equivalent to exact equality of their
+successfully bound target lists. -/
 theorem OccurrencesBind.eq_iff {model : Model} {snapshot : Instance}
     {left right : List Source.Value} {left' right' : List VLMOF.Value}
     (hl : OccurrencesBind model snapshot left left')
@@ -62,6 +74,8 @@ theorem OccurrencesBind.eq_iff {model : Model} {snapshot : Instance}
           have ht := ih hl.2 hr.2
           simp [he, ht]
 
+/-- Permutation equivalence is preserved and reflected.  The proof compares
+counts, using coverage to show values outside the binding image have count zero. -/
 theorem OccurrencesBind.perm_iff {model : Model} {snapshot : Instance}
     {left right : List Source.Value} {left' right' : List VLMOF.Value}
     (hl : OccurrencesBind model snapshot left left')

@@ -8,6 +8,10 @@ Primitive and enumeration typing follows entirely from successful declaration,
 snapshot, type, and value binding.  Reference typing additionally needs the one
 inheritance fact not yet supplied by schema allocation: a symbolic ancestor path
 between successfully resolved class aliases becomes target `isSubtype`.
+
+Private helpers recover the exact source rows selected by unique aliases.  The
+enumeration lemma then follows the allocated literal row; the main theorem handles
+primitive cases directly and uses `SubtypeBindingPreserved` only for references.
 -/
 namespace VLMOF.Source
 

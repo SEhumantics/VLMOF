@@ -7,8 +7,17 @@ These proofs establish four target snapshot-conformance fields directly from a
 satisfying source document and successful model/instance binding.  Declaration
 and object witnesses come from the actual allocation computations; no target
 schema well-formedness or target conformance field is assumed.
+
+Private helpers first recover the source class, property, and observation rows
+selected by allocation.  Each public theorem then proves one `SnapshotConforms`
+field, in dependency order from resolution and concreteness through keys and value
+typing.
 -/
 namespace VLMOF.Source
+
+/-! Alias uniqueness and allocation-field projections used by the four transport
+proofs below.  These lemmas identify rows from successful binding equations rather
+than assuming target lookup uniqueness. -/
 
 private theorem classAliases_uniqueBy {model : Model} (h : ModelWellFormed model) :
     uniqueBy Class.alias model.classes := by
@@ -69,7 +78,8 @@ private theorem objectId_uniqueAliasAt {snapshot : Instance} {name : Name} {id :
       subst index
       exact (resolveIndex_iff_uniqueAliasAt _ _ _ _).mp hr
 
-/-- Every allocated object classifier resolves to an allocated schema class. -/
+/-- Every classifier stored in a bound target object resolves to an allocated
+target class, using source classifier resolution and model allocation. -/
 theorem bindInstance_classifiersResolved {model : Model} {snapshot : Instance}
     {schema : Schema} {target : Snapshot}
     (hmodel : bindModel model = .ok schema)
@@ -80,8 +90,8 @@ theorem bindInstance_classifiersResolved {model : Model} {snapshot : Instance}
   obtain ⟨entry, _, hb⟩ := mapM_ok_target_mem (bindInstance_ok_mapM hinstance).1 hobject
   exact allocation.classResolved (bindObjectAllocation_classifier hb)
 
-/-- Abstractness is copied from the uniquely resolved source classifier, so every
-target object produced from a satisfying source has a concrete classifier. -/
+/-- Source concrete-classifier satisfaction is preserved for every allocated
+target object and its uniquely resolved class declaration. -/
 theorem bindInstance_concreteClassifiers {model : Model} {snapshot : Instance}
     {schema : Schema} {target : Snapshot}
     (hsource : SourceSatisfies { model, snapshot })
@@ -106,7 +116,8 @@ theorem bindInstance_concreteClassifiers {model : Model} {snapshot : Instance}
   rw [bindClassEntry_isAbstract hclassBind]
   exact hsource.concreteClassifiers sourceObject hsourceObject sourceClass hs halias
 
-/-- Every bound observation key is backed by allocated object and property rows. -/
+/-- Every numeric object/property pair in a bound observation has a corresponding
+allocated target declaration. -/
 theorem bindInstance_observationKeysResolved {model : Model} {snapshot : Instance}
     {schema : Schema} {target : Snapshot}
     (hsource : SourceSatisfies { model, snapshot })
@@ -128,8 +139,9 @@ theorem bindInstance_observationKeysResolved {model : Model} {snapshot : Instanc
     allocation.propertyForId hp
   exact ⟨⟨targetObject, ht, htid⟩, ⟨targetProperty, htp, htpid⟩⟩
 
-/-- Values in every allocated observation have the type of the uniquely allocated
-target property row. -/
+/-- Values in every bound observation match the allocated Core property type.
+The proof recovers the source observation and property, then applies the source
+typing premise and the subtype-aware value-binding bridge. -/
 theorem bindInstance_valuesTyped {model : Model} {snapshot : Instance}
     {schema : Schema} {target : Snapshot}
     (hsource : SourceSatisfies { model, snapshot })

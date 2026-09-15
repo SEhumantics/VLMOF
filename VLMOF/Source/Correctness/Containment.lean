@@ -2,12 +2,32 @@ import VLMOF.Source.Correctness.SchemaPreservation
 import VLMOF.Source.Correctness.Observations
 import VLMOF.Model.Reachability.Containment
 
+/-!
+# Containment and opposite-end constraints across binding
+
+This module transports the graph-sensitive snapshot obligations.  Object aliases
+are related to target IDs by their source-list position.  Successful model and
+instance allocation then makes composite edges correspond, which lets target
+closure paths be reflected into the unbounded declarative source reachability
+relation.  Separate counting arguments preserve the one-container and
+opposite-end occurrence constraints.
+
+The path proofs deliberately run from the finite Core closure back to source
+reachability: source acyclicity can then reject every target cycle.  Counting
+proofs use the exact occurrence correspondence and retain duplicates.
+-/
 namespace VLMOF.Source
 
 variable {model : Model} {source : Instance} {schema : Schema} {snapshot : Snapshot}
 
+/-- `name` occupies the source object position represented by `id`.  This relation
+connects Core graph endpoints back to symbolic aliases without rerunning binding. -/
 def ObjectAliasAt (source : Instance) (id : ObjectId) (name : Name) : Prop :=
   (source.objects.map Object.alias)[id.val]? = some name
+
+/-! The first private block establishes injectivity of resolved object/property
+aliases and recovers source rows and aggregation fields from successful
+allocations.  These are the witnesses required for edge correspondence. -/
 
 private theorem objectId_resolve_get {name : Name} {id : ObjectId}
     (h : objectId source name = .ok id) : ObjectAliasAt source id name := by
@@ -82,6 +102,10 @@ private theorem propertyBinding_aggregation {x : Property × Nat} {p : PropertyD
   subst p
   rfl
 
+/-- A symbolic composite-reference edge exists exactly when the corresponding
+resolved object IDs form a Core composite edge.  Forward transport follows the
+bound observation and property rows; reflection uses allocation injectivity to
+recover their source aliases. -/
 theorem sourceCompositeEdge_iff_compositeEdge
     (hwf : ModelWellFormed model) (hm : bindModel model = .ok schema)
     (hi : bindInstance model source = .ok snapshot)
@@ -182,6 +206,8 @@ private theorem compositeEdge_reflect
   | string => simp [ValueBinds] at hvalue
   | enumeration => simp [ValueBinds] at hvalue
 
+/-- Reflect a stored target composite-edge path to declarative source reachability,
+using alias-at endpoints to identify the symbolic start and finish. -/
 theorem containmentPath_to_sourceReachable
     (h : SourceSatisfies { model, snapshot := source })
     (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot)
@@ -203,6 +229,8 @@ theorem containmentPath_to_sourceReachable
       rw [objectAliasAt_unique hnext hf] at result
       exact result
 
+/-- Reflect Core bounded-closure membership to source reachability by first using
+closure soundness to obtain a stored path. -/
 theorem compositeReachable_to_sourceReachable
     (h : SourceSatisfies { model, snapshot := source })
     (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot)
@@ -215,6 +243,8 @@ theorem compositeReachable_to_sourceReachable
   exact containmentPath_to_sourceReachable h hm hi
     (containmentClosure_sound schema snapshot path) hs hf
 
+/-- Source containment acyclicity rules out every Core composite cycle after
+successful model and instance binding. -/
 theorem containmentAcyclic_of_sourceSatisfies
     (h : SourceSatisfies { model, snapshot := source })
     (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot) :
@@ -231,6 +261,10 @@ theorem containmentAcyclic_of_sourceSatisfies
   have hsourceCycle := compositeReachable_to_sourceReachable h hm hi hcycle
     hchildAlias hobjectAlias
   exact h.containmentAcyclic sourceObject hsourceObject sourceChild hsourceEdge hsourceCycle
+
+/-! The next private block aligns the Boolean composite-property filters used by
+the source and Core counting functions, then proves the equality by induction over
+the bound observation `mapM`. -/
 
 private theorem compositeTest_eq
     (hwf : ModelWellFormed model) (hm : bindModel model = .ok schema)
@@ -341,6 +375,8 @@ private theorem incomingCompositeCount_mapM
         simp only [hfalse, Bool.false_eq_true, if_false]
         omega
 
+/-- The number of incoming composite references to a resolved object is identical
+before and after binding, including duplicate occurrences. -/
 theorem incomingCompositeCount_eq
     (h : SourceSatisfies { model, snapshot := source })
     (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot)
@@ -351,6 +387,8 @@ theorem incomingCompositeCount_eq
   unfold Source.incomingCompositeCount VLMOF.incomingCompositeCount
   exact incomingCompositeCount_mapM h.model hm (bindInstance_ok_mapM hi).2 hid
 
+/-- Transport the source single-container bound to every allocated target object
+through exact incoming-count equality. -/
 theorem oneIncomingComposite_of_sourceSatisfies
     (h : SourceSatisfies { model, snapshot := source })
     (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot) :
@@ -361,6 +399,10 @@ theorem oneIncomingComposite_of_sourceSatisfies
   have hid := objectId_of_aliasAt h halias
   rw [← incomingCompositeCount_eq h hm hi hid]
   exact h.oneIncomingComposite sourceObject hsourceObject
+
+/-! The final private helpers recover the exact ordered association ends and turn
+resolved object aliases into related reference values.  They reduce reciprocity
+to the occurrence-count preservation theorem. -/
 
 private theorem associationBinding_ends {x : Association × Nat} {a : AssociationDecl}
     (hb : bindAssociationEntry model x = .ok a) :
@@ -398,6 +440,9 @@ private theorem referenceValueBinds {name : Name} {id : ObjectId}
   subst id
   exact (resolveIndex_iff_uniqueAliasAt _ _ _ _).mp hr
 
+/-- Source opposite-end reciprocity is preserved for every allocated association
+and object pair.  The proof resolves the ordered source ends and transports both
+reference occurrence counts independently. -/
 theorem oppositeCounts_of_sourceSatisfies
     (h : SourceSatisfies { model, snapshot := source })
     (hm : bindModel model = .ok schema) (hi : bindInstance model source = .ok snapshot) :
