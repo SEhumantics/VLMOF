@@ -23,16 +23,21 @@ The harness creates a fresh manifest-closed resource set and isolated
 and records `EObjectValidator` fallback selection for dynamic Ecore packages.
 It validates every manifest-ordered Ecore and instance root through a
 fresh-context `Diagnostician`, retaining flattened diagnostics and registry
-inventory. It does not use global `Diagnostician.INSTANCE`, save resources, or
-call E1 profile checks as validation.
+inventory. The harness configures no validation delegates; its report also
+enumerates any `validationDelegates` annotations declared by the loaded
+metamodel, without claiming to inventory EMF process-wide delegate registries.
+It does not use global `Diagnostician.INSTANCE`, save resources, or call E1
+profile checks as validation.
 
 ## State alignment
 
 Fixtures name immutable Ecore/XMI bytes. The harness validates the `emf-loaded`
 state. The runner separately uses the E1 bridge to write normalized Core JSON,
 then compares every loaded object/property list through native URI identity maps
-before it runs VL-MOF on that file. Only a retained, successful comparison may
-be called lossless for that fixture. The contract forbids deduplicating
+before it runs VL-MOF on that file. The comparison rejects duplicate or missing
+rows and non-bijective provenance maps; it does not treat an absent row as an
+empty feature list. Only a retained, successful comparison may be called
+lossless for that fixture. The contract forbids deduplicating
 nonunique values, merging rows, completing opposites, repairing containment,
 resolving undeclared resources, or replacing integers.
 
@@ -76,3 +81,6 @@ allocation inside the clock. Lean decodes once and retains noinline IO-reference
 schema and combined-check results per iteration; combined checking includes
 schema validity. Full diagnostics remain outside timing. Load, normalization,
 decode and cold process costs are retained separately and are never speed ratios.
+The runner starts those timed commands only when the fixture declares itself
+timing-eligible, both validators accept it, and its retained loaded-to-Core
+comparison is explicitly lossless.

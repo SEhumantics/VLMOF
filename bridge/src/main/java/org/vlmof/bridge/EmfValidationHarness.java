@@ -21,6 +21,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EValidator;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EEnumLiteral;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.EcorePackage;
@@ -258,7 +259,28 @@ public final class EmfValidationHarness {
       row.put("ns_uri", entry.getKey());
       row.put("validator", effective(loaded, entry.getValue()).getClass().getName());
     }
-    result.putArray("validation_delegates");
+    // The harness configures no validation delegates.  Record declarations in the
+    // loaded metamodel separately instead of presenting an empty array as an
+    // inventory of EMF's process-wide delegate registries.
+    ObjectNode delegates = result.putObject("validation_delegates");
+    delegates.put("configured_by_harness", false);
+    ArrayNode declarations = delegates.putArray("metamodel_declarations");
+    for (Resource resource : loaded.schemaResources()) for (EObject root : resource.getContents()) {
+      List<EObject> elements = new ArrayList<>();
+      elements.add(root);
+      var iterator = root.eAllContents();
+      while (iterator.hasNext()) elements.add(iterator.next());
+      for (EObject element : elements) if (element instanceof EAnnotation annotation) {
+        String value = annotation.getDetails().get("validationDelegates");
+        if (value != null) {
+          ObjectNode row = declarations.addObject();
+          row.put("annotation_uri", uri(annotation));
+          row.put("source", annotation.getSource());
+          row.put("value", value);
+        }
+      }
+    }
+    delegates.put("metamodel_declarations_present", !declarations.isEmpty());
     return result;
   }
 

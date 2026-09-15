@@ -88,7 +88,19 @@ def fixture_paths(manifest_path: Path, fixture):
 
 
 def native_identities(core, kind):
-    return {row["id"]: row["identity"] for row in core["provenance"]["identities"][kind]}
+    """Return a bijection from Core IDs to native URIs, or retain every ambiguity."""
+    values, problems, seen_uris = {}, [], {}
+    for index, row in enumerate(core["provenance"]["identities"][kind]):
+        if "id" not in row or "identity" not in row:
+            problems.append({"kind": "malformed-provenance-row", "identity_kind": kind, "index": index})
+            continue
+        identifier, uri = row["id"], row["identity"]
+        if identifier in values:
+            problems.append({"kind": "duplicate-provenance-id", "identity_kind": kind, "id": identifier})
+        if uri in seen_uris:
+            problems.append({"kind": "duplicate-provenance-uri", "identity_kind": kind, "uri": uri})
+        values[identifier], seen_uris[uri] = uri, identifier
+    return values, problems
 
 
 def normalized_value(value, object_ids, literal_ids):
@@ -102,28 +114,49 @@ def normalized_value(value, object_ids, literal_ids):
 
 def compare_loaded_to_core(emf_report, core):
     """Compare the actual loaded EObject feature lists with the bridge Core observation."""
-    object_ids = native_identities(core, "objects")
-    property_ids = native_identities(core, "properties")
-    literal_ids = native_identities(core, "literals")
+    object_ids, problems = native_identities(core, "objects")
+    property_ids, property_problems = native_identities(core, "properties")
+    literal_ids, literal_problems = native_identities(core, "literals")
+    problems.extend(property_problems)
+    problems.extend(literal_problems)
     ordered = {row["id"]: row["multiplicity"]["ordered"] for row in core["schema"]["properties"]}
+    property_by_uri = {uri: identifier for identifier, uri in property_ids.items()}
     expected = {}
     for row in emf_report.get("loaded_observations", []):
-        expected[(row["object_uri"], row["feature_uri"])] = list(row["values"]) if row["is_set"] else []
+        key = (row["object_uri"], row["feature_uri"])
+        if key in expected:
+            problems.append({"kind": "duplicate-loaded-observation-key", "object_uri": key[0], "feature_uri": key[1]})
+        expected[key] = list(row["values"]) if row["is_set"] else []
     observed = {}
     for row in core["snapshot"]["observations"]:
-        key = (object_ids[row["object"]], property_ids[row["property"]])
-        observed[key] = [normalized_value(value, object_ids, literal_ids) for value in row["occurrences"]]
+        try:
+            key = (object_ids[row["object"]], property_ids[row["property"]])
+            values = [normalized_value(value, object_ids, literal_ids) for value in row["occurrences"]]
+        except KeyError as error:
+            problems.append({"kind": "unresolved-core-identity", "detail": str(error)})
+            continue
+        if key in observed:
+            problems.append({"kind": "duplicate-core-observation-key", "object_uri": key[0], "feature_uri": key[1]})
+        observed[key] = values
     mismatches = []
     for key in sorted(set(expected) | set(observed)):
-        left, right = expected.get(key), observed.get(key)
-        property_id = next((pid for pid, uri in property_ids.items() if uri == key[1]), None)
+        left = expected[key] if key in expected else None
+        right = observed[key] if key in observed else None
+        property_id = property_by_uri.get(key[1])
         if property_id is not None and not ordered.get(property_id, True):
-            left, right = sorted(left or []), sorted(right or [])
+            if left is not None: left = sorted(left)
+            if right is not None: right = sorted(right)
         if left != right:
             mismatches.append({"object_uri": key[0], "feature_uri": key[1],
                                "loaded_values": left, "core_values": right})
     return {"loaded_observation_count": len(expected), "core_observation_count": len(observed),
-            "lossless": not mismatches, "mismatches": mismatches}
+            "lossless": not mismatches and not problems, "mismatches": mismatches, "problems": problems}
+
+
+def eligible_for_timing(fixture, emf_status, vlmof_status, alignment):
+    """Require an accepted, explicitly lossless positive condition before timing."""
+    return bool(fixture.get("timing_eligible") and emf_status == "accepted" and
+                vlmof_status == "accepted" and alignment and alignment.get("lossless") is True)
 
 
 def bridge_command(main_class, args):
@@ -241,8 +274,8 @@ def main():
             observed = {"emf": fixture_row["phases"]["emf_validation"]["status"],
                         "vlmof": fixture_row["phases"]["vlmof_validation"]["status"]}
             fixture_row["matches_expected"] = bool(alignment and alignment["lossless"]) and all(observed.get(key) == value for key, value in expected.items())
-        if args.measure and fixture.get("timing_eligible") and emf_status == "accepted" and \
-                fixture_row["phases"]["vlmof_validation"]["status"] == "accepted":
+        if args.measure and eligible_for_timing(
+                fixture, emf_status, fixture_row["phases"]["vlmof_validation"]["status"], alignment):
             emf_timing, emf_timing_stdout = command(f"{fixture_row['id']}-emf-warm",
                 bridge_command(HARNESS, ["warm-validate", manifest_path, args.warmups, args.repetitions]), output)
             lean_timing, lean_timing_stdout = command(f"{fixture_row['id']}-lean-warm",
