@@ -1,7 +1,7 @@
-import VLMOF.Interchange
-import VLMOF.Check
-import VLMOF.DSL
-import VLMOF.Elaboration
+import VLMOF.Interchange.Json
+import VLMOF.Checker.Basic
+import VLMOF.Source.Parser
+import VLMOF.Source.Elaboration
 
 open Lean VLMOF
 

@@ -1,6 +1,6 @@
 # Representation boundary
 
-`VLMOF.Core` is a finite raw-state representation for the structural profile in
+`VLMOF.Model.Basic` is a finite raw-state representation for the structural profile in
 `sources/PROFILE.md`. It is deliberately broader than the valid fragment: lists retain
 duplicate identifiers and records may contain dangling references, cycles, invalid
 bounds, or inconsistent ownership. Later schema and snapshot predicates must diagnose

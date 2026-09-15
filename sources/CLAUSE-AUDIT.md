@@ -5,7 +5,7 @@ MOF 2.5.1, printed pp. 29–31. The normative PDF and adopted UML dependency are
 pinned in [manifest.json](manifest.json). It is a source-audit argument, not a
 machine-checked theorem about the prose. [PROFILE.md](PROFILE.md) explains the
 cross-clause choices and their limits. `SchemaWellFormed` and `SnapshotConforms`
-are defined in [Semantics.lean](../VLMOF/Semantics.lean).
+are defined in [Semantics.lean](../VLMOF/Model/Semantics.lean).
 
 “Fixed” means the selected constructors exclude the alternative; it is not a
 claim to recognize arbitrary UML/XMI files. “Deferred” means legal EMOF behavior

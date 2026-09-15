@@ -38,7 +38,7 @@ manifest into Core JSON and exports supported Core inputs into fresh EMF resourc
 Round-trip comparison checks declarations and occurrence observations under a recorded
 native identity bijection. The adapter and JSON/XML parsers remain trusted boundaries.
 
-The checker API is `checkSchema` / `checkSnapshot` in `VLMOF/Check.lean`.
+The checker API is `checkSchema` / `checkSnapshot` in `VLMOF/Checker/Basic.lean`.
 `CheckAcceptance.lean` proves acceptance iff the corresponding predicate, with no
 prevalidated-input assumption. Diagnostic lists report exactly the failed named
 field checks. The command-line interface reads the versioned JSON interchange:
