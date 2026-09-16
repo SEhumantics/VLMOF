@@ -1,5 +1,5 @@
 \section{Evaluation}
-\subsection{Cases and proof reuse}
+\subsection{Cases and Proof Reuse}
 We use public Train models, authored containment/inheritance cases, and an
 unchanged public EMF Compare input that the bridge rejects as unsupported.
 Only Train supplies public positive cases. Different sizes and shapes do not
@@ -16,8 +16,9 @@ discrepancies remain source findings outside the implemented fragment.
 The Lean build checks the decision and source theorems. A client instantiates the
 opposite-count result for a nonunique forward end: any snapshot containing the
 specified objects and a duplicated link is nonconforming. Schema facts are
-proved once; other obligations still require checking. The metadata example
-separately checks interpretation and metadata typing.
+proved once; other obligations still require checking. The Boolean-edit client
+composes Equation~\ref{eq:toggle} with checker equivalence: acceptance is
+preserved for any selected key, without further structural premises.
 
 \subsection{Comparison with EMF}
 The comparison pins EMF Ecore/XMI 2.39.0 and Common 2.42.0 under Java~21.
@@ -39,15 +40,18 @@ observations, not general schema equivalence.
 \hline
 Case & EMF S & EMF I & VL-MOF & Alignment \\
 \hline
+\multicolumn{5}{l}{\emph{Accepted EMF schemas: instance comparisons}} \\
 Aligned positives (11 states) & A & A & A & Match \\
 Missing required String & A & R & R & Match \\
-Lower 1 / upper 0 & R & R & R & Match \\
-Empty $0..0$ & R & A & A & Match \\
 Repeated unique String & A & A & R & Match \\
-Repeated unpaired containment & R & A & A & Collector repeats a visit \\
-Two unpaired features, one parent & R & A & A & Collector repeats a visit \\
 Train adaptation (754 objects) & A & A & A & 12 presence differences \\
 Original Train XMI / profile & A & A & A & Match \\
+
+\multicolumn{5}{l}{\emph{Rejected EMF schemas: instance calls are not overall acceptance}} \\
+Lower 1 / upper 0 & R & R & R & Match \\
+Empty $0..0$ & R & A & A & Match \\
+Repeated unpaired containment & R & A & A & Not aligned: repeat visit \\
+Two unpaired features, one parent & R & A & A & Not aligned: repeat visit \\
 \hline
 \end{tabular}
 \end{table}
@@ -60,10 +64,9 @@ produces duplicate collector rows in the two unpaired cases. Their alignment is
 conservatively unsuccessful even though their distinct URI/value comparisons
 agree; they are not timed.
 
-Alignment compares objects/classifiers, including featureless objects, bijective
-declaration provenance, occurrence counts and ordered lists. A postmeasurement
-primitive-type/tag gate was replayed on all 63 retained native/Core pairs without
-changing decisions. This does not prove the adapter or complete schema equivalence.
+Alignment also checks featureless objects and bijective declaration provenance.
+A primitive-type/tag gate replayed on all 63 retained pairs changed no decisions;
+this does not prove adapter correctness or schema equivalence.
 
 The full structural Train profile retains all ten classes, 21 features and two
 enumerations of v1.0, after removing a generator annotation and mapping three
@@ -79,11 +82,21 @@ them resolves this comparison without inserting defaults. This does not establis
 general default/unset equivalence. The unadapted generated schema remains an
 unsupported annotation boundary.
 
-\subsection{Validation time}
-The generated positive workload has stars with inherited scalar features and
-ordered occurrences (11/101/501 objects), Train projection groups (10/100/500),
-and recursive containment chains (11/101/501, depths 10/100/500). Generation is deterministic. Declaration, inheritance, observation and reference
-counts accompany object count; the schema vocabulary stays fixed.
+The companion's \texttt{full-v1-batch-1.dsl} supplies this complete schema and
+instance, with a declaration crosswalk. Actual parsing/elaboration reproduces
+the retained Core pair exactly, including IDs, flags, row order and absence;
+this tests correspondence, not converter correctness. Route 1 follows position 2,
+requires sensors 25--31 and has entry/exit semaphores 425/34. Toggling its present
+\emph{active} value preserves acceptance; retaining only one sensor fails
+multiplicity alone. This adds notation coverage and a preservation client,
+not native or timing measurements.
+
+\subsection{Validation Time}
+The timing cases use the authored optional-bound Train projection, not the full
+public snapshot. The deterministic workload has stars with inherited scalar features and
+ordered occurrences (11/101/501 objects), Train groups (10/100/500), and
+containment chains (11/101/501, depths 10/100/500), with fixed schema vocabulary.
+Declaration, inheritance, observation and reference counts accompany object count.
 
 Five independent process trials use ten warmups and thirty measured repetitions.
 Each fixed case receives both tool orders, with reversed traversal on alternate

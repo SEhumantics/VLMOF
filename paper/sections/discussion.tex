@@ -16,42 +16,37 @@ graphs, and establish preservation conditions for graph transformations
 \cite{koehler_lewin_taentzer_2007}. Our lists may retain repeated composite
 occurrences from one parent; parent identity and active reverse properties are
 checked separately. This is a representation difference, not a proved translation.
-Coq4MDE proves composition preservation under operation-specific hypotheses
-\cite{kezadri_etal_2014}; its opposites compare membership rather than occurrence
-counts. Graph repair has separate correctness results for specified constraint
-classes \cite{sandmann_2020}. Our checker reports violations but neither repairs
-models nor proves preservation for composition or mutation.
+Coq4MDE proves preservation for ISC binding, with residual injectivity and
+freshness conditions for multiplicities \cite{kezadri_etal_2014}; its opposites
+compare membership rather than occurrence counts. These operations are broader than our Boolean edit, which preserves the
+reference graph. Our contribution combines raw-input checker equivalence with
+independent AST adequacy, not a first preservation theorem or novelty from Lean.
+Graph repair has separate correctness results \cite{sandmann_2020}; our checker
+reports violations but does not repair models.
 
 \paragraph{Self-description.}
 Thirioux et al. define an EMOF subset and present a promotion-based
 metacircularity construction \cite{thirioux_etal_2007}. Their presentation is set-theoretic, with
-Coq implementation reported as work in progress. Ordering, default initialization
-and operational semantics are deferred. MetaMorph defines modeling languages in
+Coq implementation reported as work in progress. MetaMorph defines modeling languages in
 typed first-order logic and establishes self-description for M2FOL
-\cite{doller_2022}. These results exceed the self-description scope of our small
-metadata interpreter, which checks a fixed vocabulary of class and scalar-attribute
-objects.
+\cite{doller_2022}. Both exceed our fixed class/scalar metadata vocabulary.
 
 \paragraph{Mechanized languages and textual notations.}
-Featherweight OCL includes null, invalid and collection operations
-\cite{brucker_wolff_2012}, which our resolved structural predicates omit.
-Isabelle UML/OCL generates conservative theory extensions
-\cite{brucker_tuong_wolff_2020}; VL-MOF's source adequacy theorem
-(Equation~\ref{eq:adequacy}) instead relates symbolic satisfaction to actual Core
-elaboration. CoqTL supplies transformation-proof infrastructure
-\cite{cohen_tisi_douence_2024}. NEREUS, KM3, Emfatic and Xcore establish precedents
+Featherweight OCL formalizes null, invalid and collections
+\cite{brucker_wolff_2012}; Isabelle UML/OCL generates conservative theory
+extensions \cite{brucker_tuong_wolff_2020}, and CoqTL supports transformation
+proofs \cite{cohen_tisi_douence_2024}. Equation~\ref{eq:adequacy} instead
+relates symbolic satisfaction to actual Core elaboration. NEREUS, KM3, Emfatic and Xcore establish precedents
 for textual metamodeling
 \cite{favre_duarte_2016,jouault_bezivin_2006,emfatic_docs,xcore_docs}.
 The DSL is an interface to our formalization, not a claim of novelty in notation.
 
 \subsection{Threats to Validity}
 \paragraph{Construct validity.}
-The principal risk is an unintended reading of EMOF. Clause references,
-alternative readings and distinguishing examples expose this risk, but kernel
-checking cannot prove fidelity to normative prose. The model describes complete
-static snapshots, not reflective reachability, and uses an implicit outer scope.
-The published Train diagram and pinned executable artifact also differ in
-multiplicity; their profiles must not be conflated.
+Clause references and separating examples expose interpretation risks;
+kernel checking cannot prove fidelity to normative prose. Our complete snapshots
+use an implicit outer scope, without reflective reachability. Published Train
+and executable-v1.0 multiplicities remain distinct.
 
 \paragraph{Internal validity.}
 Parsing, JSON conversion, the Java bridge and the measurement harness are outside
@@ -62,9 +57,8 @@ inputs, commands and raw samples support result recomputation, not complete
 historical build reproduction.
 
 \paragraph{External and conclusion validity.}
-Train is the only public positive family; EMF Compare supplies an unsupported
-case. Controlled sizes and shapes establish neither industrial breadth,
-authoring productivity nor domain-query correctness. Repeated measurements
-describe the declared environment, not asymptotic complexity or a general speed
-ranking. Ecore-specific restrictions and the selected generic validator limit
-transfer to other tools and generated validators.
+Train is the only public positive family; EMF Compare is unsupported.
+Controlled sizes/shapes establish neither industrial breadth nor authoring
+productivity. Timings describe the declared environment, not general complexity.
+Ecore restrictions and our generic validator condition limit transfer to other
+validation routes. Structural edits need not preserve domain queries.

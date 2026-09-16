@@ -17,22 +17,20 @@
 \pagestyle{empty}
 \thispagestyle{empty}
 \begin{abstract}
-EMOF provides structures for defining modeling languages, but its structural
-restrictions and reflective-service conditions require different interpretations
-when defining conformance. We formalize a finite structural fragment of
-EMOF~2.5.1 in Lean. Symbolic declarations receive an independent semantics and
-are elaborated into the representation used by an executable checker.
-We prove checker soundness and completeness, conditional source adequacy, and
-an opposite-count property that excludes repeated links without forward
-uniqueness. Comparisons on a Train snapshot with 754 objects and 3,378
-observations distinguish aligned loading from an adaptation with twelve
-presence differences. Across 45 paired case trials, 40 complete and five
-VL-MOF processes time out on the deepest containment chain.
-The formalization provides an executable basis for structural conformance and
-reusable model reasoning, with explicit distinctions between standards
-interpretation, mechanized guarantees and native behavior. It covers static
-snapshots; reflective execution, general default/unset semantics, and correctness
-of parsing and native interchange remain outside the proved scope.
+EMOF supplies structural modeling constructs, but conformance depends on
+interpreting its restrictions separately from reflective-service conditions.
+We formalize a finite structural fragment of EMOF~2.5.1 in Lean, with independent
+symbolic semantics and an executable checker. We prove checker soundness and
+completeness on raw inputs, conditional AST-to-Core adequacy, an opposite-count
+constraint, and preservation of structural conformance under a Boolean-slot edit.
+A full Train walkthrough reproduces a retained schema and 754-object,
+3,378-observation snapshot through tested DSL elaboration and exercises accepted
+and rejected edits. Native comparisons distinguish aligned loading from an
+adaptation with twelve presence differences. Of 45 paired timing trials, 40
+complete and five VL-MOF processes time out on the deepest containment chain.
+The result connects explicit structural meaning, verified checking and bounded
+model reasoning. Parsing, native interchange, domain-query correctness, reflective
+execution and general default/unset semantics remain outside the proved scope.
 \keywords{EMOF \and Metamodeling \and Formal semantics \and Model conformance \and Mechanized verification}
 \end{abstract}
 \input{sections/introduction}

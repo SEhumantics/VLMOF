@@ -1,9 +1,8 @@
 \section{Introduction}
-Metamodels define the concepts and structural constraints of modeling languages.
-MOF provides a common basis for metamodel definition, including the metamodel
-of UML; EMOF provides its essential class-modeling constructs
-\cite{omg_mof_251,omg_uml_25}. A formal account of these constructs can support
-both conformance checking and reasoning about the models a language admits.
+Metamodels define modeling languages' concepts and structural constraints.
+MOF provides a common basis, including for UML's metamodel; EMOF supplies its
+essential class-modeling constructs \cite{omg_mof_251,omg_uml_25}.
+Formalizing them supports conformance checking and reasoning about admitted models.
 
 EMOF combines restrictions, adopted UML definitions and reflective-service
 clauses. A creation prerequisite need not restrict every static snapshot, and
@@ -27,8 +26,8 @@ applicability and cost?
 We present \textbf{VL-MOF}, a Lean formalization of structural EMOF with three
 contributions: (1) definitions of schema well-formedness and snapshot conformance,
 with source-based explanations of consequential choices; (2) proofs of checker
-correctness and symbolic elaboration, together with a reusable constraint on
-opposite links; and (3) an implementation evaluated on Train models and controlled
+correctness and symbolic elaboration, together with an opposite-link constraint and
+a conformance-preserving Boolean edit; and (3) an implementation evaluated on Train models and controlled
 workloads against a declared EMF profile. The formalization concerns finite
 snapshots; reflective execution, general default/unset state and full
 self-description are outside its scope.

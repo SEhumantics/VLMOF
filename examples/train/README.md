@@ -36,3 +36,8 @@ python3 -m unittest scripts.test_cli.DslCommandTests.test_train_published_refere
 The test removes both ends of each opposite pair, preserving inverse
 consistency. v1.0 accepts the empty pair; the published-diagram projection
 rejects it for `multiplicity bounds`.
+
+The [full structural walkthrough](../../docs/train-walkthrough.md) adds the exact
+10-class/21-feature/two-enumeration v1.0 profile and retained 754-object state as
+`full-v1-batch-1.dsl`. It includes a tested exact Core comparison and the bounded
+Boolean-toggle preservation result; the original projection fixtures stay distinct.

@@ -34,6 +34,8 @@ The results show sensitivity to graph shape as well as size. At 101 objects,
 VL-MOF's chain median is about eleven times its star median, although the chain
 has fewer observation rows. EMF remains below 3 ms at the reported median for
 these inputs. These descriptive measurements compare the current implementations,
-whose data structures and runtimes differ; they are neither an asymptotic result
-nor evidence of a general speed ranking. Loading, parsing, normalization,
-diagnostics, and process startup lie outside the measured window.
+whose data structures and runtimes differ. The checker repeatedly scans raw
+lists for graph expansion and tests containment reachability per object; depth
+can increase that work. We have not isolated a measured bottleneck or proved
+a complexity bound. These are not general speed rankings; loading, parsing,
+normalization, diagnostics and startup lie outside the measured window.

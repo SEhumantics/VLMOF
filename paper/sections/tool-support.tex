@@ -1,30 +1,29 @@
 \section{Tool Support}
-\subsection{Implementation and verification}
-VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF}} implements the schema and snapshot representations, conformance
-predicates, decision procedures and elaborator in Lean. The proved components cover checking, source adequacy and the opposite-count
-consequence. The command-line tool accepts
+\subsection{Implementation and Verification}
+VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF} (review access pending)} implements the schema and snapshot representations, conformance
+predicates, decision procedures and elaborator in Lean. The proved components cover checking, source adequacy and the model properties
+of Section~3. The command-line tool accepts
 symbolic declarations or Core JSON and reports parsing, binding, decoding and
 conformance failures separately.
 
-Figure~\ref{fig:boundary} shows the native comparison. Equations~\ref{eq:checker}
-and~\ref{eq:adequacy} cover checking and source elaboration. Parsing, JSON
-conversion and the Java bridge are tested separately. Native validation and
-loaded-state comparison produce distinct results.
+Figure~\ref{fig:boundary} separates native validation from loaded-state comparison.
+Parsing, JSON conversion and the Java bridge are tested, outside the checking
+and AST-elaboration proofs.
 
 \begin{figure}[!htbp]
 \centering
 \begin{tikzpicture}[font=\small,
  box/.style={draw,align=center,text width=28mm,minimum height=11mm},
  arr/.style={-{Stealth[length=1.5mm]}}]
-\node[box] (text) at (-4,2.4) {Source text};
-\node[box,fill=black!5] (core) at (0,2.4) {Core schema\\and snapshot};
-\node[box] (check) at (4,2.4) {Verified\\checker};
+\node[box] (text) at (-4,2.1) {Source text};
+\node[box,fill=black!5] (core) at (0,2.1) {Core schema\\and snapshot};
+\node[box] (check) at (4,2.1) {Verified\\checker};
 \node[box] (fresh) at (0,.4) {Ecore/XMI};
-\node[box] (loaded) at (0,-1.6) {Loaded native\\state};
-\node[box] (validate) at (-4,-1.6) {EMF schema and\\instance checks};
-\node[box] (compare) at (4,-1.6) {Observation\\comparison};
+\node[box] (loaded) at (0,-1.3) {Loaded native\\state};
+\node[box] (validate) at (-4,-1.3) {EMF schema and\\instance checks};
+\node[box] (compare) at (4,-1.3) {Observation\\comparison};
 \draw[arr] (text) -- (core);
-\node[font=\scriptsize,align=center] at (-2,3.25) {parse and\\elaborate};
+\node[font=\scriptsize,align=center] at (-2,3.15) {tested parser;\\proved AST elaboration};
 \draw[arr,double,double distance=.5pt] (core) -- (check);
 \draw[arr] (core) -- node[left,font=\scriptsize]{export} (fresh);
 \draw[arr] (fresh) -- node[left,font=\scriptsize]{load} (loaded);
@@ -37,17 +36,15 @@ loaded-state comparison produce distinct results.
 \label{fig:boundary}
 \end{figure}
 
-\subsection{Textual notation}
+\subsection{Textual Notation}
 The DSL provides an input notation for exercising the formal semantics. It is
 not a new EMOF semantics or an official EMOF concrete syntax. Qualified aliases
 select declarations, \texttt{@} denotes an object reference, and
-\texttt{observe} supplies a property's values. For example:
+\texttt{observe} supplies a property's values. A Route excerpt is:
 \par\noindent\begin{minipage}{\linewidth}\small
 \begin{verbatim}
 object route : railway::Route {
-  observe railway::RailwayElement::id = [101];
   observe railway::Route::active = [true];
-  observe railway::Route::follows = [@switchPosition];
   observe railway::Route::requires = [@sensorA, @sensorB];
 }
 \end{verbatim}
@@ -55,15 +52,13 @@ object route : railway::Route {
 Scalars use singleton lists. An empty list records absence of an optional value
 or an empty collection; an omitted applicable row is invalid. Opposite ends are
 written explicitly so the checker can detect inconsistent links instead of
-repairing them. The complete example also declares the schema, other objects
-and reverse observations.
+repairing them. The full input supplies all applicable rows, declarations and reverse observations.
 
-Explicit names and paired observations aid inspection but require verbose edits.
-Emfatic and Xcore are established alternatives \cite{emfatic_docs,xcore_docs}.
-A shorter front end needs omission, binding and inverse-conflict rules; authoring
-productivity has not been measured.
+Explicit names and paired observations are verbose; authoring productivity has
+not been measured. Emfatic and Xcore are established alternatives
+\cite{emfatic_docs,xcore_docs}.
 
-\subsection{EMF interchange and metadata}
+\subsection{EMF Interchange}
 The Java bridge loads Ecore/XMI through dynamic EMF. Its supported profile
 excludes annotations, operations, generics, declared defaults, derived/unsettable
 features, custom datatypes and unresolved references. Export requires
@@ -75,9 +70,3 @@ explicit first enumeration literal. Export establishes both opposites in fresh
 resources. A sidecar maps Core identities to native URIs; observation comparison
 uses that bijection, ordered sequences and unordered multisets. Agreement is
 checked for each input rather than inferred from equal validation results.
-
-A small metadata interpreter reads ordinary objects describing concrete root
-classes and scalar attributes, constructs a schema, and checks it. A dangling
-owner fails typing; reversed bounds can pass typing yet fail schema validity.
-Packages, inheritance, references and full self-description are not supported
-by this interpreter.
