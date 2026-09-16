@@ -1,10 +1,8 @@
 \section{Evaluation}
 \subsection{Cases and Proof Reuse}
-We use public Train models, authored containment/inheritance cases, and an
-unchanged public EMF Compare input that the bridge rejects as unsupported.
-Only Train supplies public positive cases. Different sizes and shapes do not
-constitute additional metamodel families. The artifact records original files,
-licenses, adaptations and commands.
+We use public Train models and authored containment/inheritance cases; the
+bridge rejects unchanged EMF Compare input as unsupported. Train is the only
+public positive family. The artifact records inputs, licenses, adaptations and commands.
 
 \paragraph{RQ1: Source interpretations.}
 Checked examples distinguish the interpretations in
@@ -13,12 +11,11 @@ container-role identity, and inherited declaration identity. Default and operati
 discrepancies remain source findings outside the implemented fragment.
 
 \paragraph{RQ2: Proved properties.}
-The Lean build checks the decision and source theorems. A client instantiates the
-opposite-count result for a nonunique forward end: any snapshot containing the
-specified objects and a duplicated link is nonconforming. Schema facts are
-proved once; other obligations still require checking. The Boolean-edit client
-composes Equation~\ref{eq:toggle} with checker equivalence: acceptance is
-preserved for any selected key, without further structural premises.
+The Lean build checks the decision and source theorems. The opposite-count
+client proves nonconformance from specified objects and a duplicated nonunique
+link. Schema facts are proved once; other obligations still require checking.
+The Boolean-edit client composes Equation~\ref{eq:toggle} with checker equivalence
+to preserve acceptance for any key, without further structural premises.
 
 \subsection{Comparison with EMF}
 The comparison pins EMF Ecore/XMI 2.39.0 and Common 2.42.0 under Java~21.
@@ -36,22 +33,22 @@ observations, not general schema equivalence.
 \caption{Validation results and loaded-state alignment.}
 \label{tab:correctness}
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{40mm}cccp{31mm}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{40mm}ccc>{\raggedright\arraybackslash}p{31mm}}
 \hline
 Case & EMF S & EMF I & VL-MOF & Alignment \\
 \hline
 \multicolumn{5}{l}{\emph{Accepted EMF schemas: instance comparisons}} \\
-Aligned positives (11 states) & A & A & A & Match \\
+Aligned positives (11) & A & A & A & Match \\
 Missing required String & A & R & R & Match \\
 Repeated unique String & A & A & R & Match \\
-Train adaptation (754 objects) & A & A & A & 12 presence differences \\
+Adapted Train (754) & A & A & A & 12 presence differences \\
 Original Train XMI / profile & A & A & A & Match \\
 
 \multicolumn{5}{l}{\emph{Rejected EMF schemas: instance calls are not overall acceptance}} \\
 Lower 1 / upper 0 & R & R & R & Match \\
 Empty $0..0$ & R & A & A & Match \\
-Repeated unpaired containment & R & A & A & Not aligned: repeat visit \\
-Two unpaired features, one parent & R & A & A & Not aligned: repeat visit \\
+Repeated containment & R & A & A & No: repeat visit \\
+Two unpaired features & R & A & A & No: repeat visit \\
 \hline
 \end{tabular}
 \end{table}
@@ -68,9 +65,9 @@ Alignment also checks featureless objects and bijective declaration provenance.
 A primitive-type/tag gate replayed on all 63 retained pairs changed no decisions;
 this does not prove adapter correctness or schema equivalence.
 
-The full structural Train profile retains all ten classes, 21 features and two
-enumerations of v1.0, after removing a generator annotation and mapping three
-primitive types. It retains the optional bounds discussed in Section~2.
+The full optional-bound Train v1.0 profile retains ten classes, 21 features and two
+enumerations, after removing a generator annotation and mapping three
+primitive types. Its bounds differ from the published diagram (Section~2).
 The adapted batch-1 snapshot has 754 objects and 3,378 observations:
 twelve explicitly written first-enumeration values are reported unset by native
 \texttt{eIsSet}, while the lexical Core route retains \texttt{FAILURE}.
@@ -111,8 +108,6 @@ and their minimum/maximum, in milliseconds. Rows count feature observations.
 \input{sections/validation-times}
 
 \paragraph{RQ3: Applicability and cost.}
-Two metamodel families, with stars and chains as containment shapes, provide
-size/shape evidence, not industrial breadth or
-universal validator agreement. Early runs with scheduling, inventory and worker
-defects remain retained and excluded; complete raw samples and explicit timeout
-records support the reported costs.
+Two metamodel families and containment shapes provide size/shape evidence,
+not industrial breadth or universal agreement. Defective early runs remain
+retained and excluded; raw samples and explicit timeouts support reported costs.

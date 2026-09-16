@@ -21,8 +21,9 @@ EMOF supplies structural modeling constructs, but conformance depends on
 interpreting its restrictions separately from reflective-service conditions.
 We formalize a finite structural fragment of EMOF~2.5.1 in Lean, with independent
 symbolic semantics and an executable checker. We prove checker soundness and
-completeness on raw inputs, conditional AST-to-Core adequacy, an opposite-count
-constraint, and preservation of structural conformance under a Boolean-slot edit.
+completeness on raw inputs and conditional AST-to-Core adequacy. Reuse clients
+derive an opposite-count constraint and preserve structural conformance under
+a Boolean-slot edit.
 A full Train walkthrough reproduces a retained schema and 754-object,
 3,378-observation snapshot through tested DSL elaboration and exercises accepted
 and rejected edits. Native comparisons distinguish aligned loading from an
