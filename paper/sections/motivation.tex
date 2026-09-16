@@ -1,59 +1,60 @@
 \section{Motivation}
-The railway metamodel of Sz\'{a}rnyas et al. connects routes, switch positions,
-switches and sensors \cite{szarnyas_etal_2018}. We use a structural projection
-to ask what an edit must preserve. Its authored snapshot and textual translation
-are supplied separately from the original Train Benchmark Xcore and generated
-inputs; the task concerns structural modeling, not railway safety.
+A metamodel defines more than the shapes of stored objects. It constrains which
+objects may be linked, how inherited properties apply, and which changes leave
+a model valid. A formal semantics makes these obligations explicit. It also
+supports two complementary uses: deciding whether a particular snapshot conforms,
+and proving that a class of edits cannot produce a conforming snapshot.
 
-\begin{figure}[t]
+We illustrate these uses with the Train Benchmark metamodel
+\cite{szarnyas_etal_2018}. A Route requires at least two Sensors and contains
+SwitchPositions. Each position belongs to one Route and refers to one Switch.
+Figure~\ref{fig:train} shows these relationships from the published diagram.
+Role names and multiplicities are placed next to the class at the corresponding
+association end; the diamond marks composition at Route.
+
+\begin{figure}[!htbp]
 \centering
 \begin{tikzpicture}[font=\small,
- box/.style={draw,align=center,text width=27mm,minimum height=12mm},
+ box/.style={draw,align=center,text width=30mm,minimum height=12mm},
  pair/.style={line width=.55pt},every node/.style={inner sep=3pt}]
 \node[box] (route) at (0,0) {\textbf{Route}\\active : Boolean};
-\node[box] (position) at (4.5,0) {\textbf{SwitchPosition}\\position : Position};
-\node[box] (switch) at (9,0) {\textbf{Switch}\\currentPosition\\: Position};
-\node[box] (sensor) at (0,-2.0) {\textbf{Sensor}};
+\node[box] (position) at (7,0) {\textbf{SwitchPosition}\\position : Position};
+\node[box] (sensor) at (0,-3) {\textbf{Sensor}};
+\node[box] (switch) at (7,-3) {\textbf{Switch}\\currentPosition\\: Position};
 \draw[pair,{Diamond[length=2.5mm]}-] (route) --
- node[above,font=\scriptsize,align=center]{follows\\$0..*$}
- node[below,font=\scriptsize,align=center]{route\\$0..1$} (position);
+ node[pos=.16,above,font=\scriptsize,align=center]{route\\$1$}
+ node[pos=.83,above,font=\scriptsize,align=center]{follows\\$0..*$} (position);
 \draw[pair] (position) --
- node[above,font=\scriptsize,align=center]{target\\$0..1$}
- node[below,font=\scriptsize,align=center]{positions\\$0..*$} (switch);
+ node[pos=.18,right,font=\scriptsize,align=left]{positions\\$0..*$}
+ node[pos=.82,left,font=\scriptsize,align=right]{target\\$1$} (switch);
 \draw[-{Stealth[length=1.6mm]}] (route) --
- node[right,font=\scriptsize]{requires $2..*$} (sensor);
+ node[pos=.72,right,font=\scriptsize,align=left]{requires\\$2..*$} (sensor);
 \end{tikzpicture}
-\caption{Selected Train structure, redrawn from the published metamodel and
-Xcore artifact. A horizontal line denotes one opposite pair, with its two role
-names and bounds; the diamond marks the composite end at Route. Inherited
-ordinary integer \emph{id} attributes, intermediate abstract classes and the
-three Position literals are retained in the executable example but omitted here.
-This is a structural projection of the full language.}
+\caption{Train projection with the published reference multiplicities.}
 \label{fig:train}
 \end{figure}
 
-Figure~\ref{fig:train} retains two opposite pairs and a required sensor
-multiplicity. Its source Xcore includes:
-\begin{verbatim}
-contains SwitchPosition[] follows opposite route
-refers Sensor[2..*] requires
-\end{verbatim}
-The inverse route has upper bound one. RailwayElement and TrackElement
-inheritance, Boolean/Integer attributes and Position's three literals remain.
+The executable example contains one route, one switch, one position and two
+sensors. It also retains the abstract RailwayElement and TrackElement classes,
+the inherited integer \emph{id}, and Position's three literals. Removing a
+sensor violates the lower bound of \emph{requires}. Removing only the reverse
+\emph{route} value breaks opposite consistency. Conversely, a theorem relating
+opposites and reverse multiplicity can rule out duplicated links for every
+conforming snapshot, without enumerating them. Train's own uniqueness flags
+already exclude duplicates; Section~3 demonstrates the stronger point with a
+separate nonunique association.
 
-Consider one route, one switch, one switch position and two sensors. Removing
-one required sensor violates the lower bound. Removing only the position's
-reverse route value breaks opposite consistency while preserving local upper
-bounds. This represented inconsistency need not be reachable through an
-inverse-maintaining editor.
+\paragraph{Published diagram and executable artifact.}
+The sources differ. The published diagram gives \emph{route} and \emph{target}
+multiplicity~1; the pinned v1.0 Xcore generates $0..1$ for both. We supply a
+separate \texttt{route-switch-published.dsl} example with the displayed mandatory
+bounds. The historical native fixtures and timing workloads retain v1.0's bounds.
+A position detached from its route, with both opposite observations empty,
+conforms under the optional bound but violates the mandatory one. The distinction
+affects admitted snapshots, not the correctness of the general checker.
 
-The inherited \emph{id} is ordinary Integer data: equal values on distinct
-objects are structurally admissible. Train's SwitchSet query additionally uses
-route activity, entry-semaphore state and switch-position agreement. The
-projection omits semaphores and does not evaluate that domain query.
-
-The projection retains six of ten classes and one of two enumerations, omitting
-outer containers/regions, segments, semaphores and their connections. The surviving
-task connects inherited values, sensors, opposites and containment. Larger states
-support evaluation; separate nonunique witnesses expose opposite constraints
-that Train's own uniqueness flags would otherwise conceal.
+The example retains six of ten classes and one of two enumerations, omitting
+regions, segments, semaphores and their links. Evaluation also uses a full
+structural v1.0 profile. Train's domain queries, including SwitchSet, require
+further semaphore and switch conditions; structural conformance alone does not
+establish those queries or railway safety.

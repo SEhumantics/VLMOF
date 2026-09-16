@@ -1,42 +1,38 @@
 \section{Evaluation}
-\subsection{Questions, corpus and formal reuse}
-Correctness and alignment precede timing. The portfolio distinguishes public
-Train, authored containment/inheritance, and unchanged public EMF Compare as an
-unsupported boundary. Sizes and railway groups do not create independent
-families. Only Train supplies public positives. Original files, licences,
-adaptation maps, raw commands and phase outcomes remain in the artifact.
+\subsection{Cases and proof reuse}
+We use public Train models, authored containment/inheritance cases, and an
+unchanged public EMF Compare input that the bridge rejects as unsupported.
+Only Train supplies public positive cases. Different sizes and shapes do not
+constitute additional metamodel families. The artifact records original files,
+licenses, adaptations and commands.
 
 \paragraph{RQ1: Source interpretations.}
-Checked witnesses distinguish empty $0..0$ validity from creation bounds,
-repeated unpaired containment from two parents, and one parent from two active
-paired container roles. A diamond exposes one inherited declaration identity.
-These demonstrate the consequences of the selected readings in
-Table~\ref{tab:source-findings}. Deferred default/operation discrepancies are
-source findings rather than implemented semantic repairs.
+Checked examples distinguish the interpretations in
+Table~\ref{tab:source-findings}: structural versus creation bounds, parent versus
+container-role identity, and inherited declaration identity. Default and operation
+discrepancies remain source findings outside the implemented fragment.
 
-\paragraph{RQ2: What reasoning can be reused?}
-The Lean build checks the decision and source results. A client applies the opposite-count
-theorem to a metamodel with a nonunique forward end: for \emph{any} candidate
-snapshot containing the two specified objects, two occurrences of the target
-imply nonconformance. A duplicated-link edit instantiates this exclusion.
-Schema facts are discharged once; the exclusion then applies to future
-snapshots, while other obligations still require checking. The metadata
-pilot separately checks interpretation in addition to metadata typing.
+\paragraph{RQ2: Proved properties.}
+The Lean build checks the decision and source theorems. A client instantiates the
+opposite-count result for a nonunique forward end: any snapshot containing the
+specified objects and a duplicated link is nonconforming. Schema facts are
+proved once; other obligations still require checking. The metadata example
+separately checks interpretation and metadata typing.
 
-\subsection{Native outcomes and state alignment}
+\subsection{Comparison with EMF}
 The comparison pins EMF Ecore/XMI 2.39.0 and Common 2.42.0 under Java~21.
 An isolated registry selects EcoreValidator for schemas and generic
 EObjectValidator for dynamic instances. Diagnostician validates schema and
 instance roots separately. Generated validators and OCL delegates are outside
 this condition. Table~\ref{tab:correctness} reports fresh outcomes, including
-instance calls on schemas that Ecore rejects; those calls do not imply acceptance
-of the schema/instance pair.
+instance calls on schemas that Ecore rejects. A and R denote accept and reject;
+S and I denote schema and instance-root calls. An accepted instance call does not
+override schema rejection. Alignment compares mapped identities, classifiers and
+observations, not general schema equivalence.
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering\small
-\caption{Selected correctness outcomes. A: accept; R: reject. Alignment concerns
-mapped identities, classifiers and observations. S: schema call; I: instance-root
-call. An accepted I call does not override a rejected schema.}
+\caption{Validation results and loaded-state alignment.}
 \label{tab:correctness}
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{p{40mm}cccp{31mm}}
@@ -69,8 +65,10 @@ declaration provenance, occurrence counts and ordered lists. A postmeasurement
 primitive-type/tag gate was replayed on all 63 retained native/Core pairs without
 changing decisions. This does not prove the adapter or complete schema equivalence.
 
-For the retained public Train adaptation, the mismatch reproduces on 754 objects
-and 3,378 observations:
+The full structural Train profile retains all ten classes, 21 features and two
+enumerations of v1.0, after removing a generator annotation and mapping three
+primitive types. It retains the optional bounds discussed in Section~2.
+The adapted batch-1 snapshot has 754 objects and 3,378 observations:
 twelve explicitly written first-enumeration values are reported unset by native
 \texttt{eIsSet}, while the lexical Core route retains \texttt{FAILURE}.
 Both systems accept their respective states. This input had materialized twelve
@@ -81,26 +79,25 @@ them resolves this comparison without inserting defaults. This does not establis
 general default/unset equivalence. The unadapted generated schema remains an
 unsupported annotation boundary.
 
-\subsection{Controlled sizes, shapes and costs}
+\subsection{Validation time}
 The generated positive workload has stars with inherited scalar features and
 ordered occurrences (11/101/501 objects), Train projection groups (10/100/500),
-and recursive containment chains (11/101/501, depths 10/100/500). It uses
-retained deterministic parameters. The number of classes, properties, inheritance
-edges, observations and reference occurrences is recorded alongside object count.
-This varies graph size and shape; it does not test growing schema vocabularies.
+and recursive containment chains (11/101/501, depths 10/100/500). Generation is deterministic. Declaration, inheritance, observation and reference
+counts accompany object count; the schema vocabulary stays fixed.
 
 Five independent process trials use ten warmups and thirty measured repetitions.
 Each fixed case receives both tool orders, with reversed traversal on alternate
 trials. Builds finish before timing. The primary window is preloaded combined
 schema/instance validation; diagnostics, loading and serialization are excluded.
-Lean also records schema-only samples and file-read/decode time. Command wall time
-includes startup and other work and is kept separate. Registry-only and
-instance-only timing remain unexecuted protocol items; subtracting schema time
+Schema-only, read/decode and command-wall times are recorded separately.
+Registry-only and instance-only timing were not run; subtracting schema time
 would not measure the latter.
 
+Table~\ref{tab:validation-times} reports the median of five process medians
+and their minimum/maximum, in milliseconds. Rows count feature observations.
 \input{sections/validation-times}
 
-\paragraph{RQ3: Achieved evidence and limitations.}
+\paragraph{RQ3: Applicability and cost.}
 Two metamodel families, with stars and chains as containment shapes, provide
 size/shape evidence, not industrial breadth or
 universal validator agreement. Early runs with scheduling, inventory and worker

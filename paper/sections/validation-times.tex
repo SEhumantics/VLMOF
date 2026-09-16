@@ -1,8 +1,6 @@
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
-\caption{Preloaded combined schema--instance validation time in ms: median of five
-process medians [minimum, maximum]. Each process has 10 warmups and 30 retained
-combined samples. Rows are feature-observation rows.}
+\caption{Combined schema--instance validation time (ms).}
 \label{tab:validation-times}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -23,7 +21,8 @@ Containment chain & 501 & 1503 & 1.898 [1.575, 3.802] & timeout \\
 \end{tabular}
 \end{table}
 
-Each completed cell contains 150 samples per tool. For the 501-object chain,
+Each process median uses 30 measured samples after ten warmups; each completed
+cell therefore contains 150 samples per tool. For the 501-object chain,
 all five EMF processes completed and supply the reported 150 samples. Each
 VL-MOF benchmark process exceeded its 120-second process limit before emitting
 its buffered sample array, so there are no retained VL-MOF samples for that

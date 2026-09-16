@@ -1,45 +1,39 @@
 \section{Introduction}
-Model-driven software engineering uses metamodels to define the structures of
-modeling languages. Essential MOF (EMOF) supplies a shared vocabulary of classes,
-properties, inheritance and associations \cite{omg_mof_251,omg_uml_25}.
-A reusable structural semantics should explain which declarations are legal,
-which finite object structures they admit, and which consequences follow across
-supported metamodels.
+Metamodels define the concepts and structural constraints of modeling languages.
+MOF provides a common basis for metamodel definition, including the metamodel
+of UML; EMOF provides its essential class-modeling constructs
+\cite{omg_mof_251,omg_uml_25}. A formal account of these constructs can support
+both conformance checking and reasoning about the models a language admits.
 
-The difficulty is partly interpretive. EMOF combines restrictions, adopted UML
-definitions and reflective-service clauses. A class-creation prerequisite need
-not be a structural restriction; repeated references need not denote distinct
-containers. A checker can correctly decide a predicate that resolves these
-questions incorrectly. Source justification and implementation correctness need
-separate evidence. Native comparison adds another boundary: tools may accept
-states whose values changed during loading.
+EMOF combines restrictions, adopted UML definitions and reflective-service
+clauses. A creation prerequisite need not restrict every static snapshot, and
+repeated references need not identify different containers. Proving a checker
+correct therefore leaves a separate obligation: justifying its interpretation
+of the standard.
 
-Substantial precedents include executable algebraic MOF conformance
-\cite{boronat_meseguer_2010}, promotion-based EMOF self-description
-\cite{thirioux_etal_2007}, conditional composition preservation in Coq4MDE
-\cite{kezadri_etal_2014}, and conservative theory generation in Isabelle UML/OCL
-\cite{brucker_tuong_wolff_2020}. Our contribution concerns the following
-combination of source-audited identity/occurrence semantics, decisions over
-malformed raw inputs, and symbolic-to-Core correspondence.
-
-We investigate three research questions:
+Previous work provides executable MOF semantics, formal model composition and
+mechanized UML/OCL \cite{boronat_meseguer_2010,kezadri_etal_2014,brucker_tuong_wolff_2020}.
+These developments address different representations and operations. We examine
+structural conformance with explicit declaration identities and repeated values,
+and connect symbolic declarations to that representation through verified
+elaboration. The questions are:
 \begin{description}
-\item[RQ1.] Which source interpretations change admitted schemas or snapshots,
-and what justifies the selected readings?
-\item[RQ2.] What reusable consequences and executable/authoring correspondence
-follow from this interpretation?
-\item[RQ3.] What do the Train projection, native comparisons and controlled
-workloads establish about practical scope and cost?
+\item[RQ1.] Which EMOF interpretations affect conformance, and how are they justified?
+\item[RQ2.] Which checking, elaboration and model properties can be proved?
+\item[RQ3.] What do native comparisons and controlled workloads establish about
+applicability and cost?
 \end{description}
 
-VL-MOF contributes (i) an EMOF 2.5.1 structural interpretation with separating
-examples; (ii) checker equivalence, conditional symbolic correspondence and a
-reusable opposite-count consequence in Lean; and (iii) an executable realization
-with a declared EMF evaluation. We study finite structural snapshots;
-reflective execution, general default/unset
-state and full self-description remain deferred. Generality over represented
-schemas establishes neither empirical breadth nor domain safety.
+We present \textbf{VL-MOF}, a Lean formalization of structural EMOF with three
+contributions: (1) definitions of schema well-formedness and snapshot conformance,
+with source-based explanations of consequential choices; (2) proofs of checker
+correctness and symbolic elaboration, together with a reusable constraint on
+opposite links; and (3) an implementation evaluated on Train models and controlled
+workloads against a declared EMF profile. The formalization concerns finite
+snapshots; reflective execution, general default/unset state and full
+self-description are outside its scope.
 
-Section~2 motivates the account; Section~3 develops definitions and proofs.
-Sections~4--5 present the realization and evaluation, followed by related work,
-threats and conclusions.
+The remainder of the paper is organized as follows. Section~2 motivates the
+work. Section~3 presents the formalization, Section~4 its implementation, and
+Section~5 the evaluation. Sections~6 and~7 discuss related work, limitations
+and conclusions.

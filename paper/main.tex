@@ -1,6 +1,7 @@
 \documentclass{llncs}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx,array}
+\usepackage[section]{placeins}
 \usepackage{amsmath,amssymb}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,backgrounds,fit,positioning}
@@ -16,26 +17,22 @@
 \pagestyle{empty}
 \thispagestyle{empty}
 \begin{abstract}
-A reusable account of model-driven software engineering requires an explicit
-meaning for metamodel declarations and their instances. We formalize a finite
-structural fragment of EMOF 2.5.1 in Lean, separating source interpretation from
-proof of implementation correctness. The account distinguishes structural
-multiplicity from class-creation prerequisites, repeated occurrences from distinct
-container objects, and parent uniqueness from active container-role uniqueness.
-It retains inherited declaration identity, opposite incidence, ordering and
-duplicate values. We prove that a finite executable checker decides the defined
-conformance relation for every represented schema and snapshot. A conditional
-correspondence theorem connects independently defined symbolic satisfaction to
-actual elaboration under explicit lexical premises. A reusable opposite-count
-consequence excludes repeated-link edits without assuming forward uniqueness.
-An attributed Train metamodel projection illustrates structural constraints;
-native EMF comparisons distinguish agreement from schema restrictions, validator
-differences and changes to loaded state. Controlled workloads expose size- and
-shape-dependent costs, including whole-process timeouts on the deepest containment
-chains. The resulting library supports reasoning about structural metamodels and
-finite snapshots. Reflective execution, defaults/unset history and full EMOF
-self-description remain outside the fragment; parser and native-adapter correctness
-are outside the proved boundary.
+EMOF provides structures for defining modeling languages, but its structural
+restrictions and reflective-service conditions require different interpretations
+when defining conformance. We formalize a finite structural fragment of
+EMOF~2.5.1 in Lean. Symbolic declarations receive an independent semantics and
+are elaborated into the representation used by an executable checker.
+We prove checker soundness and completeness, conditional source adequacy, and
+an opposite-count property that excludes repeated links without forward
+uniqueness. Comparisons on a Train snapshot with 754 objects and 3,378
+observations distinguish aligned loading from an adaptation with twelve
+presence differences. Across 45 paired case trials, 40 complete and five
+VL-MOF processes time out on the deepest containment chain.
+The formalization provides an executable basis for structural conformance and
+reusable model reasoning, with explicit distinctions between standards
+interpretation, mechanized guarantees and native behavior. It covers static
+snapshots; reflective execution, general default/unset semantics, and correctness
+of parsing and native interchange remain outside the proved scope.
 \keywords{EMOF \and Metamodeling \and Formal semantics \and Model conformance \and Mechanized verification}
 \end{abstract}
 \input{sections/introduction}

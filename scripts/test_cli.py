@@ -152,6 +152,47 @@ object b : p::B { observe p::B::backs = [@a, @a]; }'''
         report = self.invoke(source.replace('[@a, @a]', '[@a]'), 1, 'invalid')
         self.assertIn({'phase': 'snapshot', 'field': 'opposite counts'}, report['diagnostics'])
 
+    def test_train_published_reference_bounds(self):
+        """The paper's required route and target ends separate it from v1.0 Xcore."""
+        train = ROOT / 'examples' / 'train'
+        v1 = (train / 'route-switch.dsl').read_text(encoding='utf-8')
+        published = (train / 'route-switch-published.dsl').read_text(encoding='utf-8')
+        self.invoke(v1, 0, 'accepted')
+        self.invoke(published, 0, 'accepted')
+
+        # Remove both sides, so opposite counts still agree; only the lower
+        # bound on SwitchPosition.route distinguishes the two profiles.
+        for source, expected_code, expected_status in (
+            (v1, 0, 'accepted'), (published, 1, 'invalid')
+        ):
+            detached = source.replace('Route::follows = [@switchPosition]',
+                                      'Route::follows = []').replace(
+                                          'SwitchPosition::route = [@route]',
+                                          'SwitchPosition::route = []')
+            self.assertNotEqual(detached, source)
+            report = self.invoke(detached, expected_code, expected_status)
+            if expected_status == 'invalid':
+                self.assertIn({'phase': 'snapshot', 'field': 'multiplicity bounds'},
+                              report['diagnostics'])
+                self.assertNotIn({'phase': 'snapshot', 'field': 'opposite counts'},
+                                 report['diagnostics'])
+
+        # The diagram also makes SwitchPosition.target required.
+        for source, expected_code, expected_status in (
+            (v1, 0, 'accepted'), (published, 1, 'invalid')
+        ):
+            detached = source.replace('Switch::positions = [@switchPosition]',
+                                      'Switch::positions = []').replace(
+                                          'SwitchPosition::target = [@switch]',
+                                          'SwitchPosition::target = []')
+            self.assertNotEqual(detached, source)
+            report = self.invoke(detached, expected_code, expected_status)
+            if expected_status == 'invalid':
+                self.assertIn({'phase': 'snapshot', 'field': 'multiplicity bounds'},
+                              report['diagnostics'])
+                self.assertNotIn({'phase': 'snapshot', 'field': 'opposite counts'},
+                                 report['diagnostics'])
+
 
 if __name__ == '__main__':
     unittest.main()

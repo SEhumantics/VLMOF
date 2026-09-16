@@ -1,8 +1,8 @@
 # Train route and switch-position case
 
-This example is an authored, structural projection of the Train Benchmark
-metamodel. It is small enough to read in full while retaining inheritance, an
-enumeration, a lower-bounded reference, two opposite pairs, and composite
+The main example is an authored, structural projection of the pinned Train
+Benchmark v1.0 Xcore. It is small enough to read in full while retaining
+inheritance, an enumeration, a lower-bounded reference, two opposite pairs, and composite
 containment. It demonstrates conformance to the selected structural EMOF
 profile. It does not execute Train queries, transformations, or the benchmark.
 
@@ -60,8 +60,8 @@ association RouteFollows {
 }
 ```
 
-The translation uses an explicit `railway` package. The upstream `[]` shorthand
-means `[0..*]`; unmarked scalar features use `[0..1]`. The translated `ordered`
+The translation uses an explicit `railway` package. The pinned v1.0 Xcore `[]`
+shorthand means `[0..*]`; unmarked scalar features use `[0..1]`. The translated `ordered`
 and `unique` flags follow the usual Ecore defaults. On upper-one features these
 flags do not change the admitted occurrence lists. `RailwayElement.id` remains
 an ordinary Integer property: the translation deliberately omits the DSL's
@@ -84,8 +84,16 @@ The projection omits `RailwayContainer`, `Region`, `Segment`, `Semaphore`, the
 `Signal` enumeration, `routes`, `regions`, `sensors`, `elements`, `monitors`,
 `monitoredBy`, `connectsTo`, `entry`, `exit`, `semaphores`, and all generator
 annotations. These deletions make this a named projection, not an import of the
-complete Train metamodel. No declaration retained by the projection is silently
-weakened.
+complete Train metamodel. No retained declaration is weakened relative to
+**pinned v1.0 Xcore**. Figure 2(a) of the published paper instead labels
+`SwitchPosition.route` and `.target` as `1`. The v1.0 Xcore and its generated
+Ecore make them `0..1`; thus the v1.0 projection is weaker at those ends than
+the printed diagram. The separate
+[`route-switch-published.dsl`](../examples/train/route-switch-published.dsl)
+uses `[1..1]` for both, preserving the displayed paper bounds. It remains an
+authored structural projection, and the paper does not label scalar attribute
+bounds. [The example guide](../examples/train/README.md) distinguishes their
+source versions and evaluation roles.
 
 ## Authored snapshots and consequences
 
@@ -128,10 +136,11 @@ From the repository root:
 
 ```sh
 lake exe vlmof check-dsl examples/train/route-switch.dsl
+lake exe vlmof check-dsl examples/train/route-switch-published.dsl
 lake exe vlmof check-dsl examples/train/duplicate-ordinary-id.dsl
 lake exe vlmof check-dsl examples/train/invalid-required-sensors.dsl
 lake exe vlmof check-dsl examples/train/invalid-missing-inverse.dsl
 ```
 
-The first two report `accepted`. The two files prefixed `invalid-` report
+The first three report `accepted`. The two files prefixed `invalid-` report
 `invalid`, with `multiplicity bounds` and `opposite counts`, respectively.

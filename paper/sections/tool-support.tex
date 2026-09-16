@@ -1,48 +1,47 @@
 \section{Tool Support}
-\subsection{Implementation and proof boundary}
-The Lean library exposes raw records, structural predicates, finite checks and
-reusable theorems. Its CLI accepts symbolic text and versioned Core JSON, with
-separate parse, bind, decode, unsupported-input and conformance outcomes.
-Figure~\ref{fig:boundary} separates proved checking from the tested export/reload
-comparison loop. The companion archive \texttt{vlmof-companion.tar.gz} includes
-the source, clause ledger, retained runs and a result-recomputation guide.
+\subsection{Implementation and verification}
+VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF}} implements the schema and snapshot representations, conformance
+predicates, decision procedures and elaborator in Lean. The proved components cover checking, source adequacy and the opposite-count
+consequence. The command-line tool accepts
+symbolic declarations or Core JSON and reports parsing, binding, decoding and
+conformance failures separately.
 
-\begin{figure}[t]
+Figure~\ref{fig:boundary} shows the native comparison. Equations~\ref{eq:checker}
+and~\ref{eq:adequacy} cover checking and source elaboration. Parsing, JSON
+conversion and the Java bridge are tested separately. Native validation and
+loaded-state comparison produce distinct results.
+
+\begin{figure}[!htbp]
 \centering
-\begin{tikzpicture}[font=\scriptsize,
- box/.style={draw,align=center,text width=27mm,minimum height=9mm},
+\begin{tikzpicture}[font=\small,
+ box/.style={draw,align=center,text width=28mm,minimum height=11mm},
  arr/.style={-{Stealth[length=1.5mm]}}]
-\node[box] (text) at (-3.8,2) {Text / source AST};
-\node[box,fill=black!5] (core) at (0,2) {Core schema $S$\\snapshot $M$};
-\node[box] (check) at (3.8,2) {Lean check\\$\Longleftrightarrow C(S,M)$};
-\node[box] (fresh) at (0,.2) {Fresh Ecore/XMI\\export and reload};
-\node[box] (loaded) at (0,-1.5) {Loaded native state\\mapped observations};
-\node[box] (validate) at (-3.8,-1.5) {EMF schema and\\instance validation};
-\node[box] (compare) at (3.8,-1.5) {State comparison\\match or mismatch};
+\node[box] (text) at (-4,2.4) {Source text};
+\node[box,fill=black!5] (core) at (0,2.4) {Core schema\\and snapshot};
+\node[box] (check) at (4,2.4) {Verified\\checker};
+\node[box] (fresh) at (0,.4) {Ecore/XMI};
+\node[box] (loaded) at (0,-1.6) {Loaded native\\state};
+\node[box] (validate) at (-4,-1.6) {EMF schema and\\instance checks};
+\node[box] (compare) at (4,-1.6) {Observation\\comparison};
 \draw[arr] (text) -- (core);
-\node[align=center] at (-1.9,2.8) {parse /\\elaborate};
+\node[font=\scriptsize,align=center] at (-2,3.25) {parse and\\elaborate};
 \draw[arr,double,double distance=.5pt] (core) -- (check);
-\draw[arr] (core) -- node[right]{tested export} (fresh);
-\draw[arr] (fresh) -- node[right]{load and map} (loaded);
+\draw[arr] (core) -- node[left,font=\scriptsize]{export} (fresh);
+\draw[arr] (fresh) -- node[left,font=\scriptsize]{load} (loaded);
 \draw[arr] (loaded) -- (validate);
 \draw[arr] (loaded) -- (compare);
-\draw[arr] (core.east) -- ++(.3,0) -- ++(0,-2.9) -| (compare.north);
-\node at (2.8,-.6) {original state};
+\draw[arr] (core.south east) -- (2.05,1.45) -- (2.05,-.5) -- (4,-.5) -- (compare.north);
+\node[font=\scriptsize,align=center] at (3.7,.6) {original Core\\observations};
 \end{tikzpicture}
-\caption{Native comparison is a loop back to the original Core observations.
-The source-AST correspondence requires $A(d)$ and actual successful elaboration;
-parsing is outside it. Only the Core checker arrow has an unconditional
-correspondence theorem. Native validation and state equality are separate results.}
+\caption{Implementation and native comparison workflow.}
 \label{fig:boundary}
 \end{figure}
 
-\subsection{Authoring notation and its costs}
-The explicit language supports inspection and malformed-state diagnosis.
-Qualified aliases select inherited declarations; \texttt{@} denotes an object
-reference; \texttt{observe} records occurrences. Scalars use singleton lists;
-\texttt{[]} is zero occurrences (optional scalar/reference absence or an empty
-multivalued collection), while a missing row violates coverage. These are
-interface choices, not EMOF syntax. The running example contains:
+\subsection{Textual notation}
+The DSL provides an input notation for exercising the formal semantics. It is
+not a new EMOF semantics or an official EMOF concrete syntax. Qualified aliases
+select declarations, \texttt{@} denotes an object reference, and
+\texttt{observe} supplies a property's values. For example:
 \par\noindent\begin{minipage}{\linewidth}\small
 \begin{verbatim}
 object route : railway::Route {
@@ -53,30 +52,32 @@ object route : railway::Route {
 }
 \end{verbatim}
 \end{minipage}\par
-The complete file includes declarations, other objects and inverse rows.
-Paired inconsistency yields an opposite-count diagnostic; missing sensors yield a
-multiplicity diagnostic. No inverse repair or duplicate removal is implicit.
+Scalars use singleton lists. An empty list records absence of an optional value
+or an empty collection; an omitted applicable row is invalid. Opposite ends are
+written explicitly so the checker can detect inconsistent links instead of
+repairing them. The complete example also declares the schema, other objects
+and reverse observations.
 
-Concise sugar and Emfatic are alternatives \cite{emfatic_docs}. Short names and
-scalar assignments need ambiguity, omission and inverse-conflict rules, so that
-sugar remains unimplemented. Emfatic supports containment/opposites but can
-exceed the native profile and has no proved AST boundary. There is no measured
-productivity advantage; persistent identity and default/unset need migration.
+Explicit names and paired observations aid inspection but require verbose edits.
+Emfatic and Xcore are established alternatives \cite{emfatic_docs,xcore_docs}.
+A shorter front end needs omission, binding and inverse-conflict rules; authoring
+productivity has not been measured.
 
-\subsection{EMF interchange and metadata clients}
-The Java bridge loads Ecore/XMI through dynamic EMF. Its profile rejects
-annotations, operations, generics, declared defaults, derived/unsettable features,
-custom datatypes and unresolved references. Export requires class-owned ends,
-representable packages/names and signed 32-bit integers.
+\subsection{EMF interchange and metadata}
+The Java bridge loads Ecore/XMI through dynamic EMF. Its supported profile
+excludes annotations, operations, generics, declared defaults, derived/unsettable
+features, custom datatypes and unresolved references. Export requires
+class-owned ends, representable packages and names, and signed 32-bit integers.
 
-Import allocates identities from containment and tracks written scalars separately
-from omissions. This can differ from \texttt{eIsSet}, especially for an explicit
-first enum literal; declared defaults remain unsupported. Export establishes both
-opposites in fresh resources. Its sidecar maps Core IDs to native URIs; comparison
-uses that bijection and ordered sequences or unordered multisets. Thus lossless
-alignment is checked per input, not inferred from acceptance.
+Import allocates identities from containment and distinguishes written scalar
+values from omissions. This can differ from \texttt{eIsSet}, especially for an
+explicit first enumeration literal. Export establishes both opposites in fresh
+resources. A sidecar maps Core identities to native URIs; observation comparison
+uses that bijection, ordered sequences and unordered multisets. Agreement is
+checked for each input rather than inferred from equal validation results.
 
-A metadata client interprets ordinary objects for concrete root classes and finite
-scalar attributes as a schema, then checks it. A dangling owner fails typing;
-reversed bounds can pass typing yet fail schema validity. Packages, inheritance,
-references and full self-description remain outside the pilot.
+A small metadata interpreter reads ordinary objects describing concrete root
+classes and scalar attributes, constructs a schema, and checks it. A dangling
+owner fails typing; reversed bounds can pass typing yet fail schema validity.
+Packages, inheritance, references and full self-description are not supported
+by this interpreter.
