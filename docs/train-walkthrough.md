@@ -18,7 +18,7 @@ measurement has been tightened. The older 2016 Ecore is yet another profile.
 untouched batch-1 **Core state** as explicit DSL. It is generated research notation,
 not upstream Train syntax, a newly authored independent model, or a verified XMI
 translation. The source E1 file retains its original provenance/URI mapping.
-Its first 61 lines are the full schema; the rest are all 754 objects and 3,378
+Its first 62 lines are the full schema; the rest are all 754 objects and 3,378
 observations. Enumeration omissions remain empty rows. No defaults are inserted.
 The exact-equality test also retains scalar `nonunique` flags from the full profile;
 the pedagogic projection uses `unique` at upper-one scalar slots, with the same
