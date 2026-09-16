@@ -1,7 +1,12 @@
 \section{Conclusion}
-VL-MOF gives a selected structural EMOF fragment precise semantics, a verified
-checker and proved symbolic elaboration. Identity, occurrence and containment
-reasoning supports an opposite-count constraint and a Boolean edit. The selected
-EMF comparison exposes loading differences; costs depend on size and depth.
-Further work concerns graph-changing edits, defaults and unset state, and
-metadata with packages, inheritance, references and explicit ownership.
+VL-MOF gives a selected structural part of EMOF~2.5.1 explicit conformance
+conditions and an executable checker in Lean. Its standards analysis explains
+choices that change the admitted models, while its proofs connect checker
+acceptance to those conditions and symbolic declarations to the Core
+representation under explicit naming premises. The full structural Train case
+exercises that connection through the implementation. EMF comparisons show that
+agreement must be assessed on both validation decisions and loaded state;
+controlled workloads also reveal limits at greater containment depth. Together,
+these results support checking and reasoning from a common structural semantics.
+Establishing formal correspondence for file interchange would extend the current
+guarantees beyond the AST and Core boundary.

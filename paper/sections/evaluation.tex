@@ -1,59 +1,72 @@
 \section{Evaluation}
-\subsection{Cases and Proof Reuse}
-We use public Train models and authored containment/inheritance cases; the
-bridge rejects unchanged EMF Compare input as unsupported. Train is the only
-public positive family. The artifact records inputs, licenses, adaptations and commands.
+\subsection{Cases and Semantic Checks}
+We use Train models and authored containment/inheritance cases. Train is the
+only public positive family; the bridge rejects unchanged EMF Compare input.
+The artifact records the inputs, adaptations, licenses and commands.
 
-\paragraph{RQ1: Source interpretations.}
-Checked examples distinguish the interpretations in
-Table~\ref{tab:source-findings}: structural versus creation bounds, parent versus
-container-role identity, and inherited declaration identity. Default and operation
-discrepancies remain source findings outside the implemented fragment.
+The source analysis in Section~3.5 answers RQ1; separating examples exercise
+its bound, containment and inheritance choices. The theorems in Sections~3.3--3.4
+answer RQ2. Lean checks those proofs and a client deriving nonconformance from
+a duplicated link with an upper-one opposite.
 
-\paragraph{RQ2: Proved properties.}
-The Lean build checks the decision and source theorems. The opposite-count
-client proves nonconformance from specified objects and a duplicated nonunique
-link. Schema facts are proved once; other obligations still require checking.
-The Boolean-edit client composes Equation~\ref{eq:toggle} with checker equivalence
-to preserve acceptance for any key, without further structural premises.
+The full Train input contains ten classes, 21 features, two enumerations,
+754 objects and 3,378 observation rows. Its symbolic declarations parse and
+elaborate to the retained Core schema and snapshot exactly, including identities,
+flags, row order and recorded absence. This tests the notation path against an existing pair.
+Route object~1 follows position~2, requires sensors~25--31 and references entry
+and exit semaphores~425 and~34. Retaining only one required sensor causes a
+multiplicity failure while the other structural checks continue to pass.
 
 \subsection{Comparison with EMF}
 The comparison pins EMF Ecore/XMI 2.39.0 and Common 2.42.0 under Java~21.
 An isolated registry selects EcoreValidator for schemas and generic
 EObjectValidator for dynamic instances. Diagnostician validates schema and
 instance roots separately. Generated validators and OCL delegates are outside
-this condition. Table~\ref{tab:correctness} reports fresh outcomes, including
-instance calls on schemas that Ecore rejects. A and R denote accept and reject;
-S and I denote schema and instance-root calls. An accepted instance call does not
-override schema rejection. Alignment compares mapped identities, classifiers and
-observations, not general schema equivalence.
+this condition. Table~\ref{tab:correctness}(a) separates EMF's schema check,
+its instance-root check, and VL-MOF's combined conformance check. ``Accept'' in
+the instance column is only that call's result: it cannot override a rejected
+schema. Table~\ref{tab:correctness}(b) asks whether the two tools examined the
+same state by comparing mapped object identities, classifiers and property
+values. A matching state can still receive different validation decisions.
 
-\begin{table}[!htbp]
+\begin{table}[tbp]
 \centering\small
-\caption{Validation results and loaded-state alignment.}
+\caption{Validation decisions (a) and loaded-state correspondence (b).}
 \label{tab:correctness}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{>{\raggedright\arraybackslash}p{40mm}ccc>{\raggedright\arraybackslash}p{31mm}}
+\textbf{(a) Validation decisions}\\[3pt]
+\begin{tabular}{p{49mm}ccc}
 \hline
-Case & EMF S & EMF I & VL-MOF & Alignment \\
+Case & EMF schema & EMF instance & VL-MOF \\
 \hline
-\multicolumn{5}{l}{\emph{Accepted EMF schemas: instance comparisons}} \\
-Aligned positives (11) & A & A & A & Match \\
-Missing required String & A & R & R & Match \\
-Repeated unique String & A & A & R & Match \\
-Adapted Train (754) & A & A & A & 12 presence differences \\
-Original Train XMI / profile & A & A & A & Match \\
+Aligned positives (11) & Accept & Accept & Accept \\
+Missing required String & Accept & Reject & Reject \\
+Repeated unique String & Accept & Accept & Reject \\
+Adapted Train (754 objects) & Accept & Accept & Accept \\
+Original Train XMI / profile & Accept & Accept & Accept \\
+\hline
+Lower 1 / upper 0 & Reject & Reject & Reject \\
+Empty $0..0$ & Reject & Accept & Accept \\
+Repeated containment & Reject & Accept & Accept \\
+Two unpaired features & Reject & Accept & Accept \\
+\hline
+\end{tabular}
 
-\multicolumn{5}{l}{\emph{Rejected EMF schemas: instance calls are not overall acceptance}} \\
-Lower 1 / upper 0 & R & R & R & Match \\
-Empty $0..0$ & R & A & A & Match \\
-Repeated containment & R & A & A & No: repeat visit \\
-Two unpaired features & R & A & A & No: repeat visit \\
+\medskip
+\textbf{(b) Correspondence after loading}\\[3pt]
+\begin{tabular}{>{\raggedright\arraybackslash}p{54mm}>{\raggedright\arraybackslash}p{60mm}}
+\hline
+Case(s) & State comparison \\
+\hline
+All cases in (a) except those below & Match \\
+Adapted Train & 12 scalar-presence differences \\
+Repeated containment; two unpaired features & Comparison fails: duplicate collector rows from repeated visits \\
 \hline
 \end{tabular}
 \end{table}
 
-The zero-upper and nonunique-containment rows expose Ecore schema restrictions.
+The lower block of Table~\ref{tab:correctness}(a) exposes Ecore schema
+restrictions. In particular, an empty $0..0$ property is permitted by our
+structural interpretation but rejected by Ecore at schema level.
 The repeated unique String survives loading but is accepted by this generic
 validator and rejected by VL-MOF; it does not establish the behavior of every
 EMF editor or generated validator. Repeated traversal of a contained object
@@ -61,32 +74,18 @@ produces duplicate collector rows in the two unpaired cases. Their alignment is
 conservatively unsuccessful even though their distinct URI/value comparisons
 agree; they are not timed.
 
-Alignment also checks featureless objects and bijective declaration provenance.
-A primitive-type/tag gate replayed on all 63 retained pairs changed no decisions;
-this does not prove adapter correctness or schema equivalence.
-
-The full optional-bound Train v1.0 profile retains ten classes, 21 features and two
-enumerations, after removing a generator annotation and mapping three
-primitive types. Its bounds differ from the published diagram (Section~2).
-The adapted batch-1 snapshot has 754 objects and 3,378 observations:
-twelve explicitly written first-enumeration values are reported unset by native
+The full Train v1.0 profile removes one generator annotation and maps three
+primitive types. The v1.0 profile gives $0..1$ bounds to \emph{route}, \emph{target},
+\emph{entry} and \emph{exit}, where the article's diagram gives multiplicity one;
+Figure~\ref{fig:train} consistently uses the evaluated profile.
+In the adapted batch-1 snapshot, twelve explicitly written first-enumeration
+values are reported unset by native
 \texttt{eIsSet}, while the lexical Core route retains \texttt{FAILURE}.
-Both systems accept their respective states. This input had materialized twelve
-omitted defaults and stays excluded from paired timing. A fresh control using
+Both systems accept their respective states. This adaptation had materialized
+omitted defaults and is excluded from paired timing. A fresh control using
 untouched original batch-1 XMI and the explicitly adapted Ecore profile is accepted
 by both validators and aligns. Zero lower bounds permit its omissions; preserving
-them resolves this comparison without inserting defaults. This does not establish
-general default/unset equivalence. The unadapted generated schema remains an
-unsupported annotation boundary.
-
-The companion's \texttt{full-v1-batch-1.dsl} supplies this complete schema and
-instance, with a declaration crosswalk. Actual parsing/elaboration reproduces
-the retained Core pair exactly, including IDs, flags, row order and absence;
-this tests correspondence, not converter correctness. Route 1 follows position 2,
-requires sensors 25--31 and has entry/exit semaphores 425/34. Toggling its present
-\emph{active} value preserves acceptance; retaining only one sensor fails
-multiplicity alone. This adds notation coverage and a preservation client,
-not native or timing measurements.
+them resolves this comparison without inserting defaults. The result is specific to this profile; the unadapted schema is unsupported.
 
 \subsection{Validation Time}
 The timing cases use the authored optional-bound Train projection, not the full
@@ -95,19 +94,20 @@ ordered occurrences (11/101/501 objects), Train groups (10/100/500), and
 containment chains (11/101/501, depths 10/100/500), with fixed schema vocabulary.
 Declaration, inheritance, observation and reference counts accompany object count.
 
-Five independent process trials use ten warmups and thirty measured repetitions.
-Each fixed case receives both tool orders, with reversed traversal on alternate
-trials. Builds finish before timing. The primary window is preloaded combined
-schema/instance validation; diagnostics, loading and serialization are excluded.
-Schema-only, read/decode and command-wall times are recorded separately.
-Registry-only and instance-only timing were not run; subtracting schema time
-would not measure the latter.
+Each case uses five independent process trials, ten warmups and thirty measured
+repetitions, with both tool orders and alternate traversal directions. Builds
+precede timing. We measure combined schema/instance validation on preloaded
+inputs, excluding loading, serialization and diagnostics. The artifact also
+records schema-only, read/decode and command-wall times. Instance-only validation
+was not measured and cannot be inferred by subtracting schema time.
 
 Table~\ref{tab:validation-times} reports the median of five process medians
-and their minimum/maximum, in milliseconds. Rows count feature observations.
+in milliseconds; the artifact retains each process median, their minimum and
+maximum, and all measured samples. Rows count feature observations.
 \input{sections/validation-times}
 
 \paragraph{RQ3: Applicability and cost.}
-Two metamodel families and containment shapes provide size/shape evidence,
-not industrial breadth or universal agreement. Defective early runs remain
-retained and excluded; raw samples and explicit timeouts support reported costs.
+The comparison finds both aligned states and specific validation differences.
+Forty of 45 paired timing trials complete; five VL-MOF processes time out on
+the deepest chain. Raw samples, timeouts and excluded preliminary runs remain
+in the artifact.

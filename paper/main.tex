@@ -1,37 +1,41 @@
 \documentclass{llncs}
 \usepackage[T1]{fontenc}
-\usepackage{graphicx,array}
-\usepackage[section]{placeins}
+\usepackage{graphicx,array,float}
+\usepackage{placeins}
 \usepackage{amsmath,amssymb}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,backgrounds,fit,positioning}
 \usepackage[hidelinks]{hyperref}
 \emergencystretch=2em
-\title{Formalizing Structural EMOF for Metamodeling}
+\title{Formalizing Structural EMOF in Lean for Metamodeling}
 \author{Trong-Nghia Be \and Duc-Hanh Dang}
 \authorrunning{T.-N. Be and D.-H. Dang}
 \institute{Faculty of Information Technology, VNU University of Engineering and Technology, Hanoi, Vietnam\\
 \email{24025175@vnu.edu.vn, hanhdd@vnu.edu.vn}}
 \begin{document}
 \maketitle
+\raggedbottom
 \pagestyle{empty}
 \thispagestyle{empty}
 \begin{abstract}
-EMOF supplies structural modeling constructs, but conformance depends on
-interpreting its restrictions separately from reflective-service conditions.
-We formalize a finite structural fragment of EMOF~2.5.1 in Lean, with independent
-symbolic semantics and an executable checker. We prove checker soundness and
-completeness on raw inputs and conditional AST-to-Core adequacy. Reuse clients
-derive an opposite-count constraint and preserve structural conformance under
-a Boolean-slot edit.
-A full Train walkthrough reproduces a retained schema and 754-object,
-3,378-observation snapshot through tested DSL elaboration and exercises accepted
-and rejected edits. Native comparisons distinguish aligned loading from an
-adaptation with twelve presence differences. Of 45 paired timing trials, 40
-complete and five VL-MOF processes time out on the deepest containment chain.
-The result connects explicit structural meaning, verified checking and bounded
-model reasoning. Parsing, native interchange, domain-query correctness, reflective
-execution and general default/unset semantics remain outside the proved scope.
+Modeling tools use metamodels to specify which elements and relationships a
+model may contain. Essential MOF (EMOF) supplies common constructs for these
+specifications, but implementing its rules requires reconciling requirements
+spread across the standard. Different interpretations can lead tools to disagree
+on whether a model is valid. We define structural EMOF conformance for finite
+models in Lean, a proof assistant that checks mathematical proofs. The definitions
+cover inheritance, property values, multiplicity, opposites and containment.
+We prove that our executable checker accepts exactly the models satisfying
+these definitions. We also give named model declarations a meaning independent
+of the checker and prove that translation to its internal representation preserves
+that meaning under explicit naming conditions. A railway model from the Train
+Benchmark exercises translation and validation using the complete adapted
+structural metamodel. Comparisons with the Eclipse
+Modeling Framework (EMF) show why both validation decisions and the values loaded
+by each tool must be examined. Controlled workloads expose scalability limits
+for deeply nested containment. The result provides common definitions for
+checking and reasoning about models, while standards interpretation and file
+parsing and interchange remain outside the machine-checked guarantees.
 \keywords{EMOF \and Metamodeling \and Formal semantics \and Model conformance \and Mechanized verification}
 \end{abstract}
 \input{sections/introduction}
@@ -41,6 +45,7 @@ execution and general default/unset semantics remain outside the proved scope.
 \input{sections/evaluation}
 \input{sections/discussion}
 \input{sections/conclusion}
+\clearpage
 \bibliographystyle{splncs04}
 \bibliography{references}
 \end{document}

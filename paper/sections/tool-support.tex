@@ -1,16 +1,17 @@
 \section{Tool Support}
 \subsection{Implementation and Verification}
-VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF} (review access pending)} implements the schema and snapshot representations, conformance
-predicates, decision procedures and elaborator in Lean. The proved components cover checking, source adequacy and the model properties
-of Section~3. The command-line tool accepts
-symbolic declarations or Core JSON and reports parsing, binding, decoding and
-conformance failures separately.
+VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF} (review access pending)} implements the definitions and verified functions of Section~3 in Lean.
+Its CLI accepts symbolic declarations or Core JSON, invokes the snapshot checker,
+and distinguishes parsing, binding, decoding and conformance failures.
 
-Figure~\ref{fig:boundary} separates native validation from loaded-state comparison.
-Parsing, JSON conversion and the Java bridge are tested, outside the checking
-and AST-elaboration proofs.
+Figure~\ref{fig:boundary} follows text through parsing and elaboration to the
+Core pair and its checker. The export experiment writes Ecore/XMI and loads it
+in EMF, then checks both EMF acceptance and preservation of objects and property
+values. Observation comparison therefore receives the initial Core state and
+the loaded EMF state. Parsing, JSON conversion and the bridge are tested
+components outside the checker and AST-elaboration proofs.
 
-\begin{figure}[!htbp]
+\begin{figure}[!hb]
 \centering
 \begin{tikzpicture}[font=\small,
  box/.style={draw,align=center,text width=28mm,minimum height=11mm},
@@ -23,46 +24,44 @@ and AST-elaboration proofs.
 \node[box] (validate) at (-4,-1.3) {EMF schema and\\instance checks};
 \node[box] (compare) at (4,-1.3) {Observation\\comparison};
 \draw[arr] (text) -- (core);
-\node[font=\scriptsize,align=center] at (-2,3.15) {tested parser;\\proved AST elaboration};
+
 \draw[arr,double,double distance=.5pt] (core) -- (check);
 \draw[arr] (core) -- node[left,font=\scriptsize]{export} (fresh);
 \draw[arr] (fresh) -- node[left,font=\scriptsize]{load} (loaded);
 \draw[arr] (loaded) -- (validate);
 \draw[arr] (loaded) -- (compare);
 \draw[arr] (core.south east) -- (2.05,1.45) -- (2.05,-.5) -- (4,-.5) -- (compare.north);
-\node[font=\scriptsize,align=center] at (3.7,.6) {original Core\\observations};
+
 \end{tikzpicture}
-\caption{Implementation and native comparison workflow.}
+\caption{Validation and state comparison along the export path.}
 \label{fig:boundary}
 \end{figure}
 
 \subsection{Textual Notation}
-The DSL provides an input notation for exercising the formal semantics. It is
-not a new EMOF semantics or an official EMOF concrete syntax. Qualified aliases
+The DSL provides a readable notation for schemas and snapshots used by the
+checker and elaborator. Qualified aliases
 select declarations, \texttt{@} denotes an object reference, and
-\texttt{observe} supplies a property's values. A Route excerpt is:
+\texttt{observe} supplies a property's values. A route excerpt is:
 \par\noindent\begin{minipage}{\linewidth}\small
 \begin{verbatim}
-object route : railway::Route {
+object o1 : railway::Route {
   observe railway::Route::active = [true];
-  observe railway::Route::requires = [@sensorA, @sensorB];
+  observe railway::Route::requires =
+    [@o25, @o26, @o27, @o28, @o29, @o30, @o31];
 }
 \end{verbatim}
 \end{minipage}\par
-Scalars use singleton lists. An empty list records absence of an optional value
-or an empty collection; an omitted applicable row is invalid. Opposite ends are
-written explicitly so the checker can detect inconsistent links instead of
-repairing them. The full input supplies all applicable rows, declarations and reverse observations.
-
-Explicit names and paired observations are verbose; authoring productivity has
-not been measured. Emfatic and Xcore are established alternatives
-\cite{emfatic_docs,xcore_docs}.
+Scalars use singleton lists; $[]$ records absence or an empty collection.
+Applicable rows and paired opposite ends must be explicit. The complete input
+also supplies the inherited \emph{id}, entry/exit and follows rows, referenced
+objects and declarations; this excerpt alone is incomplete.
 
 \subsection{EMF Interchange}
-The Java bridge loads Ecore/XMI through dynamic EMF. Its supported profile
-excludes annotations, operations, generics, declared defaults, derived/unsettable
-features, custom datatypes and unresolved references. Export requires
-class-owned ends, representable packages and names, and signed 32-bit integers.
+The Java bridge loads Ecore/XMI through dynamic EMF for comparison. Its declared
+profile rejects unsupported features, including annotations, operations and
+general default/unset features. Export requires class-owned ends, representable
+names and packages, and signed 32-bit integers, whereas Lean also supports
+association-owned ends and unbounded integers. The artifact specifies the profile.
 
 Import allocates identities from containment and distinguishes written scalar
 values from omissions. This can differ from \texttt{eIsSet}, especially for an

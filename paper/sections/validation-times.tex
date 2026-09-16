@@ -1,41 +1,36 @@
 \begin{table}[!htbp]
 \centering
-\caption{Preloaded schema--instance validation time (ms).}
+\caption{Preloaded schema--instance validation time: median of process medians (ms).}
 \label{tab:validation-times}
-\footnotesize
-\setlength{\tabcolsep}{2pt}
-\begin{tabular}{lrrll}
+\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lrrrr}
 \hline
 Family/shape & Objects & Rows & EMF & VL-MOF \\
 \hline
-Containment star & 11 & 42 & 0.590 [0.569, 0.924] & 0.679 [0.670, 0.693] \\
-Containment star & 101 & 402 & 0.726 [0.696, 0.781] & 9.597 [8.710, 9.923] \\
-Containment star & 501 & 2002 & 1.640 [1.224, 1.722] & 126.054 [115.909, 126.855] \\
-Train projection & 10 & 26 & 0.809 [0.617, 0.878] & 2.238 [2.198, 2.265] \\
-Train projection & 100 & 260 & 0.929 [0.887, 0.985] & 24.836 [24.335, 25.245] \\
-Train projection & 500 & 1300 & 1.731 [1.207, 2.067] & 170.138 [153.692, 172.526] \\
-Containment chain & 11 & 33 & 0.486 [0.456, 0.546] & 0.154 [0.153, 0.194] \\
-Containment chain & 101 & 303 & 0.808 [0.613, 0.976] & 108.966 [101.149, 114.705] \\
-Containment chain & 501 & 1503 & 1.898 [1.575, 3.802] & timeout \\
+Containment star & 11 & 42 & 0.590 & 0.679 \\
+Containment star & 101 & 402 & 0.726 & 9.597 \\
+Containment star & 501 & 2002 & 1.640 & 126.054 \\
+Train projection & 10 & 26 & 0.809 & 2.238 \\
+Train projection & 100 & 260 & 0.929 & 24.836 \\
+Train projection & 500 & 1300 & 1.731 & 170.138 \\
+Containment chain & 11 & 33 & 0.486 & 0.154 \\
+Containment chain & 101 & 303 & 0.808 & 108.966 \\
+Containment chain & 501 & 1503 & 1.898 & timeout \\
 \hline
 \end{tabular}
 \end{table}
 
-Each process median uses 30 measured samples after ten warmups; each completed
-cell therefore contains 150 samples per tool. For the 501-object chain,
-all five EMF processes completed and supply the reported 150 samples. Each
-VL-MOF benchmark process exceeded its 120-second process limit before emitting
-its buffered sample array, so there are no retained VL-MOF samples for that
-cell. The limit covers 40 schema-only and 40 combined iterations plus
-process overhead, not a single validation. Pooled sample summaries remain in
-the archive; Table~\ref{tab:validation-times} treats the process as the independent unit.
+Each completed cell summarizes 150 measured samples across five processes.
+For the 501-object chain, all EMF processes completed; every VL-MOF process
+exceeded 120 seconds before emitting its buffered samples. No VL-MOF samples
+are retained for that cell. The limit covers 40 schema-only and 40 combined
+iterations plus process overhead, rather than one validation. The table treats
+processes as independent units; pooled summaries remain in the artifact.
 
-The results show sensitivity to graph shape as well as size. At 101 objects,
-VL-MOF's chain median is about eleven times its star median, although the chain
-has fewer observation rows. EMF remains below 3 ms at the reported median for
-these inputs. These descriptive measurements compare the current implementations,
-whose data structures and runtimes differ. The checker repeatedly scans raw
-lists for graph expansion and tests containment reachability per object; depth
-can increase that work. We have not isolated a measured bottleneck or proved
-a complexity bound. These are not general speed rankings; loading, parsing,
-normalization, diagnostics and startup lie outside the measured window.
+Graph shape matters as well as size: at 101 objects, VL-MOF's chain median is
+about eleven times its star median despite fewer observation rows. EMF medians
+remain below 3 ms for these inputs. VL-MOF scans raw lists during graph expansion
+and checks containment reachability per object, which may explain depth
+sensitivity. These measurements neither isolate a bottleneck nor establish a
+complexity bound or a general speed ranking between the implementations.

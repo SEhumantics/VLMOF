@@ -1,57 +1,30 @@
 \section{Motivation}
-A metamodel defines more than the shapes of stored objects. It constrains which
-objects may be linked, how inherited properties apply, and which changes leave
-a model valid. A formal semantics makes these obligations explicit. It also
-supports two complementary uses: deciding whether a particular snapshot conforms,
-and proving which edits preserve conformance or necessarily violate it.
+Metamodeling gives different languages a shared structural foundation through
+classes, inheritance, multiplicity and containment. If tools disagree on these
+concepts, using the same metamodel does not ensure that they admit the same
+models. A formal semantics makes these obligations explicit, supporting both
+individual conformance checks and reasoning about all admitted models.
 
-We illustrate these uses with the Train Benchmark metamodel
-\cite{szarnyas_etal_2018}. A Route requires at least two Sensors and contains
-SwitchPositions. Each position belongs to one Route and refers to one Switch.
-Figure~\ref{fig:train} shows these relationships from the published diagram.
-Role names and multiplicities are placed next to the class at the corresponding
-association end; the diamond marks composition at Route.
+The Train Benchmark models railway networks and planned routes
+\cite{szarnyas_etal_2018}. Regions contain track elements and sensors; segments
+and switches form the track, sensors monitor it, and semaphores carry signals.
+Routes require sensors and specify switch positions. Figure~\ref{fig:train}
+shows the complete evaluated structural profile: ten classes, two enumerations
+and 21 features. Italic class names denote abstract classes; diamonds mark
+composition and hollow triangles inheritance. Attributes have bound $0..1$.
+All features are ordered; references are unique and attributes nonunique.
 
-\begin{figure}[!htbp]
-\centering
-\begin{tikzpicture}[font=\small,
- box/.style={draw,align=center,text width=30mm,minimum height=12mm},
- pair/.style={line width=.55pt},every node/.style={inner sep=3pt}]
-\node[box] (route) at (0,0) {\textbf{Route}\\active : Boolean};
-\node[box] (position) at (7,0) {\textbf{SwitchPosition}\\position : Position};
-\node[box] (sensor) at (0,-2.4) {\textbf{Sensor}};
-\node[box] (switch) at (7,-2.4) {\textbf{Switch}\\currentPosition\\: Position};
-\draw[pair,{Diamond[length=2.5mm]}-] (route) --
- node[pos=.16,above,font=\scriptsize,align=center]{route\\$1$}
- node[pos=.83,above,font=\scriptsize,align=center]{follows\\$0..*$} (position);
-\draw[pair] (position) --
- node[pos=.18,right,font=\scriptsize,align=left]{positions\\$0..*$}
- node[pos=.82,left,font=\scriptsize,align=right]{target\\$1$} (switch);
-\draw[-{Stealth[length=1.6mm]}] (route) --
- node[pos=.72,right,font=\scriptsize,align=left]{requires\\$2..*$} (sensor);
-\end{tikzpicture}
-\caption{Train projection with the published reference multiplicities.}
-\label{fig:train}
-\end{figure}
+A \emph{Route} requires at least two \emph{Sensor} objects, and its
+\emph{follows} references must agree with the reverse \emph{route} references
+of \emph{SwitchPosition} objects. Section~5 checks these structural conditions
+on a model containing a route with seven required sensors.
 
-The executable example has one route, switch and position, two sensors,
-abstract RailwayElement/TrackElement ancestors, inherited integer \emph{id},
-and Position's three literals. Removing one sensor violates \emph{requires};
-removing only the reverse \emph{route} value breaks opposite consistency.
-Section~3 proves a general exclusion of duplicate links even for a nonunique
-association; Train's own uniqueness flags already exclude them.
-
-\paragraph{Published diagram and executable artifact.}
-The sources differ. The published diagram gives \emph{route} and \emph{target}
-multiplicity~1; the pinned v1.0 Xcore generates $0..1$ for both. We supply a
-separate \texttt{route-switch-published.dsl} example with the displayed mandatory
-bounds. The historical native fixtures and timing workloads retain v1.0's bounds.
-A position detached from its route, with both opposite observations empty,
-conforms under the optional bound but violates the mandatory one. The distinction
-affects admitted snapshots, not the correctness of the general checker.
-
-The example retains six of ten classes and one of two enumerations, omitting
-regions, segments, semaphores and their links. Evaluation also uses a full
-structural v1.0 profile. Train's domain queries, including SwitchSet, require
-further semaphore and switch conditions; structural conformance alone does not
-establish those queries or railway safety.
+A specification-sensitive issue appears when considering containment. Train's
+\emph{Region.elements} is unique, so a repeated child is invalid. In a metamodel
+allowing nonunique composite values, however, two occurrences of a child need
+not imply two parents.
+MOF~12.5.5 separately restricts the number of containers and the number of active
+reverse container properties. Treating these as a single count of incoming
+occurrences changes the accepted models. Section~3 distinguishes these obligations; separating examples in Section~5
+exercise choices that Train's own declarations do not expose.
+\input{figures/train}
