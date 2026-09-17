@@ -1,71 +1,115 @@
-\section{Tool Support}
+\section{Tool Support}\label{sec:tool}
 \subsection{Implementation and Verification}
-VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF} (review access pending)} implements the definitions and verified functions of Section~3 in Lean.
-Its CLI accepts symbolic declarations or Core JSON, invokes the snapshot checker,
-and distinguishes parsing, binding, decoding and conformance failures.
+VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF}} accepts text declarations
+or Core JSON. Figure~\ref{fig:boundary}(a) shows parsing, elaboration and checking;
+JSON enters through decoding. Theorems~\ref{thm:adequacy} and~\ref{thm:checker}
+connect elaboration and checking to the source semantics and conformance
+relation defined in Section~\ref{sec:formalization}. Parsing and decoding are tested, not proved,
+and the parser does not guarantee $A(d)$. Lean proofs use propositional
+extensionality, choice and quotient soundness; execution also trusts the compiler
+and runtime. Diagnostics report input, resolution and conformance failures by
+condition group, without generally locating offending elements.
 
-Figure~\ref{fig:boundary} follows text through parsing and elaboration to the
-Core pair and its checker. The export experiment writes Ecore/XMI and loads it
-in EMF, then checks both EMF acceptance and preservation of objects and property
-values. Observation comparison therefore receives the initial Core state and
-the loaded EMF state. Parsing, JSON conversion and the bridge are tested
-components outside the checker and AST-elaboration proofs.
+Figure~\ref{fig:boundary}(b) shows the Ecore/XMI import experiment. Decision boxes
+compare validator outcomes; collected observations compare loaded property values.
+The latter comparison receives model data, not validation results.
 
-\begin{figure}[!hb]
+\begin{figure}[!htbp]
 \centering
-\begin{tikzpicture}[font=\small,
- box/.style={draw,align=center,text width=28mm,minimum height=11mm},
+\resizebox{.82\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize,
+ box/.style={draw,align=center,text width=22mm,minimum height=9mm},
  arr/.style={-{Stealth[length=1.5mm]}}]
-\node[box] (text) at (-4,2.1) {Source text};
-\node[box,fill=black!5] (core) at (0,2.1) {Core schema\\and snapshot};
-\node[box] (check) at (4,2.1) {Verified\\checker};
-\node[box] (fresh) at (0,.4) {Ecore/XMI};
-\node[box] (loaded) at (0,-1.3) {Loaded native\\state};
-\node[box] (validate) at (-4,-1.3) {EMF schema and\\instance checks};
-\node[box] (compare) at (4,-1.3) {Observation\\comparison};
-\draw[arr] (text) -- (core);
-
-\draw[arr,double,double distance=.5pt] (core) -- (check);
-\draw[arr] (core) -- node[left,font=\scriptsize]{export} (fresh);
-\draw[arr] (fresh) -- node[left,font=\scriptsize]{load} (loaded);
-\draw[arr] (loaded) -- (validate);
-\draw[arr] (loaded) -- (compare);
-\draw[arr] (core.south east) -- (2.05,1.45) -- (2.05,-.5) -- (4,-.5) -- (compare.north);
-
-\end{tikzpicture}
-\caption{Validation and state comparison along the export path.}
+\node[box] (text) at (0,0) {Source text};
+\node[box] (ast) at (3,0) {AST};
+\node[box] (core) at (6,0) {Core pair};
+\node[box] (decision) at (9,0) {Decision};
+\draw[arr] (text) -- node[above=5mm,font=\scriptsize]{parse} (ast);
+\draw[arr] (ast) -- node[above=5mm,font=\scriptsize]{elaborate*} (core);
+\draw[arr] (core) -- node[above=5mm,font=\scriptsize]{check*} (decision);
+\node[box] (json) at (6,-1.3) {Core JSON};
+\draw[arr] (json) -- node[right]{decode} (core);
+\node[align=center] at (2,-1.3) {(a) *Elaboration: Thm.~\ref{thm:adequacy}\\*Checking: Thm.~\ref{thm:checker}};
+\node[box] (files) at (0,-3.75) {Ecore + XMI};
+\node[box] (native) at (3,-3.0) {Loaded EMF\\model};
+\node[box] (checks) at (6,-3.0) {EMF decisions};
+\node[box] (imported) at (3,-4.5) {Imported Core};
+\node[box] (lean) at (6,-4.5) {VL-MOF decision};
+\node[box] (cmp) at (9,-3.75) {Compare\\model values};
+\draw[arr] (files.north) |- node[pos=.75,above=3mm,font=\scriptsize]{load} (native.west);
+\draw[arr] (native) -- node[above=5mm,font=\scriptsize]{validate} (checks);
+\draw[arr] (files.south) |- node[pos=.75,below=3mm,font=\scriptsize]{bridge import} (imported.west);
+\draw[arr] (imported) -- node[below=5mm,font=\scriptsize]{check*} (lean);
+\draw[arr] (native.north) -- ++(0,.65) -| node[pos=.35,below,font=\scriptsize]{collect observations} (cmp.north);
+\draw[arr] (imported.south) -- ++(0,-.65) -| (cmp.south);
+\node at (4.5,-6.0) {(b) Same-file import comparison};
+\end{tikzpicture}%
+}
+\caption{Implementation data flow, with starred steps marking proved connections.}
 \label{fig:boundary}
 \end{figure}
 
 \subsection{Textual Notation}
-The DSL provides a readable notation for schemas and snapshots used by the
-checker and elaborator. Qualified aliases
-select declarations, \texttt{@} denotes an object reference, and
-\texttt{observe} supplies a property's values. A route excerpt is:
-\par\noindent\begin{minipage}{\linewidth}\small
+Figure~\ref{fig:notation} pairs an object grammar fragment with an example.
+Here \texttt{?} means optional, \texttt{*} repetition, and \texttt{qname} a name
+qualified with \texttt{::}; values include literals and \texttt{@} object references.
+
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}[t]{.49\linewidth}\footnotesize
+\textbf{Object grammar fragment}
 \begin{verbatim}
-object o1 : railway::Route {
-  observe railway::Route::active = [true];
-  observe railway::Route::requires =
-    [@o25, @o26, @o27, @o28, @o29, @o30, @o31];
+object ::= "object" name ":" qname
+           "{" observation* "}"
+observation ::= "observe" qname
+                "=" list ";"
+list ::= "[" values? "]"
+values ::= value ("," value)*
+\end{verbatim}
+\end{minipage}\hfill
+\begin{minipage}[t]{.48\linewidth}\footnotesize
+\textbf{Declaration and use}
+\begin{verbatim}
+class Sensor {}
+class Route {
+  requires : Sensor [2..*]
+    ordered unique;
+}
+object s1 : Sensor {}
+object s2 : Sensor {}
+object r : Route {
+  observe Route::requires =
+    [@s1, @s2];
 }
 \end{verbatim}
-\end{minipage}\par
-Scalars use singleton lists; $[]$ records absence or an empty collection.
-Applicable rows and paired opposite ends must be explicit. The complete input
-also supplies the inherited \emph{id}, entry/exit and follows rows, referenced
-objects and declarations; this excerpt alone is incomplete.
+\end{minipage}
+\caption{An object grammar fragment and a complete illustrative model.}
+\label{fig:notation}
+\end{figure}
+
+The example isolates Train's required-sensor relation. It declares its classes,
+objects and observation; \texttt{Route::requires} names the property declaration,
+while \texttt{@s1} and \texttt{@s2} name object references. Elaboration replaces
+these aliases with identities and preserves the value sequence. The checker
+accepts two sensors and rejects a singleton list for the lower bound of two.
+Every applicable observation is explicit; scalars use singleton lists and
+\texttt{[]} records an empty value sequence. The complete Train model, including
+inherited observations and both opposite ends, is supplied as
+\texttt{examples/train/full-v1-batch-1.dsl}.
 
 \subsection{EMF Interchange}
-The Java bridge loads Ecore/XMI through dynamic EMF for comparison. Its declared
-profile rejects unsupported features, including annotations, operations and
-general default/unset features. Export requires class-owned ends, representable
-names and packages, and signed 32-bit integers, whereas Lean also supports
-association-owned ends and unbounded integers. The artifact specifies the profile.
+VL-MOF can also check models stored by EMF. A Java bridge reads an \texttt{.ecore}
+metamodel and its \texttt{.xmi} instances, converts their declarations and object
+values into Core JSON, and passes that representation to the Lean checker.
+The bridge assigns object identities and preserves explicitly written values
+and omissions. EMF's \texttt{eIsSet} may instead treat an explicit default value
+as unset, so equal validator decisions need not mean equal loaded models.
+The comparison maps identities and checks classifiers, values and selected
+metadata, preserving sequence order or comparing multisets as appropriate.
 
-Import allocates identities from containment and distinguishes written scalar
-values from omissions. This can differ from \texttt{eIsSet}, especially for an
-explicit first enumeration literal. Export establishes both opposites in fresh
-resources. A sidecar maps Core identities to native URIs; observation comparison
-uses that bijection, ordered sequences and unordered multisets. Agreement is
-checked for each input rather than inferred from equal validation results.
+Import and export support the artifact's structural subset, not arbitrary EMF
+features; annotations, operations and general default/unset behavior are excluded.
+Export has additional ownership, naming and numeric-range restrictions. It writes
+fresh Ecore/XMI with both opposites. Round-trip tests reimport those files, use an
+identity sidecar to compare Core models and recheck conformance, separately from
+the EMF-validator experiment.

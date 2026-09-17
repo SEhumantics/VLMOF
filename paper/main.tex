@@ -6,6 +6,7 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,backgrounds,fit,positioning}
 \usepackage[hidelinks]{hyperref}
+\newcommand{\doi}[1]{\href{https://doi.org/#1}{\nolinkurl{https://doi.org/#1}}}
 \emergencystretch=2em
 \title{Formalizing Structural EMOF in Lean for Metamodeling}
 \author{Trong-Nghia Be \and Duc-Hanh Dang}
@@ -18,25 +19,18 @@
 \pagestyle{empty}
 \thispagestyle{empty}
 \begin{abstract}
-Modeling tools use metamodels to specify which elements and relationships a
-model may contain. Essential MOF (EMOF) supplies common constructs for these
-specifications, but implementing its rules requires reconciling requirements
-spread across the standard. Different interpretations can lead tools to disagree
-on whether a model is valid. We define structural EMOF conformance for finite
-models in Lean, a proof assistant that checks mathematical proofs. The definitions
-cover inheritance, property values, multiplicity, opposites and containment.
-We prove that our executable checker accepts exactly the models satisfying
-these definitions. We also give named model declarations a meaning independent
-of the checker and prove that translation to its internal representation preserves
-that meaning under explicit naming conditions. A railway model from the Train
-Benchmark exercises translation and validation using the complete adapted
-structural metamodel. Comparisons with the Eclipse
-Modeling Framework (EMF) show why both validation decisions and the values loaded
-by each tool must be examined. Controlled workloads expose scalability limits
-for deeply nested containment. The result provides common definitions for
-checking and reasoning about models, while standards interpretation and file
-parsing and interchange remain outside the machine-checked guarantees.
-\keywords{EMOF \and Metamodeling \and Formal semantics \and Model conformance \and Mechanized verification}
+Modeling languages, such as UML, commonly use metamodels to define their
+abstract syntax. Essential Meta Object Facility (EMOF) provides a foundation
+for metamodeling. Developing a formal conformance checker requires expressing
+its semiformal structural requirements as mathematical predicates. We present
+VL-MOF, a Lean formalization of a structural subset of EMOF with an
+executable checker.
+We prove that the checker accepts exactly the models satisfying our conformance
+definitions. We also prove that translating named declarations preserves their
+meaning under stated naming assumptions. We conduct experiments to compare validation results and loaded models with
+those of Eclipse Modeling Framework validators and benchmark checking
+performance across model sizes and containment structures.
+\keywords{EMOF \and Metamodeling \and Formal semantics \and Model conformance \and Lean \and Mechanized verification}
 \end{abstract}
 \input{sections/introduction}
 \input{sections/motivation}

@@ -1,7 +1,10 @@
 # Actual EMF validation fixtures
 
-These fixtures contain small isolating states, the selected Train
-route-switch-position projection, and no full Train public-input claim. Each `*.fixture.json` names a schema/XMI
+These fixtures contain small isolating states and the authored Train
+route-switch-position projection. The `train-batch-1-profile.fixture.json`
+manifest additionally points to full public Train inputs outside this repository;
+those resources are not bundled in this directory. See the
+[evaluation file index](../../README.md) for exact locations and acquisition. Each `*.fixture.json` names a schema/XMI
 manifest, expected result only where its semantics have been reviewed, and a
 state relation. The runner hashes the original bytes before and after execution.
 

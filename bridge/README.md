@@ -106,8 +106,9 @@ evidence. That lexical distinction needs a retained XML-source binding before it
 support a source-fidelity claim.
 
 EMF's ordinary `eIsSet` cannot distinguish an omitted optional scalar from an XMI
-scalar explicitly written with its default (`false`, `0`, empty string, or the first
-enum literal). For file-backed XMI, the importer pairs original XML elements with
+scalar explicitly written with its datatype default (for example `false`, `0`,
+or the first enum literal). Empty String has this ambiguity only when it is the
+actual datatype/feature default; ordinary EString defaults to null. For file-backed XMI, the importer pairs original XML elements with
 the EMF containment preorder and retains lexical attribute presence, so an explicit
 default is emitted while an omission stays empty. A wrapper/XML shape that cannot be
 paired is rejected as `lexical-presence-unmappable`; non-file resources are rejected
@@ -168,7 +169,7 @@ six reloaded snapshots, with all six comparisons passing. These are compatibilit
 observations, not a proved serializer or a whole-Ecore conformance claim.
 
 The generated Ecore contains a generator annotation and maps three source
-primitives to EJavaObject. `StripEcoreAnnotations` creates a separate profile Ecore,
+attributes to EJavaObject. `StripEcoreAnnotations` creates a separate profile Ecore,
 requires exactly one annotation removal, and maps `RailwayElement.id` and
 `Segment.length` to EInt and `Route.active` to EBoolean. Its JSON manifest records
 the qualified changes, original annotation details, Xcore source basis and

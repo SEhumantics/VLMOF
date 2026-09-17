@@ -13,6 +13,7 @@ test:
 
 check: verify test
 	lake build
+	lake env lean experiments/ProofClient.lean
 	$(PYTHON) scripts/test_cli.py -v
 
 text: verify

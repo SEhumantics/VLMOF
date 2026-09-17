@@ -5,10 +5,10 @@
 \begin{document}
 \begin{minipage}{126mm}
 \centering
-\begin{tikzpicture}[font=\small,
- cls/.style={draw,align=center,inner sep=3pt,minimum height=6mm},
+\begin{tikzpicture}[font=\footnotesize,yscale=.8,
+ cls/.style={draw,align=center,inner sep=2pt,minimum height=5mm},
  att/.style={cls,align=left},
- lab/.style={font=\footnotesize,fill=white,inner sep=1pt,align=center},
+ lab/.style={font=\scriptsize,fill=white,inner sep=1pt,align=center},
  ref/.style={-{Stealth[length=1.5mm]}},
  comp/.style={{Diamond[length=2.2mm,width=1.6mm]}-{Stealth[length=1.5mm]}},
  inh/.style={-{Triangle[open,length=2mm,width=2mm]}}]
@@ -29,8 +29,8 @@
 \draw[ref] (route.east) -- node[lab,above]{requires 2..*} (sensor.west);
 \draw[comp] (route.south) -- node[lab,pos=.25,right]{route 0..1} node[lab,pos=.8,right]{follows 0..*} (pos.north);
 \draw[<->,>=Stealth] (sensor.south) |- (track.west);
-\node[lab] at (3,-2.4) {monitoredBy 0..*};
-\node[lab] at (4.65,-3.65) {monitors 0..*};
+\node[lab,anchor=east] at (4.3,-2.1) {monitoredBy 0..*};
+\node[lab] at (4.85,-3.65) {monitors 0..*};
 \draw[-{Stealth[length=1mm,width=.7mm]}]
  ([xshift=-2mm]track.north) -- ++(0,.4) -| ([xshift=4mm]track.north);
 \node[lab,anchor=south] at (6.7,-2.55) {connectsTo 0..*};
@@ -39,17 +39,17 @@
 \draw (seg.north) |- (track-junction);
 \draw[inh] (track-junction) -- (track.south);
 \draw[<->,>=Stealth] (pos.east) -- (sw.west);
-\node[lab] at (2,-4.35) {positions 0..*};
-\node[lab] at (2,-6.05) {target 0..1};
+\node[lab] at (2.05,-4.55) {positions\\0..*};
+\node[lab] at (2,-6.2) {target 0..1};
 \draw[comp] (seg.south) |- node[lab,pos=.75,above]{semaphores 0..*} (sem.east);
 \draw[ref] (route.west) -- ++(-.5,0) |- node[lab,pos=.8,above]{entry 0..1} (sem.west);
 \draw[ref] ([yshift=-2mm]route.west) -- ++(-.8,0) |- node[lab,pos=.8,below]{exit 0..1} ([yshift=-2mm]sem.west);
-\node[font=\small] at (5,-8.25) {(a) References, composition and local attributes};
+\node[font=\footnotesize] at (5,-8.25) {(a) References, composition, local inheritance and attributes};
 \end{tikzpicture}
 
-\medskip
-\begin{tikzpicture}[font=\small,
- cls/.style={draw,align=center,inner sep=3pt,minimum width=24mm},
+\smallskip
+\begin{tikzpicture}[font=\footnotesize,yscale=.8,
+ cls/.style={draw,align=center,inner sep=2pt,minimum width=24mm},
  inh/.style={-{Triangle[open,length=2mm,width=2mm]}}]
 \node[cls] (base) at (0,-1.65) {\textit{RailwayElement}\\\rule{27mm}{.3pt}\\id : Integer};
 \node[cls] (r) at (3.5,0) {Region};
@@ -61,9 +61,13 @@
 \draw (r.west) -- (2,0) -- (2,-3.3) -- (t.west);
 \foreach \n in {rt,s,se,sp} \draw (\n.west) -- (2,0 |- \n.west);
 \draw[inh] (2,-1.65) -- (base.east);
-\node[cls,align=left] at (6.2,-1.65) {\textit{\guillemotleft enum\guillemotright}\\Position\\\rule{24mm}{.3pt}\\FAILURE\\STRAIGHT\\DIVERGING};
-\node[cls,align=left] at (9.2,-1.65) {\textit{\guillemotleft enum\guillemotright}\\Signal\\\rule{24mm}{.3pt}\\FAILURE\\STOP\\GO};
-\node[font=\small] at (3.5,-4) {(b) Shared superclass and enumerations};
+\node[cls,align=left] at (6.6,-.8) {\textit{\guillemotleft enum\guillemotright}\\Position\\\rule{24mm}{.3pt}\\FAILURE\\STRAIGHT\\DIVERGING};
+\node[cls,align=left] at (9.3,-.8) {\textit{\guillemotleft enum\guillemotright}\\Signal\\\rule{24mm}{.3pt}\\FAILURE\\STOP\\GO};
+\node[cls,minimum width=20mm] (sw2) at (7,-2.85) {Switch};
+\node[cls,minimum width=20mm] (seg2) at (7,-3.6) {Segment};
+\draw (sw2.west) -- (5.2,-2.85) -- (5.2,-3.6) -- (seg2.west);
+\draw[inh] (5.2,-3.3) -- (t.east);
+\node[font=\footnotesize] at (4.5,-4.3) {(b) Inheritance hierarchy and enumerations};
 \end{tikzpicture}
 \end{minipage}
 \end{document}

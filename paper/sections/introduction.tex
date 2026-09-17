@@ -1,29 +1,34 @@
-\section{Introduction}
-Metamodels define a modeling language's elements, properties and relationships.
-The Meta Object Facility (MOF) provides a common foundation for these definitions,
-including UML's metamodel. Essential MOF (EMOF) is its essential compliance level
-\cite{omg_mof_251,omg_uml_25}. Interpreting these shared constructs consistently
-matters: tools may otherwise disagree on whether the same model conforms.
+\section{Introduction}\label{sec:introduction}
+Metamodels define a modeling language's abstract syntax: its kinds of elements,
+properties and relationships. The Meta Object Facility (MOF), including its
+Essential MOF (EMOF) compliance level, provides a common foundation
+\cite{omg_mof_251}. To obtain a verified conformance checker, these requirements
+must be expressed over a precise model representation and connected to an
+executable decision procedure.
 
-EMOF distributes requirements across structural restrictions, adopted UML
-definitions and reflective services. Turning them into conformance conditions
-requires distinguishing constraints on model states from prerequisites of
-operations. Proving a checker correct therefore leaves a separate obligation:
-justifying the definitions against the standard. We ask:
+Formal conformance and executable MOF semantics have established precedents
+\cite{boronat_meseguer_2010,paige_brooke_ostroff_2007}. Building on them, we focus
+on connecting a structural subset of EMOF to independently defined named
+models, verified translation and executable checking. This raises three questions:
 \begin{description}
-\item[RQ1.] Which structural EMOF interpretations affect conformance, and how
-are they justified from the specification?
+\item[RQ1.] How are the selected structural EMOF requirements represented as
+conformance predicates, and what restrictions does this formalization impose?
 \item[RQ2.] What guarantees connect symbolic declarations, formal conformance
 and executable checking?
 \item[RQ3.] Where does the implementation agree with a specified EMF validation
 setup, and how does validation time vary across controlled workloads?
 \end{description}
 
-We present \textbf{VL-MOF}, a Lean formalization with three contributions:
-(1) schema and snapshot conformance definitions with source-based explanations
-of consequential choices; (2) checker soundness and completeness, and a proved
-correspondence between independent symbolic semantics and elaboration;
-(3) a tool evaluated through the full structural Train case, EMF comparisons
-and controlled workloads. A derived opposite-link constraint illustrates reasoning
-from the definitions. The scope is finite structural snapshots; reflective
-execution and general default/unset histories require further semantics.
+We present \textbf{VL-MOF}, a formalization in Lean \cite{demoura_ullrich_2021}
+of a structural subset of EMOF, with executable model-conformance checking. First, we define metamodel well-formedness and finite
+model conformance, documenting their source requirements and the formalization's
+additional restrictions. Second, we prove checker equivalence and preservation of the
+independent meaning of named declarations under explicit naming conditions.
+Third, an adapted railway case study and controlled workloads evaluate
+validation decisions, loaded values and checking cost.
+
+The rest of the paper proceeds as follows. Section~\ref{sec:motivation} motivates
+the work; Section~\ref{sec:formalization} presents the semantics and proofs;
+Section~\ref{sec:tool} describes the tool; Section~\ref{sec:evaluation} evaluates
+it; Section~\ref{sec:discussion} discusses related work and limitations; and
+Section~\ref{sec:conclusion} concludes.

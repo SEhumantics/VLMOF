@@ -1,30 +1,31 @@
-\section{Motivation}
-Metamodeling gives different languages a shared structural foundation through
-classes, inheritance, multiplicity and containment. If tools disagree on these
-concepts, using the same metamodel does not ensure that they admit the same
-models. A formal semantics makes these obligations explicit, supporting both
-individual conformance checks and reasoning about all admitted models.
+\section{Motivation}\label{sec:motivation}
+We adapt the railway case study of the Train Benchmark
+\cite{szarnyas_etal_2018} as a running example for structural conformance and
+its evaluation. Figure~\ref{fig:train} shows the metamodel and the inheritance
+hierarchy of its domain concepts. Regions contain track elements and sensors;
+segments and switches form the track, and routes specify the sensors and switch
+positions needed for travel. We use this domain structure to study conformance,
+rather than the benchmark's query workload or railway-safety rules.
 
-The Train Benchmark models railway networks and planned routes
-\cite{szarnyas_etal_2018}. Regions contain track elements and sensors; segments
-and switches form the track, sensors monitor it, and semaphores carry signals.
-Routes require sensors and specify switch positions. Figure~\ref{fig:train}
-shows the complete evaluated structural profile: ten classes, two enumerations
-and 21 features. Italic class names denote abstract classes; diamonds mark
-composition and hollow triangles inheritance. Attributes have bound $0..1$.
-All features are ordered; references are unique and attributes nonunique.
+Checking this model requires a precise account of structural conformance.
+A Route with fewer than two required sensors violates multiplicity, while a
+switch position whose reverse route disagrees with \emph{Route.follows}
+violates the opposite relation. EMOF describes such structural requirements
+through definitions and usage rules, together with reused UML definitions
+\cite[\S\S12.1--12.5]{omg_mof_251}. A verified checker requires these requirements
+to be expressed as predicates over a model representation. Our task is to define
+that conformance relation for a stated structural subset and prove that the
+checker accepts exactly the models satisfying it.
 
-A \emph{Route} requires at least two \emph{Sensor} objects, and its
-\emph{follows} references must agree with the reverse \emph{route} references
-of \emph{SwitchPosition} objects. Section~5 checks these structural conditions
-on a model containing a route with seven required sensors.
-
-A specification-sensitive issue appears when considering containment. Train's
-\emph{Region.elements} is unique, so a repeated child is invalid. In a metamodel
-allowing nonunique composite values, however, two occurrences of a child need
-not imply two parents.
-MOF~12.5.5 separately restricts the number of containers and the number of active
-reverse container properties. Treating these as a single count of incoming
-occurrences changes the accepted models. Section~3 distinguishes these obligations; separating examples in Section~5
-exercise choices that Train's own declarations do not expose.
+Multiplicity, uniqueness and containment illustrate the work involved. UML
+relates multiplicity to collection size and distinguishes unique from nonunique
+association ends \cite[\S11.5.3.1]{omg_uml_25}; MOF separately restricts container
+identity, active container properties and containment cycles
+\cite[\S12.5.5]{omg_mof_251}. In a variation of Train's unpaired
+\emph{Region.elements} with uniqueness disabled, a list containing the same
+segment twice has two occurrences but identifies one parent. In the actual
+Train metamodel, uniqueness rejects that repetition. These are distinct constraints
+to combine: occurrence counts determine multiplicity, equality determines
+uniqueness, and parent identities and paths determine containment. Section~\ref{sec:formalization}
+makes these obligations explicit and states the restrictions of our representation.
 \input{figures/train}

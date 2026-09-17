@@ -59,5 +59,6 @@ root, check it with:
 lake exe vlmof check-dsl examples/train/route-switch.dsl
 ```
 
-Author fields remain empty because no author information was supplied. They and
-the venue rules must be checked before submission.
+Author fields are populated in `main.tex`. Any further author identifiers or
+publication declarations must come from the authors; verify the applicable venue
+rules for the actual submission stage.

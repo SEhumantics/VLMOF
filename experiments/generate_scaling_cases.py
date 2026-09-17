@@ -94,7 +94,7 @@ def chain(output: Path, objects: int) -> None:
     write(output / f"{ident}.xmi", "\n".join(lines) + "\n")
     manifest(output / f"{ident}.fixture.json", ident, "recursive-containment.ecore", f"{ident}.xmi",
              "containment-inheritance", {"shape": "chain", "objects": objects,
-             "observations": objects * 3, "occurrences": objects * 3 - 1,
+             "observations": objects * 3, "occurrences": objects * 3 - 2,
              "maximum_containment_depth": objects - 1})
 
 

@@ -1,105 +1,152 @@
-\section{Formalization}
+\section{Formalization}\label{sec:formalization}
 
 
 \subsection{Scope and Representation}
-A \emph{schema} $S$ represents a metamodel's packages, classes, inheritance,
-properties and binary associations. A finite \emph{snapshot} $M$ records objects,
-their classifiers, and observations $(o,p,L)$ associating object $o$ and property
-$p$ with a value list $L$. Declaration identities are typed by kind and distinct
-from names. An inherited property retains its identity through a diamond.
+We define finite structural states and their conformance before proving the
+connections to checking and named declarations. Reflective operations are excluded.
+\begin{definition}[Schema and snapshot]\label{def:representation}
+We describe a metamodel as a \emph{schema} $S$ and a finite model state as a
+\emph{snapshot} $M$; together they form the internal representation, \emph{Core}.
+A schema declares packages, classes, inheritance, properties, binary associations
+and enumerations. A snapshot records objects, their classes and property values.
+\end{definition}
+Inheritance collects reachable superclass properties by declaration identity:
+a diamond shares a declaration; same-named distinct declarations remain separate.
+Qualified aliases select declarations without overriding. This combines UML
+inheritance \cite[\S9.9.4]{omg_uml_25} with EMOF property access
+\cite[\S12.5.4]{omg_mof_251}; inheritance cycles are rejected.
+An observation $(o,p,L)$ records a finite value sequence for object $o$ and
+property $p$. Lookup $L_M(o,p)$ concatenates all matching rows, or is empty
+if none exist. This defines lookup on malformed inputs too; conformance requires
+exactly one row per applicable pair, distinguishing missing from empty rows.
 
-Raw inputs can contain unresolved references, duplicate identities and repeated
-observation keys. The total lookup $L_M(o,p)$ concatenates all lists at $(o,p)$,
-yielding $[]$ if none match. Conformance requires exactly one applicable row:
-an absent row and an explicit empty row have equal lookups but different validity.
+Values are object references, Booleans, integers, strings or enumeration literals;
+conformance requires XML-valid strings. Properties specify bounds, ordering,
+uniqueness and composition. Opposites are association ends; association-owned
+nonnavigable ends record incidence, and packages share an implicit outer scope.
 
-Values are object references, Booleans, unbounded integers, XML-character-valid
-strings and enumeration literals. Properties declare types, bounds, ordering,
-uniqueness, opposites and composition. Packages are represented within an
-implicit outer scope. A binary association may have one association-owned,
-nonnavigable end; its observations record incidence rather than a navigable slot.
-Operations, reflective services and default/unset histories are deferred.
+\subsection{Structural Conformance and Source Requirements}\label{sec:conformance}
+Schema well-formedness $W(S)$ requires distinct, resolved identities, valid names,
+acyclic package and inheritance graphs, and consistent ownership, types, bounds and association
+ends. At most one identifier property is allowed across direct and inherited
+declarations; this does not require globally unique values. Train's \emph{id}
+has no identifier flag.
 
-\subsection{Well-formed Schemas and Conforming Snapshots}
-Schema well-formedness $W(S)$ requires distinct and resolved identities, valid
-names, acyclic package and inheritance graphs, consistent ownership, types,
-multiplicities and association ends, and at most one identifier
-property across direct and inherited declarations. This flag restriction does not impose global uniqueness on identifier values. Train's ordinary \emph{id} attribute does not have that flag. A property applies to an object through its class or an ancestor,
-or as an applicable association-owned end.
+\begin{definition}[Structural conformance]\label{def:conformance}
+A snapshot $M$ conforms to a schema $S$, written $C(S,M)$, when $W(S)$ holds
+and the following obligations hold: object identities are distinct and classifiers
+are resolved and concrete; observations have resolved, applicable keys, with
+exactly one row per applicable pair; values satisfy typing, multiplicity and
+uniqueness; opposite occurrence counts agree; containment has at most one parent, at most
+one active reverse container property, and no cycles.
+\end{definition}
+Applicability follows inheritance or association ownership. False, zero and the
+empty string count as values. We detail the principal conditions below.
 
-Snapshot conformance $C(S,M)$ includes $W(S)$. Objects have distinct identities
-and concrete resolved classifiers. Each applicable object/property pair has
-exactly one observation row, a convention of our representation rather than
-a requirement on physical EMOF storage. A list containing false, zero or an empty string still contains a value.
-
-For a property $p$ with lower bound $\ell_p$ and upper bound $u_p$, conformance
-requires, for every stored object to which $p$ applies, correctly typed values and
+Following UML's collection bounds and uniqueness
+\cite[\S\S7.5.3.2,11.5.3.1]{omg_uml_25}, each applicable property $p$
+with bounds $\ell_p,u_p$ at object $o$ must satisfy
 \[
  \ell_p\leq |L_M(o,p)|\ \land\
  (u_p=\ast\ \lor\ |L_M(o,p)|\leq u_p),
- \qquad \mathit{unique}_p\Rightarrow\operatorname{Nodup}(L_M(o,p)).
+ \qquad \mathit{unique}_p\Rightarrow\operatorname{distinct}(L_M(o,p)).
 \]
-The upper bound is either a finite natural number or unlimited ($\ast$);
-list length counts occurrences. Reference equality uses object identity. Ordered observations are compared as
-sequences and unordered observations up to permutation. This observation
-comparison is distinct from the conformance predicate.
+Here $\ast$ means unlimited; length counts occurrences and $\operatorname{distinct}$
+excludes repeats. References compare by identity. Observation comparison preserves
+ordered sequences and compares unordered values up to permutation; it is separate
+from conformance.
 
 \paragraph{Opposites.}
-An association is observed at both ends. For opposite properties $p,q$ and
-objects $x,y$, the number of forward references must equal the reverse count:
+Write $\#_v(L)$ for the number of occurrences of value $v$ in sequence $L$.
+Our subset represents associations through endpoint observations, without
+first-class link identities. It imposes equal forward and reverse occurrence
+counts for opposite properties $p,q$ and objects $x,y$:
 \begin{equation}
  \#_{\operatorname{ref}(y)}L_M(x,p)
  = \#_{\operatorname{ref}(x)}L_M(y,q).
 \label{eq:opposite}
 \end{equation}
-Thus a SwitchPosition occurs in \emph{Route.follows} exactly as often as that
-Route occurs in \emph{SwitchPosition.route}. Counting preserves repeated links
-when ends are nonunique. The CMOF Reflection rationale in MOF~13.2.5 corroborates
-such links; Equation~\ref{eq:opposite} states our selected EMOF snapshot interpretation.
+For Train's unique references, this checks reciprocal membership; for two
+nonunique ends, it retains repeated-pair counts. Mixed uniqueness is restricted:
+UML projection can yield $\langle y,y\rangle$ at a nonunique end and
+$\langle x\rangle$ at its unique opposite \cite[\S11.5.3.1]{omg_uml_25},
+but Equation~\ref{eq:opposite} rejects that pair. This is an additional subset
+restriction. CMOF's repeated-link rationale \cite[\S13.2.5]{omg_mof_251}
+does not establish equal counts for all EMOF opposites.
 
 \paragraph{Containment.}
-MOF~12.5.5 restricts an object to one container and at most one non-null
-container property. We require all composite occurrences of a child to identify
-one parent, and at most one explicit reverse container property to have values.
-Repeated unpaired occurrences can therefore identify one parent, while two active
-reverse properties violate the second restriction. Separately, no nonempty
-composite path may return to its source, ensuring acyclic containment.
+Following MOF \cite[\S12.5.5]{omg_mof_251}, composite observations of a child
+must name one parent, with at most one nonempty reverse container property.
+Repeated unpaired occurrences do not add parents. No nonempty composite path
+may return to its source. Multiplicity and uniqueness are checked separately.
 
-\subsection{Executable Checking}
-The checker combines Boolean decisions for $W$ and $C$. Its proof combines
-local decision/predicate equivalences with a correspondence between computed
-reachability and paths. Reachability expands adjacent identities
-until a fixed point within the finite carrier bound. Resolution confines paths
-to that carrier; each expansion adds a fresh identity or stabilizes, and every
-computed identity has a stored path.
+\begin{proposition}[Upper-one opposite]\label{prop:opposite}
+Suppose $C(S,M)$, a stored association has ends $(p,q)$, and the stored declaration
+of $q$ has upper bound one. For stored objects $x,y$, with $q$ applicable at $y$,
+each forward reference count is at most one, even if $p$ is nonunique.
+\end{proposition}
+\begin{proof}
+Opposite agreement and the upper bound give
+\[
+ \#_{\operatorname{ref}(y)}L_M(x,p)
+ =\#_{\operatorname{ref}(x)}L_M(y,q)
+ \leq |L_M(y,q)|\leq 1.
+\]
+\end{proof}
+The bound limits repetitions per target. It follows from our equal-count
+restriction and is not asserted for UML's mixed-uniqueness projection.
 
-The principal checker theorem is
+\paragraph{Source correspondence and restrictions.}
+Table~\ref{tab:source-findings} summarizes the source argument; the clause audit
+covers MOF~12.4's 32 restrictions. Structural $0..0$ bounds are distinct from
+MOF~9.3.3's positive-upper creation prerequisite. Proofs concern our predicates.
+
+\begin{table}[!htbp]
+\centering\small
+\caption{Source requirements, formal encoding and scope restrictions.}
+\label{tab:source-findings}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{>{\raggedright\arraybackslash}p{34mm}>{\raggedright\arraybackslash}p{38mm}>{\raggedright\arraybackslash}p{36mm}}
+\hline
+Source requirement & Formal encoding & Scope / restriction \\
+\hline
+Bounds (UML 7.5; MOF 9.3.3) & Length within bounds; $0..0$ allowed. & No creation service. \\
+Collections (UML 11.5.3.1) & Occurrence length; distinctness if unique. & Static observations. \\
+Opposites (UML 11.5.3.1) & Equal occurrence counts. & Restricts mixed uniqueness. \\
+Containment (MOF 12.5.5) & One parent, one active reverse role; no cycles. & Counts parent identities. \\
+Inheritance (UML 9.9.4; MOF 12.5.4) & Declaration identities. & No name-based overriding. \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Verified Checking and Translation}\label{sec:guarantees}
+\begin{theorem}[Checker correctness]\label{thm:checker}
+For every raw schema $S$ and snapshot $M$, including malformed inputs,
 \begin{equation}
  \operatorname{check}(S,M)=\mathsf{true}
  \quad\Longleftrightarrow\quad C(S,M).
 \label{eq:checker}
 \end{equation}
-It holds for every raw schema and snapshot, including malformed inputs. There
-is an analogous theorem for $W(S)$. These results establish soundness and
-completeness for the defined predicates, without a runtime complexity claim.
+\end{theorem}
+\begin{proof}[Outline]
+Combine predicate/decision equivalences, including optimized-closure correctness.
+The separate closure-to-path results are not needed here.
+\end{proof}
+An analogous theorem decides $W(S)$. These are soundness and completeness
+results for the defined predicates, without a runtime complexity claim.
 
-
-\subsection{Symbolic Declarations and Elaboration}
-Symbolic declarations let users name model elements without allocating Core
-identities themselves. Parsing produces a source abstract syntax tree (AST);
-elaboration resolves its names and builds the Core representation. For a source
-AST $d$, we define satisfaction $\mathcal S(d)$ using paths, applicability,
-typing, opposite counts and containment. This definition does not call the Core
-checker, elaborator or $C$.
-
-The elaborator $E$ checks alias uniqueness and qualification, resolves references,
+\paragraph{Symbolic declarations and elaboration.}
+Parsing produces a symbolic AST $d$. Its independent satisfaction predicate
+$\mathcal S(d)$ uses paths, applicability, typing, opposite counts and containment,
+without calling the checker, elaborator or $C$; elementary string-validity and
+multiplicity notions are shared. The elaborator $E$ resolves qualified aliases,
 allocates identities by declaration kind and list position, and translates values.
-The proof transports source paths, applicability, values and containment to Core.
-
 Let $A(d)$ require nonempty declaration and object aliases with nonempty
-XML-valid components. This lexical condition is explicit because successful binding alone does not
-establish all these name conditions; it does not assume model conformance.
-The \emph{source adequacy theorem} states
+XML-valid components. Successful binding alone does not establish this lexical
+condition, which does not assume conformance.
+
+\begin{theorem}[Source adequacy]\label{thm:adequacy}
+For every symbolic document $d$,
 \begin{equation}
  A(d)\Longrightarrow\left(
  \mathcal S(d)\ \Longleftrightarrow\
@@ -107,74 +154,12 @@ The \emph{source adequacy theorem} states
  \operatorname{check}(S,M)=\mathsf{true}\right).
 \label{eq:adequacy}
 \end{equation}
-Under $A(d)$ and a successful elaboration, a separate theorem equates $\mathcal S(d)$ with
-$C(S,M)$. The result concerns AST elaboration; parsing and expressibility of every raw
-Core pair are separate questions.
-
-Figure~\ref{fig:semantics} summarizes these connections: (i) symbolic satisfaction
-and Core conformance agree under $A(d)$ and successful elaboration; (ii) checker
-acceptance and conformance agree for all raw inputs. The dashed arrow denotes
-the standards interpretation supported by source analysis.
-
-\begin{figure}[!htbp]
-\centering
-\begin{tikzpicture}[font=\small,
- box/.style={draw,align=center,text width=30mm,minimum height=11mm},
- arr/.style={-{Stealth[length=1.5mm]}}]
-\node[box] (standards) at (0,1.65) {MOF and UML\\specifications};
-\node[box,fill=black!5] (core) at (0,0) {Core conformance\\$C(S,M)$};
-\node[box] (source) at (-4.4,0) {Symbolic satisfaction\\$\mathcal S(d)$};
-\node[box] (check) at (4.4,0) {Checker acceptance\\$\operatorname{check}(S,M)$};
-\draw[arr,dashed] (standards) -- node[right,font=\footnotesize]{interpretation} (core);
-\draw[<->] (source) -- node[above,font=\footnotesize]{(i)} (core);
-\draw[<->] (core) -- node[above,font=\footnotesize]{(ii)} (check);
-\end{tikzpicture}
-\caption{Formal definitions and proved correspondences.}
-\label{fig:semantics}
-\end{figure}
-
-\subsection{Interpreting the Standards}
-Our audit traces the definitions to MOF~2.5.1 and adopted UML, classifying
-Clause~12.4's 32 restrictions as enforced, excluded or deferred
-\cite{omg_mof_251,omg_uml_25}. This exposes both interpretation choices and
-the boundary of implemented support.
-
-One consequential distinction is between the structural multiplicity $0..0$
-and the positive-upper prerequisite of the reflective creation operation in
-MOF~9.3.3. Applying that prerequisite to static declarations would reject properties
-permitting no values. We check the two conditions separately without
-implementing the creation operation. Table~\ref{tab:source-findings}
-collects decisions used by the implemented semantics. Findings about defaults,
-operations and XMI identifier collisions remain in the source ledger: their
-analysis does not establish support for those features, and the table does not
-present them as implemented results.
-
-\begin{table}[!htbp]
-\centering\small
-\caption{Standards interpretations used in the structural semantics.}
-\label{tab:source-findings}
-\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{>{\raggedright\arraybackslash}p{30mm}>{\raggedright\arraybackslash}p{84mm}}
-\hline
-Source & Decision used in conformance \\
-\hline
-MOF 9.3.3 / UML 7.5 & Upper-zero bounds: distinguish structural multiplicity from creation preconditions. \\
-MOF 10.6 / 13.2.5 & Repeated references: distinguish insertion behavior from static occurrence counts. \\
-MOF 12.5.5 & Containment: check parent identity, active reverse properties and cycles separately. \\
-Adopted UML inheritance & Diamond inheritance: retain the identity of inherited declarations. \\
-\hline
-\end{tabular}
-\end{table}
-\FloatBarrier
-
-\subsection{Reusable Model Properties}
-An upper-one opposite rules out repeated links to one target even when the
-forward end is nonunique, illustrating reasoning from conformance. Suppose $C(S,M)$, a stored association has ends $(p,q)$, and the stored declaration
-of $q$ has upper bound one. For stored objects $x,y$, with $q$ applicable at $y$,
-the library proves
-\[
- \#_{\operatorname{ref}(y)}L_M(x,p)
- =\#_{\operatorname{ref}(x)}L_M(y,q)
- \leq |L_M(y,q)|\leq 1.
-\]
-The bound limits repetitions per target, not the number of distinct targets.
+\end{theorem}
+\begin{proof}[Outline]
+Preservation constructs an elaborated, conforming pair from source satisfaction.
+Reflection recovers source satisfaction from checker acceptance, using $A(d)$
+for alias validity. Both transport paths, applicability, values and containment;
+closure-to-path equivalences connect finite reachability to source paths.
+\end{proof}
+For a successfully elaborated pair, $A(d)$ also gives $\mathcal S(d)\iff C(S,M)$.
+Parsing and arbitrary Core representability remain outside these results.

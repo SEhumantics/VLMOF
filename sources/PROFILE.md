@@ -42,6 +42,14 @@ for diagnostic testing; their representability must not imply acceptance.
   primitive equality is value equality; literals retain their enumeration.
 - Paired association ends have matching opposite occurrence counts. This
   prevents membership-only checking from losing a repeated relationship.
+  It also restricts mixed-uniqueness associations: UML 2.5 section 11.5.3.1
+  describes unique-end projection of link multiplicities, whereas our equal
+  opposite counts forbid a repeated forward value when its reverse end is unique.
+  Equal counts are an additional restriction of this formalization, not a general
+  consequence of UML end projection. For example, two links can project to [y,y]
+  at a nonunique end and [x] at its unique opposite under UML; our predicate
+  rejects that observation pair. Repeated-link support alone does not justify
+  the equal-count restriction for all EMOF opposites.
 - Each child has at most one distinct container object, and at most one
   nonempty opposite container property (MOF 12.5.5). Containment is acyclic.
   Repeated occurrences within one unpaired nonunique feature do not create
@@ -60,9 +68,11 @@ no claim that every admitted snapshot is reachable through that API.
 Occurrence-sensitive opposite matching and container-role bounds interact:
 repeated paired links consume multiplicity at both ends, including an upper-one
 container end. Distinct-parent containment itself counts identities, not occurrences. CMOF
-13.2's repeatable Link rationale and optional Clause 15 corroborate this reading;
-neither is silently imposed as a mandatory EMOF capability. This interpretation
-must be named in any theorem's claimed standards correspondence.
+13.2's repeatable Link rationale supplies context for repeated links, but does not
+establish equal endpoint counts for arbitrary mixed-uniqueness EMOF associations.
+Optional Clause 15 is not imposed as a mandatory EMOF capability. The equal-count
+restriction must be stated in the formalization's standards correspondence;
+checker equivalence does not prove fidelity to the prose.
 
 ## Boundary
 

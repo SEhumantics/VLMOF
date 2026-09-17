@@ -48,14 +48,18 @@ keep this `id` as a value, and never promote it to an object identity/key.
 
 ### Raw-input/default boundary
 
-The profile defers default/unset histories. Therefore raw Train XMI is
-**unsupported**: it omits enum-valued `SwitchPosition.position` and
-`Switch.currentPosition`. A future adapter may make a separately recorded
-adaptation that materializes each omission as the Xcore enum's first literal,
-`FAILURE`, while retaining the original XMI and a manifest of each insertion.
-That adaptation is not a direct import. The inventory proves that, in the six
-pinned snapshots, every ordinary `id`, `active`, `length`, and `signal` is
-serialized; only `position` and `currentPosition` are absent.
+The profile defers reflective default/unset histories, but omitted optional enum
+values do not make raw Train XMI structurally unsupported. With the explicitly
+adapted Ecore profile, untouched batch-1 XMI is accepted and preserves the six
+omitted `position` and six omitted `currentPosition` observations as empty.
+The separate default-materialized variant inserts `FAILURE` with an insertion
+manifest; it is a meaning adaptation, not a necessary structural repair.
+The unadapted generated Ecore remains unsupported (annotation and datatype mapping).
+The source inventory shows that `id`, `active`, `length` and `signal` are serialized;
+only `position` and `currentPosition` are absent. The evaluated v1.0 references
+`route`, `target`, `entry` and `exit` have lower bound zero, unlike the article's
+multiplicity-one diagram. References are unique; attributes are nonunique.
+See `bridge/README.md` for the implemented import and export/reimport evidence.
 
 Run the retained standard-library inspector after acquisition:
 
@@ -109,8 +113,8 @@ features, Java/runtime datatypes (`EIterable`, `IEqualityHelper`, `Diagnostic`,
 derived/read-only/transient behavior, custom Java values, generic operation
 types, and Ecore reflection are outside the structural profile.
 
-A later E1 adapter should reject this original model with diagnostics before
-decoding. A separately named projection containing only selected declarative
+The implemented E1 adapter rejects this original model for unsupported operations
+before Core decoding. A separately named projection containing only selected declarative
 classes, containment, bounds, enums and opposites could test a bounded
 structural subcase, but it would be an adaptation and cannot be presented as
 EMF Compare import, comparison, or merge support.
