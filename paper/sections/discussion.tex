@@ -1,67 +1,53 @@
 \section{Discussion}\label{sec:discussion}
 
-
 \subsection{Related Work}
-\paragraph{Formal conformance and MOF semantics.}
-Paige et al. distinguish formal BON conformance and multiview consistency
-from fidelity to the intended metamodel \cite{paige_brooke_ostroff_2007}.
-Boronat and Meseguer establish executable MOF conformance with set, bag and
-sequence semantics \cite{boronat_meseguer_2010}. Their MOF~2.0 EMOF/OCL account
-restricts lower bounds to zero/one, upper bounds to one/unlimited, and requires
-opposites for composition \cite[pp.~66,91]{boronat_meseguer_report}; VL-MOF permits general
-finite bounds and unpaired composition. These compare stated subsets, not what
-additional constraints the earlier framework could express.
+\paragraph{Formal semantics of modeling languages.}
+Boronat and Meseguer give MOF an executable algebraic semantics
+\cite{boronat_meseguer_2010}, but allow only the multiplicities $0..1$, $1..1$,
+$0..\ast$ and $1..\ast$ and require opposites for composition
+\cite{boronat_meseguer_report}; VL-MOF permits any finite bounds and
+unpaired composition. Paige et al. separate formal conformance, specified in BON,
+from fidelity to the intended metamodel \cite{paige_brooke_ostroff_2007}, and
+MetaMorph formalizes the four-layer metamodeling stack \cite{doller_2022}.
+Featherweight OCL gives OCL a machine-checked semantics in Isabelle/HOL
+\cite{brucker_wolff_2012}; OCL constrains models,
+whereas we formalize their structural conformance.
 
-Our contribution connects a structural subset of EMOF to checker equivalence on
-raw inputs and correspondence between independent source satisfaction and
-elaboration. Coverage equivalence or greater expressiveness would require a
-translation between formalisms, which we do not establish.
+\paragraph{Mechanized model-driven engineering.}
+Coq4MDE proves preservation for ISC model composition
+\cite{kezadri_etal_2014} but compares opposites by membership,
+where we count occurrences. K\"ohler et al. derive conditions under which graph
+transformations preserve containment constraints
+\cite{koehler_lewin_taentzer_2007}; we also separate repeated link occurrences
+from distinct parents. CoqTL proof tactics \cite{cohen_tisi_douence_2024} and
+Isabelle/HOL DSL construction \cite{brucker_tuong_wolff_2020} target model
+transformation rather than conformance checking.
 
-\paragraph{Containment and model changes.}
-K\"ohler et al. constrain incoming containment edges and cycles in instance
-graphs and derive preservation conditions for graph transformations
-\cite{koehler_lewin_taentzer_2007}. VL-MOF distinguishes repeated occurrences
-of a link from distinct parent identities, and checks active reverse container
-properties separately. This choice matters for nonunique composite features.
-Coq4MDE proves preservation for ISC model composition, with injectivity and
-freshness conditions relevant to multiplicities \cite[pp.~115--116]{kezadri_etal_2014}.
-Its opposite condition compares membership, whereas ours compares occurrence
-counts, with the mixed-uniqueness restriction stated in Section~\ref{sec:conformance}.
-These differences do not establish greater standards fidelity.
-
-\paragraph{Mechanized modeling tools.}
-Isabelle/HOL DSL construction through conservative transformations
-\cite{brucker_tuong_wolff_2020} and CoqTL certification tactics
-\cite{cohen_tisi_douence_2024} address obligations different from checker and
-AST-elaboration equivalence. MetaMorph formalizes four metamodeling layers
-\cite{doller_2022}; our scope is structural conformance. NEREUS \cite{favre_duarte_2016} and KM3 \cite{jouault_bezivin_2006} offer
-formal/textual metamodel specification, while Emfatic \cite{emfatic_docs} and
-Xcore \cite{xcore_docs} provide textual Ecore; our named
-notation has a proved connection from independent source semantics to Core.
+\paragraph{Textual metamodeling.}
+NEREUS \cite{favre_duarte_2016} and KM3 \cite{jouault_bezivin_2006} specify
+metamodels formally or textually, and Emfatic \cite{emfatic_docs} and Xcore
+\cite{xcore_docs} give Ecore a textual syntax; our source documents also come
+with a proved connection from their independent meaning to Core
+(Theorem~\ref{thm:adequacy}).
 
 \subsection{Threats to Validity}
 \paragraph{Construct validity.}
-Proofs concern our predicates; EMOF correspondence rests on the source argument.
-The subset assumes complete finite snapshots and an implicit outer scope, and
-restricts mixed-uniqueness opposites (Section~\ref{sec:conformance}). EMF agreement
-does not establish standards fidelity.
+The theorems concern our definitions, whose correspondence to EMOF rests on the
+argument of Section~\ref{sec:conformance}. The subset assumes complete finite
+snapshots and an implicit outer scope and restricts mixed-uniqueness opposites;
+EMF agreement does not establish standards fidelity.
 
 \paragraph{Internal validity.}
-Proofs start at AST or Core; tests cover selected parsing, JSON, bridge and
-measurement cases, without proving general interchange/default behavior or
-historical-run correctness. Ten warmups do not establish JIT stabilization.
-Historical generation/orchestration sources lack hashes, commands include a dirty
-tree, and hardware provenance is incomplete. Retained inputs and samples support
-recomputing summaries, not reproducing the historical build.
+Proofs start at parsed source documents or Core; parsing, JSON, bridge and
+measurement code is tested on selected cases, not proved. Ten warmups do not
+establish JIT stabilization, and incomplete provenance (unhashed generation
+sources, a dirty tree, partial hardware data) permits recomputing summaries, not
+reproducing the build.
 
 \paragraph{External and conclusion validity.}
-Coverage excludes Real, structured datatypes, operations and reflection,
-default/unset histories, comments/tags and richer derived/read-only behavior;
-static features and derived unions are unrepresented. Results concern this
-structural subset, not full EMOF.
-
-Train is the only public positive family; unchanged EMF Compare is outside the
-bridge subset. Synthetic workloads expose structural sensitivity, not industrial
-scalability. Results apply to the specified generic validators. Independent
-process summaries, ranges and timeouts describe these workloads without
-isolating bottlenecks or establishing complexity bounds.
+Coverage excludes Real, structured datatypes, operations, reflection,
+default/unset histories, comments and tags, richer derived or read-only
+behavior, static features and derived unions, so results concern this structural
+subset, not full EMOF. Train is the only public positive family, and unchanged
+EMF Compare is outside the bridge subset. Synthetic workloads show structural
+sensitivity, not industrial scalability, for the specified validators.

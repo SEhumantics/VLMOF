@@ -1,4 +1,5 @@
 \section{Motivation}\label{sec:motivation}
+\input{figures/train}
 We adapt the railway case study of the Train Benchmark
 \cite{szarnyas_etal_2018} as a running example for structural conformance and
 its evaluation. Figure~\ref{fig:train} shows the metamodel and the inheritance
@@ -12,20 +13,13 @@ A Route with fewer than two required sensors violates multiplicity, while a
 switch position whose reverse route disagrees with \emph{Route.follows}
 violates the opposite relation. EMOF describes such structural requirements
 through definitions and usage rules, together with reused UML definitions
-\cite[\S\S12.1--12.5]{omg_mof_251}. A verified checker requires these requirements
-to be expressed as predicates over a model representation. Our task is to define
-that conformance relation for a stated structural subset and prove that the
+\cite{omg_mof_251}. Our task is to define that conformance relation for a stated structural subset and prove that the
 checker accepts exactly the models satisfying it.
 
 Multiplicity, uniqueness and containment illustrate the work involved. UML
 relates multiplicity to collection size and distinguishes unique from nonunique
-association ends \cite[\S11.5.3.1]{omg_uml_25}; MOF separately restricts container
+association ends \cite{omg_uml_25}; MOF separately restricts container
 identity, active container properties and containment cycles
-\cite[\S12.5.5]{omg_mof_251}. In a variation of Train's unpaired
-\emph{Region.elements} with uniqueness disabled, a list containing the same
-segment twice has two occurrences but identifies one parent. In the actual
-Train metamodel, uniqueness rejects that repetition. These are distinct constraints
-to combine: occurrence counts determine multiplicity, equality determines
-uniqueness, and parent identities and paths determine containment. Section~\ref{sec:formalization}
-makes these obligations explicit and states the restrictions of our representation.
-\input{figures/train}
+\cite{omg_mof_251}. Occurrence counts, equality, and parent identities and paths
+must be combined. Section~\ref{sec:formalization} makes these obligations
+explicit and states the restrictions of our representation.

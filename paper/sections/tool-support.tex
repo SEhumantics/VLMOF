@@ -1,60 +1,6 @@
 \section{Tool Support}\label{sec:tool}
-\subsection{Implementation and Verification}
-VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF}} accepts text declarations
-or Core JSON. Figure~\ref{fig:boundary}(a) shows parsing, elaboration and checking;
-JSON enters through decoding. Theorems~\ref{thm:adequacy} and~\ref{thm:checker}
-connect elaboration and checking to the source semantics and conformance
-relation defined in Section~\ref{sec:formalization}. Parsing and decoding are tested, not proved,
-and the parser does not guarantee $A(d)$. Lean proofs use propositional
-extensionality, choice and quotient soundness; execution also trusts the compiler
-and runtime. Diagnostics report input, resolution and conformance failures by
-condition group, without generally locating offending elements.
-
-Figure~\ref{fig:boundary}(b) shows the Ecore/XMI import experiment. Decision boxes
-compare validator outcomes; collected observations compare loaded property values.
-The latter comparison receives model data, not validation results.
-
-\begin{figure}[!htbp]
-\centering
-\resizebox{.82\linewidth}{!}{%
-\begin{tikzpicture}[font=\footnotesize,
- box/.style={draw,align=center,text width=22mm,minimum height=9mm},
- arr/.style={-{Stealth[length=1.5mm]}}]
-\node[box] (text) at (0,0) {Source text};
-\node[box] (ast) at (3,0) {AST};
-\node[box] (core) at (6,0) {Core pair};
-\node[box] (decision) at (9,0) {Decision};
-\draw[arr] (text) -- node[above=5mm,font=\scriptsize]{parse} (ast);
-\draw[arr] (ast) -- node[above=5mm,font=\scriptsize]{elaborate*} (core);
-\draw[arr] (core) -- node[above=5mm,font=\scriptsize]{check*} (decision);
-\node[box] (json) at (6,-1.3) {Core JSON};
-\draw[arr] (json) -- node[right]{decode} (core);
-\node[align=center] at (2,-1.3) {(a) *Elaboration: Thm.~\ref{thm:adequacy}\\*Checking: Thm.~\ref{thm:checker}};
-\node[box] (files) at (0,-3.75) {Ecore + XMI};
-\node[box] (native) at (3,-3.0) {Loaded EMF\\model};
-\node[box] (checks) at (6,-3.0) {EMF decisions};
-\node[box] (imported) at (3,-4.5) {Imported Core};
-\node[box] (lean) at (6,-4.5) {VL-MOF decision};
-\node[box] (cmp) at (9,-3.75) {Compare\\model values};
-\draw[arr] (files.north) |- node[pos=.75,above=3mm,font=\scriptsize]{load} (native.west);
-\draw[arr] (native) -- node[above=5mm,font=\scriptsize]{validate} (checks);
-\draw[arr] (files.south) |- node[pos=.75,below=3mm,font=\scriptsize]{bridge import} (imported.west);
-\draw[arr] (imported) -- node[below=5mm,font=\scriptsize]{check*} (lean);
-\draw[arr] (native.north) -- ++(0,.65) -| node[pos=.35,below,font=\scriptsize]{collect observations} (cmp.north);
-\draw[arr] (imported.south) -- ++(0,-.65) -| (cmp.south);
-\node at (4.5,-6.0) {(b) Same-file import comparison};
-\end{tikzpicture}%
-}
-\caption{Implementation data flow, with starred steps marking proved connections.}
-\label{fig:boundary}
-\end{figure}
-
-\subsection{Textual Notation}
-Figure~\ref{fig:notation} pairs an object grammar fragment with an example.
-Here \texttt{?} means optional, \texttt{*} repetition, and \texttt{qname} a name
-qualified with \texttt{::}; values include literals and \texttt{@} object references.
-
-\begin{figure}[!htbp]
+\suppressfloats[t]
+\begin{figure}[t]
 \centering
 \begin{minipage}[t]{.49\linewidth}\footnotesize
 \textbf{Object grammar fragment}
@@ -67,35 +13,73 @@ list ::= "[" values? "]"
 values ::= value ("," value)*
 \end{verbatim}
 \end{minipage}\hfill
-\begin{minipage}[t]{.48\linewidth}\footnotesize
-\textbf{Declaration and use}
+\begin{minipage}[t]{.51\linewidth}\footnotesize
+\textbf{Object $r$ of $M_T$}
 \begin{verbatim}
-class Sensor {}
-class Route {
-  requires : Sensor [2..*]
-    ordered unique;
-}
-object s1 : Sensor {}
-object s2 : Sensor {}
 object r : Route {
-  observe Route::requires =
-    [@s1, @s2];
+ observe RailwayElement::id = [101];
+ observe Route::active = [true];
+ observe Route::follows = [@sp];
+ observe Route::requires = [@sA,@sB];
+ observe Route::entry = [];
+ observe Route::exit = [];
 }
 \end{verbatim}
 \end{minipage}
-\caption{An object grammar fragment and a complete illustrative model.}
+\caption{Object grammar and object $r$ of $M_T$.}
 \label{fig:notation}
 \end{figure}
+\begin{figure}[t]
+\centering
+\resizebox{.82\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize,
+ box/.style={draw,align=center,text width=22mm,minimum height=9mm},
+ arr/.style={-{Stealth[length=1.5mm]}}]
+\node[box] (files) at (0,-3.75) {Ecore + XMI};
+\node[box] (native) at (3,-3.0) {Loaded EMF\\model};
+\node[box] (checks) at (6,-3.0) {EMF decisions};
+\node[box] (imported) at (3,-4.5) {Imported Core};
+\node[box] (lean) at (6,-4.5) {VL-MOF decision};
+\node[box] (cmp) at (9,-3.75) {Compare\\model values};
+\draw[arr] (files.north) |- node[pos=.75,above=3mm,font=\scriptsize]{load} (native.west);
+\draw[arr] (native) -- node[above=5mm,font=\scriptsize]{validate} (checks);
+\draw[arr] (files.south) |- node[pos=.75,below=3mm,font=\scriptsize]{bridge import} (imported.west);
+\draw[arr] (imported) -- node[below=5mm,font=\scriptsize]{check*} (lean);
+\draw[arr] (native.north) -- ++(0,.65) -| node[pos=.35,below,font=\scriptsize]{collect observations} (cmp.north);
+\draw[arr] (imported.south) -- ++(0,-.65) -| (cmp.south);
+\end{tikzpicture}%
+}
+\caption{Same-file EMF import comparison; the starred check is proved.}
+\label{fig:boundary}
+\end{figure}
+\subsection{Implementation and Verification}
+VL-MOF\footnote{\url{https://github.com/SEhumantics/VLMOF}} parses text into
+source documents, elaborates them into Core pairs and checks these; Core JSON is decoded
+directly. Theorems~\ref{thm:checker} and~\ref{thm:adequacy} are mechanized in
+Lean. Lean's definition of conformance computes ancestors, package nesting
+and parent chains by the checker's breadth-first search, and separate lemmas prove
+that, when references resolve, this search finds exactly the chains of
+Section~\ref{sec:formalization}. Theorem~\ref{thm:checker} then follows mainly by
+expanding both side by side.
+Theorem~\ref{thm:adequacy} is proved about the executable elaborator itself:
+lemmas trace each Core declaration, object and row back to its source, and show
+that distinct names receive distinct numbers and that each Core lookup is the
+renamed source lookup. It also uses the search lemmas, since $\mathcal S(d)$ is
+defined with chains, so $\mathcal S(d)\Leftrightarrow\operatorname{check}(S,M)=\mathsf{true}$
+in Eq.~\eqref{eq:adequacy} is mechanized against a definition free of the
+checker's search. Parsing and decoding,
+including the lexical admissibility of parsed names, are tested, not proved.
+Lean proofs use propositional extensionality, choice and quotient soundness;
+execution also trusts the compiler and runtime.
 
-The example isolates Train's required-sensor relation. It declares its classes,
-objects and observation; \texttt{Route::requires} names the property declaration,
-while \texttt{@s1} and \texttt{@s2} name object references. Elaboration replaces
-these aliases with identities and preserves the value sequence. The checker
-accepts two sensors and rejects a singleton list for the lower bound of two.
-Every applicable observation is explicit; scalars use singleton lists and
-\texttt{[]} records an empty value sequence. The complete Train model, including
-inherited observations and both opposite ends, is supplied as
-\texttt{examples/train/full-v1-batch-1.dsl}.
+\paragraph{Textual notation.}
+Source documents (Definition~\ref{def:document}) are written in a textual notation.
+Figure~\ref{fig:notation} pairs an object grammar fragment with the object $r$ of
+$M_T$, omitting package prefixes. Here \texttt{?} means optional, \texttt{*}
+repetition, and \texttt{qname} a name qualified with \texttt{::}; values include
+literals and \texttt{@} object references. Every applicable observation is
+explicit: scalars use singleton lists, and \texttt{[]} records an empty sequence,
+as for \emph{entry} and \emph{exit}.
 
 \subsection{EMF Interchange}
 VL-MOF can also check models stored by EMF. A Java bridge reads an \texttt{.ecore}
@@ -106,10 +90,9 @@ and omissions. EMF's \texttt{eIsSet} may instead treat an explicit default value
 as unset, so equal validator decisions need not mean equal loaded models.
 The comparison maps identities and checks classifiers, values and selected
 metadata, preserving sequence order or comparing multisets as appropriate.
+Figure~\ref{fig:boundary} shows the Ecore/XMI import experiment. Decision boxes
+compare validator outcomes; collected observations compare loaded property values.
 
-Import and export support the artifact's structural subset, not arbitrary EMF
-features; annotations, operations and general default/unset behavior are excluded.
-Export has additional ownership, naming and numeric-range restrictions. It writes
-fresh Ecore/XMI with both opposites. Round-trip tests reimport those files, use an
-identity sidecar to compare Core models and recheck conformance, separately from
-the EMF-validator experiment.
+Import and export cover only the artifact's structural subset, excluding
+annotations, operations and general default/unset behavior; round-trip tests
+reimport exported files and recheck conformance.

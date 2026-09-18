@@ -1,165 +1,283 @@
 \section{Formalization}\label{sec:formalization}
+\subsection{Representation}\label{sec:representation}
+We write $\langle x_1,\ldots,x_n\rangle$ for a finite sequence and $\langle\rangle$
+for the empty one; $|L|$ is the length of a sequence $L$, and $\#_v(L)$ the number
+of occurrences of $v$ in it.
 
-
-\subsection{Scope and Representation}
-We define finite structural states and their conformance before proving the
-connections to checking and named declarations. Reflective operations are excluded.
-\begin{definition}[Schema and snapshot]\label{def:representation}
-We describe a metamodel as a \emph{schema} $S$ and a finite model state as a
-\emph{snapshot} $M$; together they form the internal representation, \emph{Core}.
-A schema declares packages, classes, inheritance, properties, binary associations
-and enumerations. A snapshot records objects, their classes and property values.
+\begin{definition}[Schema]\label{def:schema}
+A \emph{schema} $S$ consists of finite lists of declarations, each with an
+identity and a simple name, that refer to each other by identity:
+\begin{list}{}{\setlength{\leftmargin}{6mm}\setlength{\labelwidth}{5mm}%
+ \setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{1pt}}
+\item[(a)] packages, each with an optional parent package;
+\item[(b)] classes, each with a package, direct superclasses and an abstract flag;
+\item[(c)] properties $p$, each with an owner (a class or an association), a type
+ (Boolean, integer, string, an enumeration or a class), bounds
+ $\ell_p\in\mathbb N$ and $u_p\in\mathbb N\cup\{\ast\}$, where $\ast$ is
+ unbounded, and flags $\mathit{unique}_p$, $\mathit{composite}_p$ and
+ $\mathit{id}_p$ (identifier);
+\item[(d)] associations, each with a package and two \emph{opposite ends} $(p,q)$;
+\item[(e)] enumerations, each with a package, and literals, each with its enumeration.
+\end{list}
 \end{definition}
-Inheritance collects reachable superclass properties by declaration identity:
-a diamond shares a declaration; same-named distinct declarations remain separate.
-Qualified aliases select declarations without overriding. This combines UML
-inheritance \cite[\S9.9.4]{omg_uml_25} with EMOF property access
-\cite[\S12.5.4]{omg_mof_251}; inheritance cycles are rejected.
-An observation $(o,p,L)$ records a finite value sequence for object $o$ and
-property $p$. Lookup $L_M(o,p)$ concatenates all matching rows, or is empty
-if none exist. This defines lookup on malformed inputs too; conformance requires
-exactly one row per applicable pair, distinguishing missing from empty rows.
 
-Values are object references, Booleans, integers, strings or enumeration literals;
-conformance requires XML-valid strings. Properties specify bounds, ordering,
-uniqueness and composition. Opposites are association ends; association-owned
-nonnavigable ends record incidence, and packages share an implicit outer scope.
-
-\subsection{Structural Conformance and Source Requirements}\label{sec:conformance}
-Schema well-formedness $W(S)$ requires distinct, resolved identities, valid names,
-acyclic package and inheritance graphs, and consistent ownership, types, bounds and association
-ends. At most one identifier property is allowed across direct and inherited
-declarations; this does not require globally unique values. Train's \emph{id}
-has no identifier flag.
-
-\begin{definition}[Structural conformance]\label{def:conformance}
-A snapshot $M$ conforms to a schema $S$, written $C(S,M)$, when $W(S)$ holds
-and the following obligations hold: object identities are distinct and classifiers
-are resolved and concrete; observations have resolved, applicable keys, with
-exactly one row per applicable pair; values satisfy typing, multiplicity and
-uniqueness; opposite occurrence counts agree; containment has at most one parent, at most
-one active reverse container property, and no cycles.
+\begin{definition}[Snapshot]\label{def:snapshot}
+A \emph{snapshot} $M=(O,\mathit{cls},R)$ consists of a finite list $O$ of object
+identities, each with a class identity $\mathit{cls}(o)$, and a finite list $R$
+of \emph{observation rows} $(o,p,L)$: an object identity, a property identity and
+a sequence $L$ of values. A value is an object reference $\operatorname{ref}(o)$,
+a Boolean, an integer, a string or an enumeration literal. We call $(S,M)$ a
+\emph{Core} pair.
 \end{definition}
-Applicability follows inheritance or association ownership. False, zero and the
-empty string count as values. We detail the principal conditions below.
 
-Following UML's collection bounds and uniqueness
-\cite[\S\S7.5.3.2,11.5.3.1]{omg_uml_25}, each applicable property $p$
-with bounds $\ell_p,u_p$ at object $o$ must satisfy
+\begin{definition}[Lookup]\label{def:lookup}
+Let $(o,p,L_1),\ldots,(o,p,L_k)$ be the rows of $R$ for object $o$ and
+property $p$, in their order in $R$. The \emph{lookup} of $p$ on $o$ is their
+concatenation
 \[
- \ell_p\leq |L_M(o,p)|\ \land\
- (u_p=\ast\ \lor\ |L_M(o,p)|\leq u_p),
- \qquad \mathit{unique}_p\Rightarrow\operatorname{distinct}(L_M(o,p)).
+ L_M(o,p)=L_1L_2\cdots L_k,
 \]
-Here $\ast$ means unlimited; length counts occurrences and $\operatorname{distinct}$
-excludes repeats. References compare by identity. Observation comparison preserves
-ordered sequences and compares unordered values up to permutation; it is separate
-from conformance.
+which is $\langle\rangle$ if $k=0$. We write $o.p$ for $L_M(o,p)$.
+\end{definition}
 
-\paragraph{Opposites.}
-Write $\#_v(L)$ for the number of occurrences of value $v$ in sequence $L$.
-Our subset represents associations through endpoint observations, without
-first-class link identities. It imposes equal forward and reverse occurrence
-counts for opposite properties $p,q$ and objects $x,y$:
-\begin{equation}
- \#_{\operatorname{ref}(y)}L_M(x,p)
- = \#_{\operatorname{ref}(x)}L_M(y,q).
-\label{eq:opposite}
-\end{equation}
-For Train's unique references, this checks reciprocal membership; for two
-nonunique ends, it retains repeated-pair counts. Mixed uniqueness is restricted:
-UML projection can yield $\langle y,y\rangle$ at a nonunique end and
-$\langle x\rangle$ at its unique opposite \cite[\S11.5.3.1]{omg_uml_25},
-but Equation~\ref{eq:opposite} rejects that pair. This is an additional subset
-restriction. CMOF's repeated-link rationale \cite[\S13.2.5]{omg_mof_251}
-does not establish equal counts for all EMOF opposites.
+\paragraph{Applicability.}
+The \emph{ancestors} of a class are the class itself and the classes reached
+through direct superclasses. A property $p$ \emph{applies} to class $c$, written
+$p\in\mathit{app}(c)$, if an ancestor of $c$ declares $p$, or if $p$ is an
+association-owned end whose opposite has an ancestor of $c$ as its type.
+Following UML inheritance and EMOF property access
+\cite{omg_uml_25,omg_mof_251}, inherited properties are collected by
+declaration identity: a diamond yields one declaration, and same-named ones are
+selected by qualified names, not overridden; e.g., \emph{RailwayElement.id}
+applies to \emph{Switch}.
 
-\paragraph{Containment.}
-Following MOF \cite[\S12.5.5]{omg_mof_251}, composite observations of a child
-must name one parent, with at most one nonempty reverse container property.
-Repeated unpaired occurrences do not add parents. No nonempty composite path
-may return to its source. Multiplicity and uniqueness are checked separately.
+Figure~\ref{fig:running} shows our running snapshot $M_T$ as a UML object
+diagram over the metamodel of Figure~\ref{fig:train}: route $r$ requires sensors
+$s_A,s_B$ and follows switch position $\mathit{sp}$ of switch $\mathit{sw}$.
+Each slot and each link end is one row. The two \emph{requires} links form the
+single row $(r,\mathit{requires},\langle\operatorname{ref}(s_A),\operatorname{ref}(s_B)\rangle)$,
+and the link between $r$ and $\mathit{sp}$ gives
+$r.\mathit{follows}=\langle\operatorname{ref}(\mathit{sp})\rangle$ and
+$\mathit{sp}.\mathit{route}=\langle\operatorname{ref}(r)\rangle$. Every other
+applicable property, such as $r.\mathit{entry}$, has an empty row.
 
-\begin{proposition}[Upper-one opposite]\label{prop:opposite}
-Suppose $C(S,M)$, a stored association has ends $(p,q)$, and the stored declaration
-of $q$ has upper bound one. For stored objects $x,y$, with $q$ applicable at $y$,
-each forward reference count is at most one, even if $p$ is nonunique.
-\end{proposition}
-\begin{proof}
-Opposite agreement and the upper bound give
-\[
- \#_{\operatorname{ref}(y)}L_M(x,p)
- =\#_{\operatorname{ref}(x)}L_M(y,q)
- \leq |L_M(y,q)|\leq 1.
-\]
-\end{proof}
-The bound limits repetitions per target. It follows from our equal-count
-restriction and is not asserted for UML's mixed-uniqueness projection.
+\begin{figure}[!t]
+\centering
+\def\objbox#1#2{\begin{tabular}{@{\hspace{3pt}}l@{\hspace{3pt}}}\underline{#1}\\[1.5pt]\hline #2\end{tabular}}
+\resizebox{.8\linewidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize,
+ obj/.style={draw,inner sep=0pt},
+ nav/.style={-{Stealth[length=1.5mm]}},
+ comp/.style={{Diamond[length=2.6mm,width=1.6mm]}-{Stealth[length=1.5mm]}},
+ both/.style={{Stealth[length=1.5mm]}-{Stealth[length=1.5mm]}}]
+\node[obj] (sA) at (0.4,0.65) {\objbox{$s_A$ : Sensor}{id = 404}};
+\node[obj] (sB) at (0.4,-0.45) {\objbox{$s_B$ : Sensor}{id = 405}};
+\node[obj] (r) at (4.0,0.1) {\objbox{$r$ : Route}{id = 101\\ active = true}};
+\node[obj] (sp) at (9.3,0.85) {\objbox{$\mathit{sp}$ : SwitchPosition}{id = 303\\ position = STRAIGHT}};
+\node[obj] (sw) at (9.3,-1.0) {\objbox{$\mathit{sw}$ : Switch}{id = 202\\ currentPosition = STRAIGHT}};
+\draw[nav] (r.west) -- node[pos=.5,above,sloped]{requires} (sA.east);
+\draw[nav] (r.west) -- node[pos=.5,below,sloped]{requires} (sB.east);
+\draw[comp] (r.east) -- node[pos=.22,below,sloped]{route} node[pos=.72,above,sloped]{follows} (sp.west);
+\draw[both] (sp.south) -- node[pos=.25,right]{positions} node[pos=.75,right]{target} (sw.north);
+\end{tikzpicture}}
+\caption{Running snapshot $M_T$ of the metamodel in Figure~\ref{fig:train}.}
+\label{fig:running}
+\end{figure}
 
-\paragraph{Source correspondence and restrictions.}
-Table~\ref{tab:source-findings} summarizes the source argument; the clause audit
-covers MOF~12.4's 32 restrictions. Structural $0..0$ bounds are distinct from
-MOF~9.3.3's positive-upper creation prerequisite. Proofs concern our predicates.
+With one row per pair, as in $M_T$, lookup returns that row's sequence, and an
+empty row records absence: $r.\mathit{entry}=\langle\rangle$ differs from
+$\langle\mathsf{false}\rangle$ or $\langle 0\rangle$. Lookup is also defined for
+a missing row, giving $\langle\rangle$, and for repeated rows, which concatenate.
 
-\begin{table}[!htbp]
-\centering\small
-\caption{Source requirements, formal encoding and scope restrictions.}
-\label{tab:source-findings}
-\renewcommand{\arraystretch}{1.1}
-\begin{tabular}{>{\raggedright\arraybackslash}p{34mm}>{\raggedright\arraybackslash}p{38mm}>{\raggedright\arraybackslash}p{36mm}}
-\hline
-Source requirement & Formal encoding & Scope / restriction \\
-\hline
-Bounds (UML 7.5; MOF 9.3.3) & Length within bounds; $0..0$ allowed. & No creation service. \\
-Collections (UML 11.5.3.1) & Occurrence length; distinctness if unique. & Static observations. \\
-Opposites (UML 11.5.3.1) & Equal occurrence counts. & Restricts mixed uniqueness. \\
-Containment (MOF 12.5.5) & One parent, one active reverse role; no cycles. & Counts parent identities. \\
-Inheritance (UML 9.9.4; MOF 12.5.4) & Declaration identities. & No name-based overriding. \\
-\hline
-\end{tabular}
-\end{table}
+\subsection{Structural Conformance}\label{sec:conformance}
+Definitions~\ref{def:wellformed} and~\ref{def:conformance} adapt structural
+clauses of UML and MOF, as argued from their text and an audit of MOF~\S12.4's
+32 EMOF restrictions. Below, we trace the conditions to the original
+specifications and demonstrate them with counterexamples, i.e., variants of $M_T$
+that each violate a single condition.
+
+\begin{definition}[Well-formedness]\label{def:wellformed}
+A schema $S$ is \emph{well formed}, $W(S)$, if:
+\begin{list}{}{\setlength{\leftmargin}{9mm}\setlength{\labelwidth}{8mm}%
+ \setlength{\itemsep}{1pt}\setlength{\parsep}{0pt}\setlength{\topsep}{2pt}}
+\item[(W1)] \emph{Identities}: declarations of each kind have distinct identities.
+\item[(W2)] \emph{Names}: every name is nonempty and consists of XML-valid characters.
+\item[(W3)] \emph{Resolution}: every reference between declarations resolves to
+ one of the expected kind, and an association owning a property has it as an end.
+\item[(W4)] \emph{Acyclicity}: package nesting and generalization are acyclic.
+\item[(W5)] \emph{Properties}: $\ell_p\leq u_p$; composite properties have class
+ types; and a class has at most one identifier, declared or inherited.
+\item[(W6)] \emph{Associations}: the two ends are distinct and class-typed, at
+ most one is association-owned, and a class-owned end is owned by the type of its
+ opposite; no property is an end of two associations; and the opposite of a composite
+ end is not composite and has upper bound~1.
+\end{list}
+\end{definition}
+W2, W5 and W6 include EMOF restrictions \cite{omg_mof_251}; W4 and the composite
+conditions follow UML \cite{omg_uml_25}.
+
+\begin{definition}[Conformance]\label{def:conformance}
+A snapshot $M$ \emph{conforms} to a schema $S$, written $C(S,M)$, if $W(S)$
+holds and, for all $o\in O$ and $p\in\mathit{app}(\mathit{cls}(o))$:
+\begin{list}{}{\setlength{\leftmargin}{9mm}\setlength{\labelwidth}{8mm}%
+ \setlength{\itemsep}{1pt}\setlength{\parsep}{0pt}\setlength{\topsep}{2pt}}
+\item[(C1)] \emph{Objects}: identities are distinct, and $\mathit{cls}(o)$ is
+ resolved and not abstract.
+\item[(C2)] \emph{Rows}: every row names a stored object and a property that
+ applies to its class, and the pair $(o,p)$ has exactly one row.
+\item[(C3)] \emph{Typing}: every value in $L_M(o,p)$ fits the type of $p$:
+ references to stored objects whose class has that type as an ancestor, literals
+ of the enumeration, or XML-valid strings.
+\item[(C4)] \emph{Multiplicity}: $\ell_p\leq|L_M(o,p)|\leq u_p$, and if
+ $\mathit{unique}_p$, no value repeats in $L_M(o,p)$.
+\item[(C5)] \emph{Opposites}: for each association $(p,q)$ and all $x,y\in O$,
+ $\#_{\operatorname{ref}(y)}L_M(x,p)=\#_{\operatorname{ref}(x)}L_M(y,q)$.
+\item[(C6)] \emph{Containment}: $o$ has at most one \emph{parent}, i.e., an
+ $x\in O$ with $\operatorname{ref}(o)\in L_M(x,p')$ for a composite $p'$; at most
+ one \emph{container end} $q$ of $o$, the opposite of a composite property, has
+ $L_M(o,q)\neq\langle\rangle$; and no chain of parents leads from an object back
+ to itself.
+\end{list}
+\end{definition}
+
+\paragraph{Objects, rows and typing (C1--C3).}
+C1 follows UML: abstract classes have no direct instances \cite{omg_uml_25}.
+C2 demands the rows of Section~\ref{sec:representation}, recording MOF's null
+or empty list \cite{omg_mof_251} as $\langle\rangle$, so it rejects missing and
+repeated rows; deleting $\mathit{sw}$'s \emph{id} row violates it alone. C3
+follows UML type conformance and MOF's XML Schema datatypes.
+
+\paragraph{Multiplicity (C4).}
+Following UML \cite{omg_uml_25}, bounds count occurrences, and uniqueness
+separately excludes repeats. Dropping $s_B$ from $M_T$ leaves
+$|r.\mathit{requires}|=1<2$, which violates C4 alone. A $0..0$ bound means that
+a property stays empty; MOF requires positive upper bounds only before
+reflective \texttt{create} \cite[\S9.3.3]{omg_mof_251}, which our subset omits.
+
+\paragraph{Opposites (C5).}
+Without link identities, an association is observed at both ends, and C5 makes
+the ends agree occurrence by occurrence. Clearing $\mathit{sp}.\mathit{route}$
+in $M_T$ gives $0\neq1$ against $r.\mathit{follows}$: a link recorded at one end
+only. For unique ends, C5 is reciprocal membership; with mixed uniqueness, it is
+stricter than UML \cite[\S11.5.3.1]{omg_uml_25}. Were the unique
+\emph{Route.follows} nonunique, UML would permit two links between $r$ and
+$\mathit{sp}$, seen as
+$\langle\operatorname{ref}(\mathit{sp}),\operatorname{ref}(\mathit{sp})\rangle$
+at \emph{follows} but $\langle\operatorname{ref}(r)\rangle$ at the unique
+\emph{route} end; C5 rejects this ($2\neq1$), a restriction of our subset.
+
+\paragraph{Containment (C6).}
+C6 follows MOF \cite[\S12.5.5]{omg_mof_251}. Parents form a set, so repeated
+occurrences add none: a region listing
+$\langle\operatorname{ref}(\mathit{seg}),\operatorname{ref}(\mathit{seg})\rangle$
+gives $\mathit{seg}$ one parent. Only the uniqueness of \emph{Region.elements}
+(C4) rejects this list; with uniqueness disabled, it is accepted. A segment in the
+\emph{elements} of two regions violates C6 alone.
 
 \subsection{Verified Checking and Translation}\label{sec:guarantees}
+We prove that the checker accepts exactly the conforming pairs and that
+elaboration preserves meaning; Section~\ref{sec:tool} describes the Lean
+mechanization.
+
 \begin{theorem}[Checker correctness]\label{thm:checker}
-For every raw schema $S$ and snapshot $M$, including malformed inputs,
+For every schema $S$ and snapshot $M$, the checker's Boolean verdict satisfies
 \begin{equation}
  \operatorname{check}(S,M)=\mathsf{true}
  \quad\Longleftrightarrow\quad C(S,M).
 \label{eq:checker}
 \end{equation}
 \end{theorem}
-\begin{proof}[Outline]
-Combine predicate/decision equivalences, including optimized-closure correctness.
-The separate closure-to-path results are not needed here.
-\end{proof}
-An analogous theorem decides $W(S)$. These are soundness and completeness
-results for the defined predicates, without a runtime complexity claim.
+\begin{proofsketch}
+Apart from reachability, each condition of Definitions~\ref{def:wellformed}
+and~\ref{def:conformance} quantifies over the finite lists of $S$ and $M$, e.g.,
+C4 over $O$ and $\mathit{app}(\mathit{cls}(o))$, and the checker evaluates it
+element by element, which is exact. For the ancestors of a class $c$, it
+computes, as breadth-first search does, $X_0=\{c\}$ and
+$X_{k+1}=X_k\cup\mathit{sup}(X_k)$, where $\mathit{sup}(X)$ holds the direct
+superclasses of the classes in $X$; for \emph{Switch}, $X_1$ adds
+\emph{TrackElement}, $X_2$ adds \emph{RailwayElement}, and $X_3=X_2$. Under W3,
+$X_0\subseteq X_1\subseteq\cdots$ lie among the $n$ classes of $S$, so $X_{n+1}=X_n$:
+$X_n$ is closed under $\mathit{sup}$, hence contains every ancestor, and it
+contains only ancestors. Package nesting (W4) and parent chains (C6) are alike;
+there, W3, C2 and C3 keep links within the lists. A pair violating these does not conform and is rejected, as the
+checker evaluates them too.
+\end{proofsketch}
 
-\paragraph{Symbolic declarations and elaboration.}
-Parsing produces a symbolic AST $d$. Its independent satisfaction predicate
-$\mathcal S(d)$ uses paths, applicability, typing, opposite counts and containment,
-without calling the checker, elaborator or $C$; elementary string-validity and
-multiplicity notions are shared. The elaborator $E$ resolves qualified aliases,
-allocates identities by declaration kind and list position, and translates values.
-Let $A(d)$ require nonempty declaration and object aliases with nonempty
-XML-valid components. Successful binding alone does not establish this lexical
-condition, which does not assume conformance.
+\paragraph{From source documents to Core.}
+Theorem~\ref{thm:checker} concerns Core pairs, but users write text, which a
+parser turns into a source document that uses names instead of identities.
+Translating it into Core must preserve its meaning: dropping a repeated value
+would hide a uniqueness violation (C4), and merging two names would create one.
+We therefore define the translation and, independently of it, what a source
+document means.
 
-\begin{theorem}[Source adequacy]\label{thm:adequacy}
-For every symbolic document $d$,
+\begin{definition}[Source document]\label{def:document}
+A \emph{source document} $d$ has the components of Definitions~\ref{def:schema}
+and~\ref{def:snapshot}, with names in place of identities: each declaration has
+a \emph{qualified name}, a sequence of strings such as
+$\mathit{Route}{::}\mathit{requires}$, besides its simple name; each object has an
+\emph{object name}, such as $r$; and references and rows use these names. $L_d$ is
+the lookup of $d$. We call $d$ \emph{well named}, i.e., its names can serve as identities, if:
+\begin{list}{}{\setlength{\leftmargin}{9mm}\setlength{\labelwidth}{8mm}%
+ \setlength{\itemsep}{1pt}\setlength{\parsep}{0pt}\setlength{\topsep}{2pt}}
+\item[(N1)] every qualified and object name is nonempty and has nonempty components;
+\item[(N2)] no two declarations, and no two objects, have the same name;
+\item[(N3)] each declaration's qualified name extends its owner's by one
+ component, or has one component if the declaration has no owner;
+\item[(N4)] every name used in $d$ denotes a declaration or object of the expected kind.
+\end{list}
+We call $d$ \emph{lexically admissible} if the components of its qualified and
+object names consist of XML-valid characters.
+\end{definition}
+
+\begin{definition}[Elaboration]\label{def:elaboration}
+\emph{Elaboration} $E$ translates a source document $d$ into a Core pair. It fails
+unless $d$ is well named; otherwise $E(d)=\mathsf{ok}(\rho(d))$. Here $\rho$
+numbers the declarations of each kind and the objects by their positions in $d$,
+and $\rho(d)$ replaces every qualified or object name $n$ by $\rho(n)$, keeping
+simple names and the order and repetition of values.
+\end{definition}
+Elaborating the source document of $M_T$, whose objects are named $r$, $s_A$,
+$s_B$, $\mathit{sp}$ and $\mathit{sw}$, yields $M_T$ up to the choice of
+identities; naming two objects $r$ makes elaboration fail by (N2).
+
+\begin{definition}[Source meaning]\label{def:meaning}
+The \emph{meaning} of a source document $d$ is the condition $\mathcal S(d)$ that
+$d$ is well named and lexically admissible and that $W$ and C1--C6 hold on $d$
+with names in place of identities.
+\end{definition}
+$\mathcal S(d)$ is stated on $d$ alone, without $E$ or $\rho$. Elaboration checks every name condition of $\mathcal S(d)$ except lexical
+admissibility, which a Core pair cannot confirm, since it keeps no qualified or
+object names.
+
+\begin{theorem}[Elaboration adequacy]\label{thm:adequacy}
+Let $d$ be a lexically admissible source document. (i)~If $\mathcal S(d)$, then
+$E(d)$ succeeds. (ii)~If $E(d)=\mathsf{ok}(S,M)$, then $\mathcal S(d)\Leftrightarrow C(S,M)$.
+\end{theorem}
+Part~(i) says that elaboration rejects only documents whose meaning fails, and
+part~(ii) that a successful elaboration neither hides nor introduces violations.
+\begin{proofsketch}
+(i)~Elaboration fails only if $d$ is not well named, which $\mathcal S(d)$ rules
+out. (ii)~By (N2), $\rho$ is a bijection from the names of $d$ onto the identities of
+$E(d)=\rho(d)$, which keeps every row and the order and repetition of its
+values; hence $L_{E(d)}(\rho o,\rho p)=\rho(L_d(o,p))$, and $\rho$ is an
+isomorphism from $d$ onto $E(d)$. $W$ and C1--C6 refer to identities only
+through equality, lookup and references, which isomorphisms preserve, so each
+holds on $d$ exactly when it holds on $E(d)$. The faulty translations above are
+not isomorphisms: dropping a repeat changes a lookup, and merging two names
+breaks injectivity. For $C(S,M)\Rightarrow\mathcal S(d)$, only the name conditions
+remain: $d$ is well named because $E(d)$ succeeded, and lexically admissible by
+hypothesis.
+\end{proofsketch}
+With Theorem~\ref{thm:checker}, every lexically admissible source document $d$
+with $E(d)=\mathsf{ok}(S,M)$ thus satisfies
 \begin{equation}
- A(d)\Longrightarrow\left(
- \mathcal S(d)\ \Longleftrightarrow\
- \exists S,M.\ E(d)=\mathsf{ok}(S,M)\land
- \operatorname{check}(S,M)=\mathsf{true}\right).
+ \mathcal S(d)
+ \ \overset{\text{Thm.~\ref{thm:adequacy}}}{\Longleftrightarrow}\
+ C(S,M)
+ \ \overset{\text{Thm.~\ref{thm:checker}}}{\Longleftrightarrow}\
+ \operatorname{check}(S,M)=\mathsf{true},
 \label{eq:adequacy}
 \end{equation}
-\end{theorem}
-\begin{proof}[Outline]
-Preservation constructs an elaborated, conforming pair from source satisfaction.
-Reflection recovers source satisfaction from checker acceptance, using $A(d)$
-for alias validity. Both transport paths, applicability, values and containment;
-closure-to-path equivalences connect finite reachability to source paths.
-\end{proof}
-For a successfully elaborated pair, $A(d)$ also gives $\mathcal S(d)\iff C(S,M)$.
-Parsing and arbitrary Core representability remain outside these results.
+and by~(i), $\mathcal S(d)$ fails whenever $E(d)$ fails. Checking the elaborated
+pair thus answers exactly whether a source document satisfies its meaning.

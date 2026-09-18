@@ -6,7 +6,8 @@ Train v1.0 repository\footnote{\url{https://github.com/FTSRG/trainbenchmark/tree
 snapshot, a generated benchmark model rather than operational railway data.
 After adapting the metamodel to the supported Ecore subset, we import the
 unchanged snapshot: ten classes, 21 features, two enumerations, 754 objects and
-3,378 observation rows. Our generated textual rendition elaborates exactly to
+3,378 observation rows. VL-MOF accepts it, which by Theorem~\ref{thm:checker}
+establishes its conformance. A generated source document in our notation elaborates exactly to
 that Core pair, including identities, flags, row order and absence. Removing all
 but one required sensor from a Route gives a multiplicity failure while the
 other structural checks pass.
@@ -17,16 +18,11 @@ in Section~\ref{sec:timing} and two small authored examples form the eleven
 aligned positives in Table~\ref{tab:correctness}; they are not eleven independent
 metamodels. An additional public input, the EMF Compare metamodel from its
 3.3.28 repository, is rejected by the bridge for unsupported operations before
-Core checking. The input and runner index is \texttt{experiments/README.md};
-public originals are acquired separately, and historical measurement logs are
-kept outside the source repository. The artifact records revisions, adaptations
-and licenses.
+Core checking.
 
-For RQ1, Section~\ref{sec:conformance} supplies the source correspondence and
-subset restrictions; these cases illustrate consequences of the predicates.
-Section~\ref{sec:guarantees}'s proofs address RQ2. A Lean proof client derives
-nonconformance from a repeated link with an upper-one opposite, exercising
-Proposition~\ref{prop:opposite} under our equal-count restriction.
+For RQ1, Section~\ref{sec:conformance} supplies the correspondence with the
+standards and the subset restrictions; these cases illustrate consequences of the predicates.
+Section~\ref{sec:guarantees} answers RQ2.
 
 \subsection{Comparison with EMF}
 We use EMF Ecore/XMI 2.39.0 and Common 2.42.0 under Java~21. An isolated registry selects EcoreValidator and generic
@@ -36,8 +32,6 @@ Table~\ref{tab:correctness}(a) separates these calls from VL-MOF's combined chec
 instance acceptance cannot override schema rejection. Panel (b) reports the loaded-model comparison of Section~\ref{sec:tool}.
 It uses values when native \texttt{eIsSet} holds and an empty sequence otherwise,
 not unconditional \texttt{eGet}; equal states can still receive different decisions.
-These comparisons measure agreement under the stated configurations; they do
-not establish either validator's fidelity to EMOF.
 
 \begin{table}[tbp]
 \centering\small
@@ -75,53 +69,44 @@ Repeated containment; two unpaired features & Comparison fails: duplicate collec
 \end{table}
 
 The lower block of Table~\ref{tab:correctness}(a) exposes Ecore schema
-restrictions. In particular, an empty $0..0$ property is permitted by our
-structural interpretation but rejected by Ecore at schema level.
-The repeated unique String survives loading but is accepted by this generic
-validator and rejected by VL-MOF; it does not establish the behavior of every
-EMF editor or generated validator. Repeated traversal of a contained object
-produces duplicate collector rows in the two unpaired cases. Their alignment is
-conservatively unsuccessful even though their distinct URI/value comparisons
-agree; they are not timed. The two-feature fixture shares a schema containing
-an additional nonunique composite \emph{children} declaration. Its schema
-rejection therefore does not isolate the two-feature instance behavior.
+restrictions; e.g., an empty $0..0$ property is permitted by our structural
+interpretation but rejected by Ecore. The repeated unique String survives
+loading; the generic validator accepts it, and VL-MOF rejects it. In the two
+unpaired cases, repeated traversal of a contained object duplicates collector
+rows, so alignment conservatively fails although their distinct URI/value
+comparisons agree; they are not timed. The two-feature schema also declares a
+nonunique composite \emph{children}, so its rejection does not isolate the
+instance behavior.
 
-Our adaptation of the Train v1.0 metamodel removes one generator annotation and maps EJavaObject
-attributes to EInt (\emph{id}, \emph{length}) and EBoolean (\emph{active}). It uses
-$0..1$ for \emph{route}, \emph{target}, \emph{entry} and \emph{exit}, versus one in
-the article's diagram; Figure~\ref{fig:train} shows the evaluated metamodel.
-We also create a copy of the public snapshot with omitted enum defaults
-written explicitly. In this default-materialized copy, native
-\texttt{eIsSet} reports twelve explicit first-enumeration values unset while
-bridge import retains \texttt{FAILURE}. Both validators accept, despite singleton
-versus empty observations. This case is excluded from paired timing. The original-snapshot control
-with adapted Ecore instead aligns and is accepted by
-both: zero lower bounds permit omissions without inserting defaults. This result
-is specific to the adapted metamodel; the unadapted schema is unsupported.
+Our adaptation of the Train v1.0 metamodel removes one generator annotation,
+maps EJavaObject attributes to EInt (\emph{id}, \emph{length}) and EBoolean
+(\emph{active}), and uses $0..1$ for \emph{route}, \emph{target}, \emph{entry}
+and \emph{exit}, versus one in the article's diagram (Figure~\ref{fig:train}).
+In a copy of the public snapshot with omitted enum defaults written explicitly,
+native \texttt{eIsSet} reports twelve explicit first-enumeration values unset
+while bridge import retains \texttt{FAILURE}; both validators accept despite
+singleton versus empty observations, and this case is not timed. The original
+snapshot with the adapted Ecore aligns and is accepted by both, as zero lower
+bounds permit omissions; the unadapted schema is unsupported.
 
 \subsection{Validation Time}\label{sec:timing}
 We generate three workload families ourselves to vary size and shape while
 holding each family's schema fixed. A \emph{containment star} has one parent
 and many children with inherited scalar features and ordered value lists
-(11/101/501 objects). A \emph{Train projection} repeats our five-object
-route/switch example, with optional bounds (2/20/100 groups). A
+(11/101/501 objects). A \emph{Train projection} repeats groups shaped like
+$M_T$ over six classes of Figure~\ref{fig:train} (2/20/100 groups). A
 \emph{containment chain} nests each child inside its predecessor
 (11/101/501 objects, depths 10/100/500). These are synthetic tests of our checker,
 not executions of the Train Benchmark's query workload; the public 754-object
-snapshot is not timed. The artifact records structural counts; a chain of $N$ objects has $3N-2$ value occurrences.
+snapshot is not timed.
 
 Each case uses five independent process trials, ten warmups and thirty measured
-repetitions, with both tool orders and alternate traversal directions. Builds
-precede timing. We measure combined schema/instance validation on preloaded
-inputs, excluding loading, serialization and diagnostics. The artifact also
-records VL-MOF schema-only and read/decode phases, plus command-wall times;
-EMF schema-only and load/decode phases were not retained. Instance-only validation
-was not measured and cannot be inferred by subtracting schema time.
+repetitions, with both tool orders and alternate traversal directions, after building. We
+measure combined schema/instance validation on preloaded inputs, excluding
+loading, serialization and diagnostics; instance-only time was not measured.
 
 Table~\ref{tab:validation-times} reports the median of five process medians
-in milliseconds; the artifact retains each process median, their minimum and
-maximum, and all measured samples. Rows count feature observations.
+in milliseconds, and rows count feature observations.
 \input{sections/validation-times}
 
-For RQ3, 40 of 45 paired timing trials complete; five VL-MOF processes time out
-on the deepest chain. Raw samples and excluded preliminary runs remain in the artifact.
+For RQ3, 40 of 45 paired timing trials complete.

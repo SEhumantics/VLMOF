@@ -8,27 +8,31 @@ executable decision procedure.
 
 Formal conformance and executable MOF semantics have established precedents
 \cite{boronat_meseguer_2010,paige_brooke_ostroff_2007}. Building on them, we focus
-on connecting a structural subset of EMOF to independently defined named
-models, verified translation and executable checking. This raises three questions:
+on connecting a structural subset of EMOF to source documents with an
+independent meaning, verified translation and executable checking. A
+\emph{source document} is the parsed form of what a user writes: declarations
+and objects that refer to each other by name. This raises three questions:
 \begin{description}
 \item[RQ1.] How are the selected structural EMOF requirements represented as
 conformance predicates, and what restrictions does this formalization impose?
-\item[RQ2.] What guarantees connect symbolic declarations, formal conformance
+\item[RQ2.] What guarantees connect source documents, formal conformance
 and executable checking?
 \item[RQ3.] Where does the implementation agree with a specified EMF validation
 setup, and how does validation time vary across controlled workloads?
 \end{description}
 
-We present \textbf{VL-MOF}, a formalization in Lean \cite{demoura_ullrich_2021}
-of a structural subset of EMOF, with executable model-conformance checking. First, we define metamodel well-formedness and finite
-model conformance, documenting their source requirements and the formalization's
-additional restrictions. Second, we prove checker equivalence and preservation of the
-independent meaning of named declarations under explicit naming conditions.
-Third, an adapted railway case study and controlled workloads evaluate
-validation decisions, loaded values and checking cost.
+We present \textbf{VL-MOF}, a Lean \cite{demoura_ullrich_2021} formalization of
+a structural subset of EMOF with executable conformance checking. First, we
+define metamodel well-formedness and model conformance, documenting the
+requirements they adapt and our additional restrictions. Second, we prove the
+checker equivalent to conformance and elaboration faithful to the independent
+meaning of source documents under explicit naming conditions. Third, an adapted
+railway case study and controlled workloads evaluate validation decisions,
+loaded values and checking cost.
 
-The rest of the paper proceeds as follows. Section~\ref{sec:motivation} motivates
-the work; Section~\ref{sec:formalization} presents the semantics and proofs;
-Section~\ref{sec:tool} describes the tool; Section~\ref{sec:evaluation} evaluates
-it; Section~\ref{sec:discussion} discusses related work and limitations; and
-Section~\ref{sec:conclusion} concludes.
+The rest of the paper proceeds as follows. Section~\ref{sec:motivation}
+motivates the work; Section~\ref{sec:formalization} presents the formalized
+semantics; Section~\ref{sec:tool} describes the implementation;
+Section~\ref{sec:evaluation} performs evaluation; Section~\ref{sec:discussion}
+discusses related work and limitations; and Section~\ref{sec:conclusion}
+concludes.

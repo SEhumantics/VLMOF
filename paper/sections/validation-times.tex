@@ -21,14 +21,13 @@ Containment chain & 501 & 1503 & 1.898 & timeout \\
 \end{tabular}
 \end{table}
 
-Each completed cell contains 150 measurements across five independent processes.
-All EMF processes completed the deepest chain; all five VL-MOF processes exceeded
-120 seconds before emitting samples. That limit covers 40 schema-only and 40
-combined iterations plus overhead, not one validation; pooled summaries remain
-in the artifact.
+Each completed cell contains 150 measurements from five processes. On the
+deepest chain, all EMF processes completed, while all five VL-MOF processes
+exceeded the 120-second limit, which covers 40 schema-only and 40 combined
+iterations plus overhead, not one validation.
 
 At 101 objects, VL-MOF's chain median is about eleven times its star median
 despite fewer rows. Its raw-list graph expansion and per-object containment
-reachability may explain depth sensitivity, but do not establish a bottleneck
-or complexity bound. EMF's table medians, not every process median, remain below
-3 ms. These results do not establish a general speed ranking.
+reachability may explain this depth sensitivity, without establishing a bottleneck
+or complexity bound. EMF's table medians, though not all its process medians,
+stay below 3 ms; the results establish no general speed ranking.
