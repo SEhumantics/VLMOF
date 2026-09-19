@@ -3,8 +3,11 @@
 These fixtures contain small isolating states and the authored Train
 route-switch-position projection. The `train-batch-1-profile.fixture.json`
 manifest additionally points to full public Train inputs outside this repository;
-those resources are not bundled in this directory. See the
-[evaluation file index](../../README.md) for exact locations and acquisition. Each `*.fixture.json` names a schema/XMI
+those resources are not bundled in this directory, so `run_emf_validation.py`
+does not select that manifest by default; pass it with `--fixture` when the
+retained inputs are present. The reproduction wrapper's `public` phase instead
+writes equivalent manifests for freshly adapted inputs. See the
+[evaluation guide](../../README.md) for provenance and acquisition. Each `*.fixture.json` names a schema/XMI
 manifest, expected result only where its semantics have been reviewed, and a
 state relation. The runner hashes the original bytes before and after execution.
 
@@ -41,3 +44,8 @@ authored Train projection in [`examples/train/route-switch.dsl`](../../../exampl
 and [`docs/train-case.md`](../../../docs/train-case.md). It is a positive
 published-case structural workload eligible for paired timing. It is not an
 upstream generated Train XMI and it does not include Train queries or repair.
+
+`train-route-switch.ecore`, `train-route-switch.xmi` and `train-projection-*.xmi`
+re-express the Train Benchmark v1.0 metamodel. They are licensed under the
+[Eclipse Public License 1.0](../../../LICENSES/EPL-1.0.txt); every other file here
+is MIT. See [NOTICE](../../../NOTICE).

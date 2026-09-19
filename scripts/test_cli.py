@@ -194,5 +194,35 @@ object b : p::B { observe p::B::backs = [@a, @a]; }'''
                                  report['diagnostics'])
 
 
+class RunningExampleTests(unittest.TestCase):
+    """Section 3's running snapshot M_T and its one-change counterexamples."""
+    EXPECTED = {
+        'mt.dsl': [],
+        'c2-sw-no-id.dsl': ['observations exact'],
+        'c4-bounds-drop-sB.dsl': ['multiplicity bounds'],
+        'c4-unique-seg-twice.dsl': ['unique occurrences'],
+        'c5-clear-sp-route.dsl': ['opposite counts'],
+        'c5-mixed-follows-twice.dsl': ['opposite counts'],
+        'c5-mixed-both-twice.dsl': ['multiplicity bounds', 'unique occurrences'],
+        'c6-two-regions.dsl': ['one container and active container property'],
+        'ctl-region-once.dsl': [],
+        'ctl-seg-twice-nonunique.dsl': [],
+        'zero-zero-active.dsl': [],
+    }
+
+    def test_each_variant_violates_exactly_the_named_conditions(self):
+        directory = ROOT / 'examples' / 'running-example'
+        self.assertEqual(set(self.EXPECTED), {path.name for path in directory.glob('*.dsl')})
+        for name, fields in self.EXPECTED.items():
+            with self.subTest(name=name):
+                result = subprocess.run([str(BINARY), 'check-dsl', str(directory / name)],
+                                        capture_output=True, text=True, timeout=30)
+                report = json.loads(result.stdout)
+                self.assertEqual(result.returncode, 1 if fields else 0, result.stdout)
+                self.assertEqual(report['status'], 'invalid' if fields else 'accepted')
+                self.assertEqual(sorted(d['field'] for d in report['diagnostics']), sorted(fields))
+                self.assertTrue(all(d['phase'] == 'snapshot' for d in report['diagnostics']))
+
+
 if __name__ == '__main__':
     unittest.main()

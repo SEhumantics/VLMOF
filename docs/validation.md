@@ -67,6 +67,12 @@ Run correctness-only observations into a new directory:
 python3 experiments/run_emf_validation.py --output /absolute/new-results
 ```
 
+By default the runner selects every fixture whose inputs lie inside the
+repository. It records any other manifest as not selected; pass such a manifest
+explicitly with `--fixture`. Missing inputs stop the run before anything is written.
+The [reproduction guide](../REPRODUCING.md) runs this and the steps below through
+one wrapper.
+
 The runner hashes sources before and after, records commands, stdout/stderr,
 environment, normalized files, EMF reports, Lean reports, and unexpected
 results. It never overwrites or resumes. VL-MOF exit 1 is a semantic rejection,
@@ -96,8 +102,9 @@ The runner starts those timed commands only when the fixture declares itself
 timing-eligible, both validators accept it, and its retained loaded-to-Core
 comparison is explicitly lossless.
 
-The multifamily runner generates deterministic star, recursive-chain and Train
-projection workloads, runs correctness first, then launches independent trials
+The multifamily runner regenerates the deterministic star, recursive-chain and
+Train projection workloads into its output directory, requires them to equal the
+committed fixtures byte for byte, runs correctness first, then launches independent trials
 with both tool orders for each fixed case. Reversing case traversal does not
 change the case's stable scheduling index. Worker failures, missing reports and
 incomplete or rejected sample arrays must fail the timing condition rather than

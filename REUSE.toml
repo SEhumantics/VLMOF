@@ -1,0 +1,47 @@
+# Licence of every path in this repository (https://reuse.software).
+# Everything is MIT unless a later entry names the path; the last matching entry
+# applies. NOTICE explains each exception in prose.
+version = 1
+
+[[annotations]]
+path = "**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Trong-Nghia Be"
+SPDX-License-Identifier = "MIT"
+
+# Files that re-express the Train Benchmark v1.0 metamodel or render its data.
+[[annotations]]
+path = [
+  "examples/train/*.dsl",
+  "examples/running-example/*.dsl",
+  "experiments/cases/emf-validation/train-route-switch.ecore",
+  "experiments/cases/emf-validation/train-route-switch.xmi",
+  "experiments/cases/emf-validation/train-projection-*.xmi",
+]
+precedence = "override"
+SPDX-FileCopyrightText = [
+  "2010-2015 Benedek Izso, Gabor Szarnyas, Istvan Rath and Daniel Varro (Train Benchmark)",
+  "2026 Trong-Nghia Be",
+]
+SPDX-License-Identifier = "EPL-1.0"
+
+# The manuscript: a preprint, not openly licensed.
+[[annotations]]
+path = ["paper/main.tex", "paper/sections/**", "paper/figures/**", "paper/references.bib"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Trong-Nghia Be and Duc-Hanh Dang"
+SPDX-License-Identifier = "LicenseRef-AllRightsReserved"
+
+# Springer's unmodified LLNCS template archive (licence as listed by CTAN).
+[[annotations]]
+path = "paper/template/**"
+precedence = "override"
+SPDX-FileCopyrightText = "Springer Nature"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# The bibliography style states LPPL version 1 or any later version.
+[[annotations]]
+path = "paper/template/splncs04.bst"
+precedence = "override"
+SPDX-FileCopyrightText = "1994-2007 Patrick W Daly"
+SPDX-License-Identifier = "LPPL-1.3c"

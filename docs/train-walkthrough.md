@@ -78,20 +78,24 @@ positions. Structural preservation alone therefore does not settle that query.
 
 ## Reproduce from repository root (Linux/WSL)
 
-After installing the pinned Lean toolchain, run:
+The input is the Core document imported from the untouched batch-1 XMI with the
+adapted profile Ecore. A fresh run of the reproduction wrapper's `public` phase
+writes it to `OUTPUT/public/train-emf-comparison/normalized/public-train-raw-batch-1-profile.e1.json`
+and runs these checks itself. The retained historical copy is
+`public-raw-alignment-01/normalized/public-train-raw-batch-1-profile.e1.json` in the
+companion evidence ([`experiments/companion-evidence.json`](../experiments/companion-evidence.json)).
+With either file as `CORE`, run from the repository root:
 
 ```sh
 lake build
-CORE=../../../misc/fift-review/evidence/public-raw-alignment-01/normalized/public-train-raw-batch-1-profile.e1.json
 python3 scripts/train_walkthrough.py "$CORE" /tmp/full-v1-batch-1.dsl
 cmp /tmp/full-v1-batch-1.dsl examples/train/full-v1-batch-1.dsl
 lake env lean --run experiments/TrainWalkthrough.lean "$CORE" examples/train/full-v1-batch-1.dsl
-python3 scripts/test_cli.py -v
 ```
 
-The sixth-review companion includes the retained E1 input at this relative path.
-A repository-only checkout does not contain the historical input; use the companion
-or pass its explicit path. The Lean experiment reparses and elaborates the generated
+A repository-only checkout does not contain this input; see
+[`REPRODUCING.md`](../REPRODUCING.md) for how to produce it.
+The Lean experiment reparses and elaborates the generated
 DSL and compares `Schema` and `Snapshot` by exact decidable equality with the
 independently JSON-decoded input. It then checks original acceptance, the actual
 Boolean change and acceptance, double-toggle restoration, one-sensor rejection,

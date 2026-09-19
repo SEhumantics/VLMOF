@@ -64,8 +64,22 @@ def main() -> int:
     if output.exists(): raise SystemExit(f"output must not exist: {output}")
     output.mkdir(parents=True)
 
-    subprocess.run([sys.executable, ROOT / "experiments" / "generate_scaling_cases.py"],
-                   cwd=ROOT, check=True)
+    # Regenerate into the evidence directory and require byte equality with the
+    # committed fixtures; the timed inputs themselves are never rewritten.
+    generator = ROOT / "experiments" / "generate_scaling_cases.py"
+    generated = output / "generated-fixtures"
+    subprocess.run([sys.executable, generator, "--output", generated], cwd=ROOT, check=True)
+    drift = sorted(path.name for path in generated.iterdir()
+                   if not (CASES / path.name).is_file()
+                   or (CASES / path.name).read_bytes() != path.read_bytes())
+    generation = {"script": str(generator.relative_to(ROOT)), "sha256": sha(generator),
+                  "output": str(generated.relative_to(output)),
+                  "matches_committed_fixtures": not drift, "differences": drift}
+    if drift:
+        (output / "results.json").write_text(json.dumps({"generation": generation}, indent=2) + "\n",
+                                              encoding="utf-8")
+        print(f"generated fixtures differ from committed fixtures: {drift}", file=sys.stderr)
+        return 1
     cells = []
     for family, sizes in (("containment-inheritance", (11, 101, 501)),
                           ("train-projection", (10, 100, 500)),
@@ -77,6 +91,7 @@ def main() -> int:
               "environment": {"platform": platform.platform(), "python": sys.version},
               "policy": {"trials": args.trials, "warmups": args.warmups,
                          "repetitions": args.repetitions, "counterbalanced": True},
+              "generation": generation,
               "inputs": {str(p): sha(p) for _, _, p in cells}, "correctness": [], "trials": []}
 
     correctness_dir = output / "correctness"

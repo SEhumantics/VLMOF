@@ -83,13 +83,15 @@ def phase_status(report, accepted_key="accepted"):
     return "accepted" if report.get(accepted_key) is True else "rejected"
 
 
+def input_path(manifest_path: Path, value) -> Path:
+    """Resolve a manifest entry as EmfValidationHarness does: lexically, without
+    following symbolic links. Both tools then load each file under the same URI,
+    which the loaded-state comparison relies on."""
+    return Path(os.path.normpath(manifest_path.parent / value))
+
+
 def fixture_paths(manifest_path: Path, fixture):
-    paths = []
-    for field in ("ecore", "xmi"):
-        for value in fixture[field]:
-            path = (manifest_path.parent / value).resolve()
-            paths.append(path)
-    return paths
+    return [input_path(manifest_path, value) for field in ("ecore", "xmi") for value in fixture[field]]
 
 
 def native_identities(core, kind):
@@ -290,6 +292,37 @@ def timing_complete(record, report, tool, warmups, repetitions):
             and valid_samples(report.get("schemaAndSnapshot"), warmups, repetitions))
 
 
+def select_manifests(explicit):
+    """Return (selected, excluded) manifests and fail before any output exists.
+
+    By default only manifests whose Ecore/XMI inputs lie inside this repository are
+    run.  A manifest naming companion or public inputs elsewhere must be passed
+    explicitly with --fixture, so a clean checkout never depends on an author's
+    workspace layout.  Every selected input must exist before anything is run.
+    """
+    candidates = [path.resolve() for path in explicit] if explicit else sorted(DEFAULT_FIXTURES.glob("*.fixture.json"))
+    selected, excluded, missing = [], [], []
+    for manifest_path in candidates:
+        if not manifest_path.is_file():
+            missing.append(str(manifest_path))
+            continue
+        fixture = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if not isinstance(fixture.get("ecore"), list) or not isinstance(fixture.get("xmi"), list):
+            raise SystemExit(f"invalid fixture manifest: {manifest_path}")
+        inputs = fixture_paths(manifest_path, fixture)
+        if not explicit and not all(ROOT in path.parents for path in inputs):
+            excluded.append({"manifest": str(manifest_path),
+                             "reason": "names inputs outside this repository; pass it with --fixture"})
+            continue
+        missing.extend(str(path) for path in inputs if not path.is_file())
+        selected.append(manifest_path)
+    if missing:
+        raise SystemExit("missing fixture inputs; nothing was run:\n  " + "\n  ".join(missing))
+    if not selected:
+        raise SystemExit("no fixture manifests selected")
+    return selected, excluded
+
+
 def bridge_command(main_class, args):
     return ["mvn", "-q", "-f", str(BRIDGE_POM), "exec:java",
             f"-Dexec.mainClass={main_class}", f"-Dexec.args={' '.join(str(arg) for arg in args)}"]
@@ -299,7 +332,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--fixture", action="append", type=Path,
-                        help="Fixture manifest; defaults to every local *.fixture.json.")
+                        help="Fixture manifest; defaults to every self-contained local *.fixture.json.")
     parser.add_argument("--measure", action="store_true", help="Run approved positive timing condition.")
     parser.add_argument("--warmups", default=10, type=int)
     parser.add_argument("--repetitions", default=30, type=int)
@@ -311,13 +344,11 @@ def main():
         raise SystemExit(f"output directory must not exist: {output}")
     if args.warmups < 0 or args.repetitions <= 0:
         raise SystemExit("warmups must be nonnegative and repetitions positive")
+    manifest_paths, excluded_manifests = select_manifests(args.fixture)
     output.mkdir(parents=True)
     (output / "commands").mkdir()
     (output / "normalized").mkdir()
 
-    manifest_paths = [path.resolve() for path in args.fixture] if args.fixture else sorted(DEFAULT_FIXTURES.glob("*.fixture.json"))
-    if not manifest_paths:
-        raise SystemExit("no fixture manifests selected")
     report = {
         "protocol": "emof-emf-validation-1",
         "scope": "Actual EMF Ecore/EObject validation plus lossless E1 normalization observation.",
@@ -326,7 +357,7 @@ def main():
                           "boundary": "preloaded-schema-and-instance-validation"},
         "environment": {"platform": platform.platform(), "python": sys.version,
                         "cwd": str(ROOT), "pid": os.getpid()},
-        "repository": {}, "fixtures": []}
+        "repository": {}, "excluded_default_fixtures": excluded_manifests, "fixtures": []}
     for key, cmd in {"commit": ["git", "rev-parse", "HEAD"], "dirty": ["git", "status", "--porcelain"]}.items():
         row, stdout = command(f"git-{key}", cmd, output)
         report["repository"][key] = {"record": row, "value": stdout.strip()}
@@ -371,8 +402,8 @@ def main():
 
         alignment = None
         core = output / "normalized" / f"{fixture_row['id']}.e1.json"
-        source_args = ["import", *[(manifest_path.parent / path).resolve() for path in fixture["ecore"]], "--",
-                       *[(manifest_path.parent / path).resolve() for path in fixture["xmi"]]]
+        source_args = ["import", *[input_path(manifest_path, path) for path in fixture["ecore"]], "--",
+                       *[input_path(manifest_path, path) for path in fixture["xmi"]]]
         normalization_record, normalization_stdout = command(
             f"{fixture_row['id']}-normalize", bridge_command(INTERCHANGE, source_args), output)
         normalization_json = json_output(normalization_record, normalization_stdout)
@@ -442,6 +473,8 @@ def main():
         row["matches_expected"] is not False for row in report["fixtures"])
     (output / "results.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"{len(report['fixtures'])} fixtures; expected results matched: {report['all_expected']}; {output / 'results.json'}")
+    for row in excluded_manifests:
+        print(f"not selected by default: {row['manifest']} ({row['reason']})")
     return 0 if report["all_expected"] else 1
 
 

@@ -1,0 +1,90 @@
+VL-MOF
+Copyright (c) 2026 Trong-Nghia Be
+
+Unless stated below, the files in this repository are licensed under the MIT
+License (see LICENSE). This applies to earlier published versions of these
+files as well. The exceptions are listed here in prose and, per path, in
+REUSE.toml; their licence texts are in LICENSES/.
+
+================================================================================
+Train Benchmark (Eclipse Public License 1.0)
+================================================================================
+
+The railway metamodel and generated models used in the evaluation come from the
+Train Benchmark, https://github.com/FTSRG/trainbenchmark, tag v1.0, commit
+6490047d7449f9a4b66cec032b9377bfc06a54d2:
+
+REUSE-IgnoreStart
+    Copyright (c) 2010-2015, Benedek Izso, Gabor Szarnyas, Istvan Rath and
+    Daniel Varro
+REUSE-IgnoreEnd
+
+These files are derived from it and are distributed under the Eclipse Public
+License 1.0 (LICENSES/EPL-1.0.txt), not under the MIT License:
+
+    examples/train/*.dsl            (full-v1-batch-1.dsl renders the data of
+                                     models/railway-batch-1.xmi; the others
+                                     are projections of railway.xcore)
+    examples/running-example/*.dsl  (the Train v1.0 structural profile with
+                                     authored objects)
+    experiments/cases/emf-validation/train-route-switch.ecore
+    experiments/cases/emf-validation/train-route-switch.xmi
+    experiments/cases/emf-validation/train-projection-*.xmi
+
+The original Train Benchmark files are not included; experiments/cases/
+fetch-public-cases.sh downloads them at the pinned commit. EMF Compare, which
+is also EPL-1.0, is fetched the same way and is not included either.
+
+================================================================================
+OMG specifications (not included)
+================================================================================
+
+The MOF 2.5.1 and UML 2.5 specifications and their machine-readable files
+(MOF.xmi, UML.xmi, PrimitiveTypes.xmi, EMOFConstraints.ocl) are copyright of
+the Object Management Group and its member companies. OMG's terms do not permit
+posting them on a network computer or distributing modified copies, so they are
+not in this repository. `make sources` (scripts/sources.py) downloads them from
+omg.org into the ignored directory sources/raw/ and verifies their SHA-256
+digests against sources/manifest.json. Text extracted from them by `make text`
+also stays in an ignored directory.
+
+VL-MOF formalizes a structural subset of EMOF and is based on these
+specifications; it does not claim OMG compliance or conformance. MOF, UML, XMI
+and OMG are trademarks of the Object Management Group, Inc.
+
+================================================================================
+Manuscript (all rights reserved)
+================================================================================
+
+paper/main.tex, paper/sections/, paper/figures/ and paper/references.bib are
+the source of the submitted version (preprint) of the paper by Trong-Nghia Be
+and Duc-Hanh Dang. They are not openly licensed; see
+LICENSES/LicenseRef-AllRightsReserved.txt.
+
+Figure 1 (paper/figures/train-diagram.tex) is adapted from Figure 2(a) of
+G. Szarnyas, B. Izso, I. Rath and D. Varro, "The Train Benchmark:
+cross-technology performance evaluation of continuous model queries",
+Software and Systems Modeling 17 (2018), https://doi.org/10.1007/s10270-016-0571-8,
+published under the Creative Commons Attribution 4.0 licence
+(https://creativecommons.org/licenses/by/4.0/). It was redrawn with changes,
+including the multiplicities of route, target, entry and exit, which follow
+Train Benchmark v1.0 (0..1) instead of the article (1).
+
+================================================================================
+Springer LLNCS template
+================================================================================
+
+paper/template/ is Springer's unmodified LaTeX template archive for LNCS and
+CCIS (llncs class 2.24; source URL and SHA-256 in paper/README.md), copyright
+Springer Nature, licensed under CC BY 4.0 as listed by CTAN. Its bibliography
+style splncs04.bst is copyright 1994-2007 Patrick W Daly and licensed under the
+LaTeX Project Public License, version 1 or any later version (LICENSES/
+LPPL-1.3c.txt).
+
+================================================================================
+Dependencies (not included)
+================================================================================
+
+Lake, Lean and Maven download the Lean toolchain (Apache-2.0), Eclipse EMF and
+Xcore/Xtext (EPL) and Jackson (Apache-2.0) at build time. None of them is
+redistributed in this repository.

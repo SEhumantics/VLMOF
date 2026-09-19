@@ -63,3 +63,7 @@ controls match their expected diagnostics, and the raw inputs are unchanged.
 
 All durations are one-run operational wall-clock records. They are retained to make
 the run auditable, not to claim benchmark performance or superiority.
+
+The reproduction wrapper's `public` phase runs this runner, then compares both
+Train variants with EMF for Table 1 and checks the full Train DSL; see
+[`REPRODUCING.md`](../REPRODUCING.md).

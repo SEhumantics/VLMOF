@@ -1,0 +1,149 @@
+{
+  "format": "vlmof-companion-evidence-1",
+  "tree_sha256": "SHA-256 of the lines '<sha256>  <relative path>\\n' for every regular file, sorted by path",
+  "collections": [
+    {
+      "name": "multifamily-evaluation-03",
+      "author_workspace_path": "misc/fift-review/evidence/multifamily-evaluation-03",
+      "supports": "Table 1 authored rows and Train explicit-defaults row (correctness/); Table 2 (timing/)",
+      "files": 1220,
+      "bytes": 101777147,
+      "tree_sha256": "ecc88aa996ad4f8c33f5d0049c7ae5d2593c4ed49b2f365134af89e8bc61729e",
+      "key_files": [
+        {
+          "path": "results.json",
+          "role": "timing campaign index: policy, input hashes, 45 trial launches",
+          "bytes": 37115,
+          "sha256": "faa659bdd9dfb98ec8cb658297fcf535c238e5e18bf40111ddc051af787afb03"
+        },
+        {
+          "path": "correctness/results.json",
+          "role": "Table 1 decisions and state comparisons for 18 fixtures",
+          "bytes": 6978642,
+          "sha256": "2136cfc74a248e2c8bf9ba2895c0976e89eca9b3ebec336c03aa7b90aa9b524e"
+        }
+      ]
+    },
+    {
+      "name": "public-raw-alignment-01",
+      "author_workspace_path": "misc/fift-review/evidence/public-raw-alignment-01",
+      "supports": "Table 1 row 'Train with original omissions'; 754 objects / 3,378 rows; full Train DSL input",
+      "files": 18,
+      "bytes": 5524134,
+      "tree_sha256": "0ae6772be4250b6f1982023e3aa84093dadafc2045051e2c78a575a212a2897c",
+      "key_files": [
+        {
+          "path": "results.json",
+          "role": "EMF and VL-MOF decisions and lossless state comparison",
+          "bytes": 2389344,
+          "sha256": "514897bd8baf2a49bf4c4e65014c41f98803ab2877ea9ec516d3a318335531c1"
+        },
+        {
+          "path": "normalized/public-train-raw-batch-1-profile.e1.json",
+          "role": "Core JSON rendered as examples/train/full-v1-batch-1.dsl",
+          "bytes": 897472,
+          "sha256": "622f8767bb38315c837eefd0ab5ef08dd4f0343dd7f7ca77d2b0a62d2d334649"
+        }
+      ]
+    },
+    {
+      "name": "public-evaluation-01",
+      "author_workspace_path": "misc/fift-review/evidence/public-evaluation-01",
+      "supports": "run_public.py evidence (six adapted Train round trips, controls, EMF Compare rejection); fixture manifest and profile Ecore used by public-raw-alignment-01",
+      "files": 169,
+      "bytes": 18986374,
+      "tree_sha256": "3af7cf25b149d970d1d567e59c8f6f9e534e98703c41c8d6e781b0c2522551d7",
+      "key_files": [
+        {
+          "path": "results.json",
+          "role": "public runner index",
+          "bytes": 152795,
+          "sha256": "f68c12d6643859126203a44b3ef7f8a15fc778a1a9f59341805806f8c9b61fd7"
+        },
+        {
+          "path": "raw-batch-1-profile.fixture.json",
+          "role": "manifest of the original-omissions comparison",
+          "bytes": 597,
+          "sha256": "33d5b3fb99326f161968b022aefca3e4ec044fa9e17df22084d01c5bba1d1b7f"
+        },
+        {
+          "path": "artifacts/railway.profile.ecore",
+          "role": "adapted Train metamodel",
+          "bytes": 4702,
+          "sha256": "c316df8c3985871c5fa14101097f8346e53dda19e80de1f2c867c70afa0381ad"
+        }
+      ]
+    },
+    {
+      "name": "third-review-public",
+      "author_workspace_path": "misc/third_review/development/delivery/VL-MOF-artifact/evidence/public",
+      "supports": "adapted Train inputs named by experiments/cases/emf-validation/train-batch-1-profile.fixture.json",
+      "files": 168,
+      "bytes": 19622480,
+      "tree_sha256": "3590c31b37738f1d5aaa4cae20736aa039e53abe80829a12950c8d3f62fdfca5",
+      "key_files": [
+        {
+          "path": "results.json",
+          "role": "earlier public runner index",
+          "bytes": 154174,
+          "sha256": "cee5520244c4e283787b74fdb852295aeab70a875b5d2960674398734d0866a5"
+        },
+        {
+          "path": "artifacts/railway.profile.ecore",
+          "role": "adapted Train metamodel",
+          "bytes": 4702,
+          "sha256": "c316df8c3985871c5fa14101097f8346e53dda19e80de1f2c867c70afa0381ad"
+        },
+        {
+          "path": "cases/railway-batch-1/adapted.xmi",
+          "role": "batch-1 with twelve materialized FAILURE defaults",
+          "bytes": 118350,
+          "sha256": "b3e4e3d6e6a2a35ca4e4c8094642e7d432a67470994c71f46b461aefe4eec1ac"
+        },
+        {
+          "path": "cases/railway-batch-1/adaptation.manifest.json",
+          "role": "list of the inserted defaults",
+          "bytes": 2032,
+          "sha256": "b48f3d161bb04a4f31b925cdcf18eaace815483e740a37db0366d2298216bc1e"
+        }
+      ]
+    },
+    {
+      "name": "reproduction-results-07",
+      "author_workspace_path": "misc/07th-review/reproduction-results",
+      "supports": "recomputation of Table 2 from retained samples and the full Train DSL check (no new timing)",
+      "files": 8,
+      "bytes": 325721,
+      "tree_sha256": "284437cd7a0dbeb6cf333cd65bae99564a7b5e664366d3a67bea741a7ed41cc0",
+      "key_files": [
+        {
+          "path": "results.json",
+          "role": "commands and outcomes of the recomputation",
+          "bytes": 1635,
+          "sha256": "dba917318fa4957cb5506d3f2141ad25010734587c02b0a228f6ea7230157066"
+        },
+        {
+          "path": "timing-summary.json",
+          "role": "per-trial statistics",
+          "bytes": 82774,
+          "sha256": "597b1fb088a4df3507c9595d77653f848ee05f236c24b7743ce679b88717e59d"
+        }
+      ]
+    }
+  ],
+  "not_redistributed": [
+    {
+      "name": "public-cases-01",
+      "author_workspace_path": "misc/fift-review/evidence/public-cases-01",
+      "reason": "Unmodified upstream Git checkouts (Train Benchmark v1.0 and EMF Compare 3.3.28, both EPL-1.0; about 490 MB). Recreate them with experiments/cases/fetch-public-cases.sh ROOT/public-cases-01, which checks out the pinned commits and verifies the evaluated files' SHA-256 digests."
+    }
+  ],
+  "notes": [
+    "Records are unedited: they contain absolute paths of the author's workspace and one uname output with a host name. Redacting them would change the digests above; a redacted archive needs a regenerated manifest and a statement of what was changed.",
+    "public-raw-alignment-01 was run with public-evaluation-01/raw-batch-1-profile.fixture.json, which names ../public-cases-01/trainbenchmark/models/railway-batch-1.xmi; place the re-fetched checkout beside the collections to rerun it.",
+    "experiments/cases/emf-validation/train-batch-1-profile.fixture.json names the third-review-public inputs by a path relative to the author workspace; outside that layout run it with a manifest that names the companion copies.",
+    "Since multifamily-evaluation-03 was recorded, the three recursive-containment-*.fixture.json manifests changed only in generator metadata (occurrences 32/302/1502 corrected to 31/301/1501 = 3n-2); the timed XMI and Ecore bytes are identical, so a fresh run records different manifest hashes for these three files.",
+    "The retained runs used repository commits 7ed9709 (correctness and timing, with uncommitted changes recorded in their git-dirty logs) and 6985361 (third-review-public, not in the current history).",
+    "Licensing: the collections contain data derived from the Train Benchmark (adapted and exported XMI and Ecore, imported Core JSON, loaded observations), which is EPL-1.0. A published archive must include LICENSES/EPL-1.0.txt and the Train Benchmark notice from NOTICE. The collections contain no OMG material."
+  ]
+}

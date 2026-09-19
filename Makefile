@@ -14,6 +14,7 @@ test:
 check: verify test
 	lake build
 	lake env lean experiments/ProofClient.lean
+	lake env lean experiments/PaperMap.lean
 	$(PYTHON) scripts/test_cli.py -v
 
 text: verify

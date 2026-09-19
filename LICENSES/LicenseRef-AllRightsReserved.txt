@@ -1,0 +1,10 @@
+All rights reserved.
+
+The files marked with this licence are the source of the manuscript
+"Formalizing Structural EMOF in Lean for Metamodeling" by Trong-Nghia Be and
+Duc-Hanh Dang, in the version submitted for review (a preprint). They are not
+covered by the MIT License of this repository or by any other open licence.
+
+You may read them and build the manuscript from them for your own use. Any other
+reproduction, modification or redistribution requires the authors' permission.
+If the paper is published, cite the published version.

@@ -41,3 +41,10 @@ The [full structural walkthrough](../../docs/train-walkthrough.md) adds the exac
 10-class/21-feature/two-enumeration v1.0 profile and retained 754-object state as
 `full-v1-batch-1.dsl`. It includes a tested exact Core comparison and the bounded
 Boolean-toggle preservation result; the original projection fixtures stay distinct.
+
+The `.dsl` files here are derived from Train Benchmark v1.0 (commit
+`6490047d7449f9a4b66cec032b9377bfc06a54d2`), copyright 2010–2015 Benedek Izsó,
+Gábor Szárnyas, István Ráth and Dániel Varró. They are licensed under the
+[Eclipse Public License 1.0](../../LICENSES/EPL-1.0.txt), not MIT. The projections
+re-express `railway.xcore`, and `full-v1-batch-1.dsl` renders the data of
+`models/railway-batch-1.xmi`. See [NOTICE](../../NOTICE).
